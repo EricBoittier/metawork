@@ -1,0 +1,112 @@
+
+
+\let\min\undefined
+\DeclareMathOperator*{\min}{min}
+
+% models
+\newcommand{\model}[1]{\textsc{#1}\xspace}
+\newcommand{\lorem}{\model{Lorem}}
+\newcommand{\mace}{\model{Mace}}
+\newcommand{\cace}{\model{Cace-Les}} 
+\newcommand{\sokrates}{\model{So3krates}}
+\newcommand{\pet}{\model{Pet}}
+\newcommand{\fgnn}{4G-NN\xspace}
+
+% other
+\newcommand{\sn}{S\textsubscript{N}2\xspace}
+
+% abbreviations
+
+% todo: use abbrevation package
+\newcommand{\abr}[1]{\uppercase{#1}}
+\newcommand{\nn}{\abr{nn}\xspace}
+\newcommand{\nns}{\abr{nn}s\xspace}
+\newcommand{\mpnn}{\abr{mpnn}\xspace}
+\newcommand{\mpnns}{\abr{mpnn}s\xspace}
+\newcommand{\MLP}{\abr{MLP}\xspace}
+\newcommand{\mlp}{\abr{MLIP}\xspace}
+\newcommand{\mlps}{\abr{MLIP}s\xspace}
+\newcommand{\gnn}{\abr{GNN}\xspace}
+\newcommand{\gnns}{\abr{GNN}s\xspace}
+\newcommand{\ffs}{\abr{ff}s\xspace}
+\newcommand{\ff}{\abr{ff}\xspace}
+\newcommand{\ad}{\abr{ad}\xspace}
+\newcommand{\md}{\abr{md}\xspace}
+\newcommand{\dft}{\abr{dft}\xspace}
+\newcommand{\pes}{\abr{pes}\xspace}
+\newcommand{\bo}{\abr{bo}\xspace}
+\newcommand{\mic}{\abr{mic}\xspace}
+\newcommand{\lode}{\abr{LODE}\xspace}
+
+
+% General
+\newcommand{\scare}[1]{\lq#1\rq} 
+\newcommand{\etal}{et~al.}
+\newcommand{\el}{{\,\ldots}\xspace}
+\newcommand{\yes}{\checkmark}
+\newcommand{\no}{$\times$}
+
+% NeurIPS/ICML/ICLR/TMLR conventions
+\input{math_commands.tex}
+
+% Vector: Lowercase
+\newcommand{\ourvector}[1]{{\bm{#1}}}
+% Matrix: Uppercase
+\newcommand{\ourmatrix}[1]{{\bm{#1}}}
+% Tensor: Sans serif
+\newcommand{\ourtensor}[1]{\tens{#1}}
+
+\newcommand{\symset}[1]{\mathbb{#1}}
+
+\newcommand{\cutoff}{r_{\text{c}}}
+\newcommand{\lmax}{l_{\text{max}}}
+\newcommand{\lrlmax}{l_{\text{max, LR}}}
+
+\newcommand{\graph}{\gG}
+\newcommand{\nodes}{\gV}
+\newcommand{\edges}{\gE}
+
+
+% Math + Physics general
+\newcommand{\grad}{\nabla}
+
+\let\R\undefined
+\newcommand{\R}{\vr}
+\newcommand{\K}{\vk}
+\newcommand{\Rnorm}{\hat{\R}}
+\newcommand{\F}{\vf}
+
+\newcommand{\cell}{\mC}
+\newcommand{\offset}{\vn}
+
+\newcommand{\curlyset}[2]{\{\, #1\, |\, #2 \, \}}
+\newcommand{\miniset}[1]{\{\, #1 \, \}}
+
+\newcommand{\wholes}{\mathbb{Z}}
+\newcommand{\reals}{\mathbb{R}}
+\newcommand{\zerovec}{\ourvector{0}}
+\newcommand{\bigo}[1]{O(#1)}
+
+\newcommand{\magnitude}[1]{|#1|}
+
+\newcommand{\inlinefrac}[2]{#1/#2}
+
+% LOREM
+\newcommand{\scalar}[1]{\ourmatrix{#1}}
+\newcommand{\scaf}{\mP}
+
+\newcommand{\spherical}[2]{{\ourtensor{#1}}^{#2}}
+\newcommand{\sphf}{\tS}
+
+
+\newcommand{\func}[2]{\text{#1}(#2)}
+\newcommand{\fcutoff}{f_{\text{cut}}}
+
+\newcommand{\nbh}[1]{\symset{N}(#1)}
+
+% Groups and stuff
+\newcommand{\euc}{\text{E}}
+\newcommand{\sog}{\text{SO}(3)}
+\newcommand{\seg}{\text{SE}(3)}
+\newcommand{\og}{\text{O}(3)}
+\newcommand{\eg}{\text{E}(3)}

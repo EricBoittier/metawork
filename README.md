@@ -235,16 +235,19 @@ separate problems, in the order you'll likely see them:
    13.0), which that driver can't run. Symptom: everything imports fine, but
    at the first CUDA call you get
    `UserWarning: CUDA initialization: The NVIDIA driver on your system is
-   too old (found version 12020)`. Fix: install a PyTorch build matching
-   what the driver actually supports, e.g.
+   too old (found version 12020)`.
+
+   `setup-metawork.sh` picks a matching wheel (`cu121` on that machine --
+   the newest torch there is `2.5.1+cu121`) and **pins** it. Without the
+   pin, `uv pip install -e metatensor[torch]` later replaces it with
+   `2.13.0+cu130` from PyPI (the version constraint is satisfied either
+   way; uv does not look at the CUDA runtime). If a venv is already in
+   that state, restore the matching wheel and rebuild the torch extensions
+   without a full setup:
+
    ```bash
-   uv pip install --python .venv/bin/python torch --index-url https://download.pytorch.org/whl/cu121
+   bash etc/fix-torch-cuda.sh
    ```
-   (no version floor -- see issue 6 for why). `setup-metawork.sh` now reads
-   the driver's max supported CUDA version straight out of `nvidia-smi`'s
-   own header and picks a matching wheel channel (`cu121`/`cu124`/`cu126`/
-   default) automatically, then verifies `torch.cuda.is_available()` after
-   install and warns if it's still `False`.
 
 4b. **Everything installs into the wrong directory, silently.**
    `setup-metawork.sh` used to hardcode `BASE_DIR="$HOME/Documents/metawork"`

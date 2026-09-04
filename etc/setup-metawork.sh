@@ -209,72 +209,12 @@ if [ ! -d "$VENV_DIR" ]; then
   uv venv "$VENV_DIR" --python "$PYTHON_VERSION"
 fi
 VPY="$VENV_DIR/bin/python"
+# shellcheck source=etc/_torch_cuda.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_torch_cuda.sh"
 
 # ---- 4. GPU-aware PyTorch install -------------------------------------------
 log "Detecting GPU / CUDA driver"
-if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
-  echo "  Working NVIDIA driver detected:"
-  nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | sed 's/^/    /'
-
-  # The driver caps the *newest* CUDA runtime it can run -- not just whether
-  # it can run one at all. Installing PyTorch's default (newest bundled
-  # CUDA) wheel on an older driver installs fine but then fails at runtime
-  # with "CUDA initialization: The NVIDIA driver on your system is too old".
-  # So read the driver's max supported CUDA version from `nvidia-smi`'s own
-  # header and pick a wheel channel it can actually run.
-  driver_cuda_ver=$(nvidia-smi | grep -oE 'CUDA Version: [0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+' | head -1)
-  index_url=""   # empty = default index = newest bundled CUDA build
-  if [ -n "$driver_cuda_ver" ]; then
-    echo "  Driver supports up to CUDA $driver_cuda_ver"
-    index_url=$(awk -v v="$driver_cuda_ver" '
-      BEGIN {
-        if (v >= 12.8)      print ""
-        else if (v >= 12.6) print "https://download.pytorch.org/whl/cu126"
-        else if (v >= 12.4) print "https://download.pytorch.org/whl/cu124"
-        else                print "https://download.pytorch.org/whl/cu121"
-        # cu121 is the oldest channel PyTorch still publishes wheels for at
-        # all; a driver older than that (< CUDA 11.8-ish) needs a newer
-        # driver, there is no lower channel to fall back to.
-      }')
-  else
-    echo "  Could not parse a CUDA version out of nvidia-smi -- using the default (newest) wheel"
-  fi
-
-  # No version floor here on purpose: PyTorch's *minimum* supported CUDA
-  # version keeps rising with each release (e.g. cu121 tops out around
-  # torch 2.5.x -- nothing newer ships a cu121 build at all), so pinning
-  # e.g. "torch>=2.7" here makes an older-driver channel like cu121
-  # unsatisfiable by construction. Let uv pick the newest torch actually
-  # available on the chosen channel instead. If a specific package below
-  # needs a torch floor (e.g. metatrain's dpa3 extra needs >=2.7), that
-  # constraint belongs on that package's own extras, not hardcoded here.
-  #
-  # --reinstall-package is still required: `uv pip install "torch"` is a
-  # no-op if any torch is already installed, even when pointing at a
-  # different --index-url -- version satisfaction alone doesn't care which
-  # CUDA build is actually present. Without forcing a reinstall, the
-  # channel selection above would silently have no effect.
-  if [ -n "$index_url" ]; then
-    echo "  Installing PyTorch for CUDA <= $driver_cuda_ver ($index_url)"
-    uv pip install --python "$VPY" --reinstall-package torch torch --index-url "$index_url"
-  else
-    echo "  Installing default (newest CUDA-enabled) PyTorch wheel"
-    uv pip install --python "$VPY" --reinstall-package torch torch
-  fi
-
-  cuda_ok=$("$VPY" -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null || echo False)
-  if [ "$cuda_ok" != "True" ]; then
-    echo "  WARNING: a driver is present but torch.cuda.is_available() is still False." >&2
-    echo "  Re-run with a lower channel by hand, e.g.:" >&2
-    echo "    uv pip install --python $VPY torch --index-url https://download.pytorch.org/whl/cu118" >&2
-  fi
-else
-  echo "  No working NVIDIA driver found (this is the case on nouveau-only"
-  echo "  boxes like this one) -- installing the smaller CPU-only wheel."
-  echo "  Re-run this script unmodified on a machine with a real NVIDIA"
-  echo "  driver to get CUDA-accelerated PyTorch instead."
-  uv pip install --python "$VPY" torch --index-url https://download.pytorch.org/whl/cpu
-fi
+ensure_torch_for_driver "$VPY" || true
 
 # ---- 4b. CUDA toolkit (nvcc) detection --------------------------------------
 # metatensor-torch / metatomic-torch / featomic compile actual CUDA kernels
@@ -309,7 +249,7 @@ for entry in "${INSTALL_REPOS[@]}"; do
   target="$BASE_DIR/$repo"
   [ -n "$extras" ] && target="$target[$extras]"
   log "Installing $repo${extras:+ [$extras]}"
-  uv pip install --python "$VPY" -e "$target"
+  uv_pip_keep_torch "$VPY" -e "$target"
 done
 
 # ---- 5b. upet, in its own separate venv -------------------------------------
@@ -331,20 +271,38 @@ fi
 UPET_VPY="$UPET_VENV/bin/python"
 
 log "Installing upet (separate venv)"
-if [ -n "${index_url:-}" ]; then
-  uv pip install --python "$UPET_VPY" --reinstall-package torch torch --index-url "$index_url"
-elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
-  uv pip install --python "$UPET_VPY" --reinstall-package torch torch
-else
-  uv pip install --python "$UPET_VPY" --reinstall-package torch torch --index-url https://download.pytorch.org/whl/cpu
-fi
-uv pip install --python "$UPET_VPY" -e "$BASE_DIR/upet"
+TORCH_PIN_FILE="$UPET_VENV/.torch-constraint.txt"
+ensure_torch_for_driver "$UPET_VPY" || true
+uv_pip_keep_torch "$UPET_VPY" -e "$BASE_DIR/upet"
+TORCH_PIN_FILE="$VENV_DIR/.torch-constraint.txt"
 
 # ---- 5c. extra PyPI packages for etc/ examples ------------------------------
 # Not part of the ecosystem checkouts. Used by etc/qm7x_zenodo (HDF5).
 # Safe to re-run -- uv is a no-op if the version is already satisfied.
 log "Installing extra example dependencies"
-uv pip install --python "$VPY" h5py
+uv_pip_keep_torch "$VPY" h5py
+
+# ---- 5d. keep the driver-matched torch --------------------------------------
+# Editable `[torch]` extras resolve `torch` from PyPI and will swap a cu121
+# wheel for 2.13+cu130 (same version constraint, different CUDA runtime).
+# Re-check after those installs; if CUDA died, restore the matching wheel
+# and rebuild the extension packages against it.
+if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 \
+   && ! torch_cuda_is_available "$VPY"; then
+  log "torch.cuda.is_available() is False after package installs -- restoring a driver-matched wheel"
+  torch_before=$("$VPY" -c "import torch; print(torch.__version__)")
+  ensure_torch_for_driver "$VPY" || true
+  torch_after=$("$VPY" -c "import torch; print(torch.__version__)")
+  if [ "$torch_before" != "$torch_after" ]; then
+    log "torch changed $torch_before -> $torch_after; rebuilding torch extension packages"
+    for entry in "${INSTALL_REPOS[@]}"; do
+      IFS=':' read -r repo extras _org <<< "$entry"
+      [ "$extras" = "torch" ] || continue
+      log "Reinstalling $repo[torch]"
+      uv_pip_keep_torch "$VPY" --reinstall-package "${repo}-torch" -e "$BASE_DIR/$repo[$extras]"
+    done
+  fi
+fi
 
 # ---- 6. summary --------------------------------------------------------------
 log "Summary"
