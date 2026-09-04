@@ -13,29 +13,95 @@ bash ~/metawork/etc/setup-metawork.sh
 
 # Programs
 
-ASE
-TorchSim
-LAMMPS
-GROMACS
+Simulation engines with a metatensor/metatomic integration, so a model built
+with this stack can be dropped in as the potential:
+
+- **[ASE](https://wiki.fysik.dtu.dk/ase/)** ([repo](https://gitlab.com/ase/ase)) --
+  the Atomic Simulation Environment. The lightest-weight way to run a
+  metatomic model: see the
+  [ASE integration docs](https://docs.metatensor.org/metatomic/latest/engines/ase.html)
+  and [`2-running-ase-md.py`](https://github.com/metatensor/metatomic/blob/main/python/examples/2-running-ase-md.py).
+- **[TorchSim](https://github.com/TorchSim/torch-sim)** -- batched,
+  GPU-native MD in pure PyTorch (no C++/Rust build required). See the
+  [TorchSim integration docs](https://docs.metatensor.org/metatomic/latest/engines/torchsim.html)
+  and the `5-torchsim-getting-started` / `6-torchsim-batched` examples below.
+- **[LAMMPS](https://www.lammps.org/)** ([docs](https://docs.lammps.org/)) --
+  via the metatomic-enabled fork at
+  [metatensor/lammps](https://github.com/metatensor/lammps). See the
+  [LAMMPS integration docs](https://docs.metatensor.org/metatomic/latest/engines/lammps.html).
+- **[GROMACS](https://www.gromacs.org/)** ([manual](https://manual.gromacs.org/)) --
+  via the metatomic staging branch at
+  [metatensor/gromacs](https://github.com/metatensor/gromacs). See the
+  [GROMACS integration docs](https://docs.metatensor.org/metatomic/latest/engines/gromacs.html).
+
+Also supported (not currently cloned in this workspace, add them to
+`INSTALL_REPOS`/`CLONE_ONLY_REPOS` in `etc/setup-metawork.sh` if you need
+them): [i-PI](https://docs.metatensor.org/metatomic/latest/engines/ipi.html),
+[PLUMED](https://docs.metatensor.org/metatomic/latest/engines/plumed.html),
+[EON](https://docs.metatensor.org/metatomic/latest/engines/eon.html), and
+[chemiscope](https://docs.metatensor.org/metatomic/latest/engines/chemiscope.html)
+for visualization.
 
 
 # Documentation
 
-Open all the docs using
-```bash
+Per-project hosted docs:
 
+- [metatensor](https://docs.metatensor.org/)
+- [metatomic](https://docs.metatensor.org/metatomic/)
+- [featomic](https://metatensor.github.io/featomic/index.html)
+- [metatrain](https://docs.metatensor.org/metatrain/)
+- [hpc-docs](https://github.com/metatensor/hpc-docs) -- install/run
+  instructions for this ecosystem on HPC clusters, including
+  [CSCS Alps](https://github.com/metatensor/hpc-docs/blob/main/CSCS-Alps/metatrain.md)
+
+Open all of them at once in Firefox:
+```bash
+for url in \
+  https://docs.metatensor.org/ \
+  https://docs.metatensor.org/metatomic/ \
+  https://metatensor.github.io/featomic/index.html \
+  https://docs.metatensor.org/metatrain/ \
+  https://github.com/metatensor/hpc-docs
+do
+  firefox --new-tab "$url" &
+done
+```
+
+To instead open every repo's GitHub Issues + Pull Requests pages (e.g. to
+check for known bugs like the `featomic_torch` one below, or to see what's
+currently in flight upstream):
+```bash
+bash etc/open-github-pages.sh          # upstream issues + PRs
+bash etc/open-github-pages.sh --fork   # your own fork's PRs
 ```
 
 
 # Examples
 
-...
+- **metatensor core** -- [hosted gallery](https://docs.metatensor.org/latest/examples/core/index.html) /
+  [source](https://github.com/metatensor/metatensor/tree/main/python/examples/core):
+  `TensorMap` basics, sparsity, gradients, DLPack interop.
+- **metatensor learn** -- [hosted gallery](https://docs.metatensor.org/latest/examples/learn/index.html) /
+  [source](https://github.com/metatensor/metatensor/tree/main/python/examples/learn):
+  datasets/dataloaders, equivariant `nn.Module`s.
+- **metatomic** -- [source](https://github.com/metatensor/metatomic/tree/main/python/examples):
+  exporting an atomistic model, running ASE MD, neighbor lists, profiling,
+  and getting started with TorchSim (single + batched).
+- **metatrain, beginner** -- [hosted gallery](https://docs.metatensor.org/metatrain/latest/generated_examples/0-beginner/index.html) /
+  [source](https://github.com/metatensor/metatrain/tree/main/examples/0-beginner):
+  data prep, training from scratch, fine-tuning, parity plots, running the
+  result in ASE.
+- **metatrain, advanced** -- [hosted gallery](https://docs.metatensor.org/metatrain/latest/generated_examples/1-advanced/index.html) /
+  [source](https://github.com/metatensor/metatrain/tree/main/examples/1-advanced):
+  transfer learning, LLPR (uncertainty), ZBL, generic targets, FlashMD,
+  multi-GPU, DOS training.
 
 
 
 # Known issues
 
-Building this ecosystem on a fresh GPU machine (e.g. `cosmopc27`) hit three
+Building this ecosystem on a fresh GPU machine (e.g. `cosmopc27`) hit four
 separate problems, in the order you'll likely see them:
 
 1. **`cargo`/`rustc` present but not working.** On some machines `cargo` is a
@@ -72,3 +138,22 @@ separate problems, in the order you'll likely see them:
    the file automatically (idempotent -- no-op once upstream fixes it, or on
    a repeat run) to fall through to the existing PyTorch-bundled-CuDNN
    fallback instead of crashing.
+
+4. **PyTorch installs fine but `torch.cuda.is_available()` is `False`.**
+   A working driver isn't the same as a driver that can run *any* CUDA
+   build -- each driver caps the newest CUDA runtime it supports. On
+   `cosmopc27`, driver `535.309.01` tops out at CUDA 12.2, but PyTorch's
+   default install pulls the newest bundled CUDA build (`cu130`, i.e. CUDA
+   13.0), which that driver can't run. Symptom: everything imports fine, but
+   at the first CUDA call you get
+   `UserWarning: CUDA initialization: The NVIDIA driver on your system is
+   too old (found version 12020)`. Fix: install a PyTorch build matching
+   what the driver actually supports, e.g.
+   ```bash
+   uv pip install --python .venv/bin/python 'torch>=2.7' --index-url https://download.pytorch.org/whl/cu121
+   ```
+   `setup-metawork.sh` now reads the driver's max supported CUDA version
+   straight out of `nvidia-smi`'s own header and picks a matching wheel
+   channel (`cu121`/`cu124`/`cu126`/default) automatically, then verifies
+   `torch.cuda.is_available()` after install and warns if it's still
+   `False`.
