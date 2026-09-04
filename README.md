@@ -318,3 +318,72 @@ separate problems, in the order you'll likely see them:
    [metatensor/metatomic](https://github.com/metatensor/metatomic) for the
    fix and re-add `torchsim` to `INSTALL_REPOS` in `setup-metawork.sh` once
    it lands.
+
+8. **`uv pip install -e metatensor[torch]` fails with
+   `AttributeError: 'Version' object has no attribute '__replace__'`.**
+   metatensor's `setup.py` bumps its own dev version with
+   `packaging.version.Version.__replace__(...)`, an API only added in
+   `packaging` 26.0. Its `pyproject.toml` only requires `packaging >=23`
+   for the build environment though, and `download.pytorch.org/whl/*`
+   (added as an `--extra-index-url` so CPU/CUDA torch wheels resolve
+   correctly) turns out to mirror a handful of plain PyPI packages torch
+   itself depends on -- `packaging` included, capped around 24.x. uv's
+   default index-strategy (`first-index`) stops looking for a package the
+   moment *any* configured index has it, so it settled on that old, capped
+   `packaging` instead of checking PyPI for a newer one, and the build
+   failed before ever reaching metatensor's own code. Fixed by adding
+   `--index-strategy unsafe-best-match` to `uv_pip_keep_torch` in
+   `_torch_cuda.sh`, so uv considers every configured index and picks the
+   best version instead of stopping at the first hit.
+
+9. **Immediately after fixing issue 8, `uv pip install -e
+   metatomic[torch]` becomes unsatisfiable: "metatomic-torch depends on
+   torch==2.13.\* and torch==2.14.0+cpu".** PyPI shipped `torch==2.14.0`
+   two days before this was diagnosed. metatomic-torch's (and
+   featomic-torch's, metatrain's) own `build-system.requires` pull in the
+   latest PyPI release of `metatensor-torch` to build/link against (they
+   can't see our local editable checkout during their own isolated build),
+   and that release was itself published pinned to `torch==2.13.*` --
+   whatever was newest when *it* was built. Meanwhile nothing holds our
+   own locally-built `metatensor-torch` back from chasing PyPI's newest
+   torch. The two drift apart the moment PyPI ships a torch newer than
+   what the last metatensor-torch release was built against, and a plain
+   `-c constraints.txt` file doesn't help -- constraints only scope the
+   top-level install graph, not each package's own isolated build
+   resolution. `--exclude-newer-package torch=<date>` does apply there too
+   (it hides newer releases at the index level, for every lookup,
+   including ones inside another package's build isolation), so
+   `_torch_cuda.sh` now anchors `torch` behind a `TORCH_EXCLUDE_NEWER_DATE`
+   cutoff wherever it's installed. This is a manual, dated pin --
+   `setup-metawork.sh` will need it bumped (or removed) once upstream
+   republishes the `-torch` packages against `torch==2.14`.
+
+10. **Once issues 8 and 9 are fixed, the full `setup-metawork.sh` run
+    still ends with `metatensor`/`metatensor-torch` reported as plain PyPI
+    releases (`0.2.4`/`0.10.4`), not the local editable checkout, even
+    though "Installing metatensor [torch]" clearly builds and installs the
+    editable one first.** metatomic-torch, featomic-torch and metatrain
+    all declare `metatensor-torch >=0.10.0,<0.11` as an install
+    dependency, and the local metatensor checkout's own dev-version
+    scheme (bumping the minor version for every commit since the last
+    tag) has drifted past that ceiling to `0.11.0.dev...` -- so installing
+    any of those three *after* metatensor silently swaps the just-built
+    editable `metatensor-torch` back out for the PyPI `0.10.4` release
+    that actually satisfies their pin, and each subsequent repo in
+    `INSTALL_REPOS` that shares the same ceiling leaves it there. This
+    isn't a bug introduced by anything above -- it's a pre-existing
+    version-pin mismatch between this metatensor checkout and the last
+    metatomic/featomic/metatrain releases synced against it, and it never
+    surfaced before because issue 8 blocked the very first install step.
+    Left alone, `INSTALL_REPOS`'s fixed order (metatensor, metatomic,
+    featomic, metatrain, ...) happens to settle into a stable, working
+    state where only the *last* repo touching a given package keeps its
+    local editable copy -- on this machine that meant featomic and
+    metatrain (the two repos with actual local changes per `git status`)
+    stayed editable, while metatensor and metatomic (untouched locally)
+    settled on PyPI releases. If you need to edit metatensor itself and
+    see that reflected in metatomic/featomic/metatrain too, this needs an
+    actual decision (pin the metatensor checkout to a tag/commit before
+    the version crossed `0.11`, or patch the downstream repos'
+    `metatensor-torch` upper bound the way `_torch_cuda.sh` already patches
+    featomic's cudnn bug) -- not done here.

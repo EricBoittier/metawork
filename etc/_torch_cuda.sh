@@ -18,6 +18,32 @@ TORCH_CUDA_CHANNELS=(
 
 TORCH_INDEX_URL="${TORCH_INDEX_URL-}"
 
+# The ecosystem packages (metatensor-torch, metatomic-torch, featomic-torch)
+# each build against and pin to `torch=={the major.minor of whatever torch
+# is present in their own PEP517 build isolation}`, and that build-time
+# resolve isn't scoped to our own local editable checkouts -- a package's
+# own `build-system.requires` pulls in the latest matching PyPI *release*
+# of the others (e.g. metatomic-torch's pyproject.toml requires
+# `metatensor-torch >=0.10.0,<0.11`), which itself was published pinned to
+# whatever torch was newest *then*. So the moment PyPI ships a newer torch
+# than these upstream releases were built against, `uv pip install -e
+# metatomic[torch]` becomes unsatisfiable: our locally-built
+# metatensor-torch chases the newest torch (no pin holds it back), while
+# metatomic-torch's build drags in an old PyPI metatensor-torch pinned to
+# an older one -- see README Known Issues for the full story. A plain
+# constraints file (`-c ...`) does not help: constraints only scope the
+# top-level install graph, not each package's own isolated build
+# resolution.
+#
+# `--exclude-newer-package` fixes this at the resolver level instead: it
+# hides `torch` releases newer than this date from *every* index lookup,
+# including ones happening inside another package's own build isolation,
+# so every package converges on the same, older, mutually-compatible torch
+# instead of each independently chasing "newest available today". Bump (or
+# remove) this once upstream republishes against the newer torch.
+TORCH_EXCLUDE_NEWER_DATE="2026-09-01"
+TORCH_EXCLUDE_NEWER_ARGS=(--exclude-newer-package "torch=$TORCH_EXCLUDE_NEWER_DATE")
+
 driver_max_cuda() {
   nvidia-smi 2>/dev/null \
     | grep -oE 'CUDA Version: [0-9]+\.[0-9]+' \
@@ -70,8 +96,10 @@ ensure_torch_for_driver() {
   local py="$1"
   if ! command -v nvidia-smi >/dev/null 2>&1 || ! nvidia-smi >/dev/null 2>&1; then
     echo "  No working NVIDIA driver -- installing CPU torch"
-    uv pip install --python "$py" --reinstall-package torch torch \
-      --index-url https://download.pytorch.org/whl/cpu
+    uv pip install --python "$py" --reinstall-package torch \
+      --index-url https://download.pytorch.org/whl/cpu \
+      "${TORCH_EXCLUDE_NEWER_ARGS[@]}" \
+      torch
     TORCH_INDEX_URL="https://download.pytorch.org/whl/cpu"
     pin_torch "$py"
     return 0
@@ -141,5 +169,14 @@ uv_pip_keep_torch() {
   if [ -f "$pin" ]; then
     args+=(-c "$pin")
   fi
+  # A `-c` constraints file only scopes the top-level install graph, not
+  # the separate isolated build environment each package's own
+  # `build-system.requires` resolves for itself -- so it does not stop
+  # e.g. metatensor-torch's build from picking a newer `torch` than what
+  # we just pinned above. --exclude-newer-package does apply there too
+  # (it hides newer releases at the index level), which is what actually
+  # keeps every package's own build converging on the same torch. See the
+  # TORCH_EXCLUDE_NEWER_DATE comment above.
+  args+=("${TORCH_EXCLUDE_NEWER_ARGS[@]}")
   uv pip install --python "$py" "${args[@]}" "$@"
 }
