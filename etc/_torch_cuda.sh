@@ -6,23 +6,6 @@
 # PyPI's default cu130 build: the versions both satisfy `torch`, and uv does
 # not care which CUDA runtime is inside. Pin the installed torch and pass
 # --extra-index-url so that does not happen.
-#
-# That alone isn't enough, though: by default uv builds each `[torch]`-extra
-# package in an *isolated* build env, resolved fresh from PyPI. Two bugs
-# follow from that, both fixed the same way (see uv_pip_keep_torch below):
-#   1. metatensor's setup.py needs `packaging >=24.2` (for Version.__replace__)
-#     but only declares `packaging >=23`, so an isolated build env can legally
-#     resolve something older and hit `AttributeError: 'Version' object has
-#     no attribute '__replace__'` at build time.
-#   2. the isolated build env resolves its own `torch` too, which can pick a
-#     different CUDA channel than the one pinned in the venv, compile the
-#     extension against *that* torch, and then require it at install time --
-#     silently reintroducing the exact cu121-vs-cu130 swap this file exists
-#     to prevent (the extension ends up ABI-mismatched against the pinned
-#     wheel: "compiled against torch vX, which is not ABI compatible").
-# `--no-build-isolation` fixes both: the build then reuses whatever is
-# already installed in the venv (a packaging new enough, and the pinned
-# torch) instead of resolving anything fresh.
 
 # Newest first. Empty string = PyPI default (currently a CUDA 13 wheel).
 TORCH_CUDA_CHANNELS=(
@@ -58,7 +41,7 @@ TORCH_INDEX_URL="${TORCH_INDEX_URL-}"
 # so every package converges on the same, older, mutually-compatible torch
 # instead of each independently chasing "newest available today". Bump (or
 # remove) this once upstream republishes against the newer torch.
-TORCH_EXCLUDE_NEWER_DATE="2026-09-01"
+TORCH_EXCLUDE_NEWER_DATE="2026-09-05"
 TORCH_EXCLUDE_NEWER_ARGS=(--exclude-newer-package "torch=$TORCH_EXCLUDE_NEWER_DATE")
 
 driver_max_cuda() {
@@ -85,15 +68,22 @@ torch_cuda_is_available() {
   [ "$("$py" -c 'import torch; print("True" if torch.cuda.is_available() else "False")' 2>/dev/null | tail -1)" = "True" ]
 }
 
+# Optional version ceiling/floor on top of whatever channel-walk picks the
+# CUDA-compatible build -- e.g. "torch<2.14" when some extra we install
+# (metatrain's soap-bpnn, via sphericart-torch) caps torch below the latest
+# release. Empty (default) = no extra constraint, just "torch".
+TORCH_VERSION_CONSTRAINT="${TORCH_VERSION_CONSTRAINT-}"
+
 install_torch_from_index() {
   local py="$1"
   local url="${2-}"
+  local spec="${TORCH_VERSION_CONSTRAINT:-torch}"
   if [ -n "$url" ]; then
-    echo "  uv pip install torch --index-url $url"
-    uv pip install --python "$py" --reinstall-package torch torch --index-url "$url"
+    echo "  uv pip install $spec --index-url $url"
+    uv pip install --python "$py" --reinstall-package torch "$spec" --index-url "$url"
   else
-    echo "  uv pip install torch (PyPI default CUDA wheel)"
-    uv pip install --python "$py" --reinstall-package torch torch
+    echo "  uv pip install $spec (PyPI default CUDA wheel)"
+    uv pip install --python "$py" --reinstall-package torch "$spec"
   fi
 }
 
@@ -116,7 +106,7 @@ ensure_torch_for_driver() {
     uv pip install --python "$py" --reinstall-package torch \
       --index-url https://download.pytorch.org/whl/cpu \
       "${TORCH_EXCLUDE_NEWER_ARGS[@]}" \
-      torch
+      "${TORCH_VERSION_CONSTRAINT:-torch}"
     TORCH_INDEX_URL="https://download.pytorch.org/whl/cpu"
     pin_torch "$py"
     return 0
@@ -125,28 +115,24 @@ ensure_torch_for_driver() {
   echo "  Working NVIDIA driver detected:"
   nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | sed 's/^/    /'
 
-  local ver mapped
+  local ver mapped ch
   ver="$(driver_max_cuda)"
   mapped="$(index_url_for_driver_cuda "${ver:-0}")"
-  echo "  Driver supports up to CUDA ${ver:-unknown} -> ${mapped:-PyPI default}"
+  echo "  Driver reports CUDA ${ver:-unknown} (nvidia-smi's naive per-version guess: ${mapped:-PyPI default})"
 
-  local -a walk=()
-  local seen=0 ch
+  # nvidia-smi's "CUDA Version" is not a hard ceiling: NVIDIA's minor-
+  # version compatibility within a CUDA major series often lets a driver
+  # run torch wheels built for a *newer* CUDA minor than the one reported
+  # (confirmed in practice: a driver reporting "CUDA Version: 12.2" here
+  # initializes a cu126-built torch fine, even though index_url_for_driver
+  # _cuda's naive mapping would have stopped at cu121 -- which, in turn,
+  # stopped shipping torch releases after 2.5.1, silently capping every
+  # package in this ecosystem to an increasingly old torch forever). So
+  # always try the *entire* channel list newest-first and empirically keep
+  # the first one that actually initializes CUDA, rather than trusting the
+  # naive mapping as a starting point -- it's index_url_for_driver_cuda's
+  # only remaining job to print context above, not to restrict this walk.
   for ch in "${TORCH_CUDA_CHANNELS[@]}"; do
-    if [ "$seen" -eq 0 ]; then
-      if [ "$ch" = "$mapped" ]; then
-        seen=1
-        walk+=("$ch")
-      fi
-    else
-      walk+=("$ch")
-    fi
-  done
-  if [ "$seen" -eq 0 ]; then
-    walk=("${TORCH_CUDA_CHANNELS[@]}")
-  fi
-
-  for ch in "${walk[@]}"; do
     install_torch_from_index "$py" "$ch"
     if torch_cuda_is_available "$py"; then
       TORCH_INDEX_URL="$ch"
@@ -180,8 +166,12 @@ ensure_build_seed_packages() {
 # which can be a much older release than the local dev version and fail
 # the resolve outright ("URL dependencies must be expressed as direct
 # requirements or constraints", or an unrelated-looking version conflict
-# against a stale PyPI release). Regenerate this before each install in the
-# dependency-ordered loop, since later repos depend on earlier ones.
+# against a stale PyPI release). This is a separate problem from the
+# torch-drift one above -- --exclude-newer-package does not touch it, since
+# it's not about release dates, it's about uv refusing to substitute a
+# local path for a plain-name PyPI dependency without being told to.
+# Regenerate this before each install in the dependency-ordered loop, since
+# later repos depend on earlier ones.
 write_local_pkgs_constraint() {
   local py="$1"
   local dest="${LOCAL_PKGS_CONSTRAINT_FILE:-${VENV_DIR:-.}/.local-pkgs-constraint.txt}"
@@ -216,35 +206,60 @@ uv_pip_keep_torch() {
   local pin="${TORCH_PIN_FILE:-${VENV_DIR:-.}/.torch-constraint.txt}"
   if [ -f "$pin" ]; then
     args+=(-c "$pin")
+    # A `-c` constraints file only scopes the top-level install graph, not
+    # the separate isolated build environment each package's own
+    # `build-system.requires` resolves for itself -- so on its own it does
+    # not stop e.g. metatensor-torch's build from picking a newer `torch`
+    # than what we just pinned above (in testing, --exclude-newer-package
+    # alone still let an isolated build resolve an established-but-newer
+    # release, since "newer than the exclude-newer date" and "newer than
+    # our pin" are different cutoffs). `-b`/--build-constraints is the
+    # flag that actually reaches inside build isolation, so pass the same
+    # pin there too to force every package's build to use our exact torch.
+    args+=(-b "$pin")
   fi
-<<<<<<< HEAD
-  # A `-c` constraints file only scopes the top-level install graph, not
-  # the separate isolated build environment each package's own
-  # `build-system.requires` resolves for itself -- so it does not stop
-  # e.g. metatensor-torch's build from picking a newer `torch` than what
-  # we just pinned above. --exclude-newer-package does apply there too
-  # (it hides newer releases at the index level), which is what actually
-  # keeps every package's own build converging on the same torch. See the
-  # TORCH_EXCLUDE_NEWER_DATE comment above.
-  args+=("${TORCH_EXCLUDE_NEWER_ARGS[@]}")
-  uv pip install --python "$py" "${args[@]}" "$@"
-=======
   local local_pkgs="${LOCAL_PKGS_CONSTRAINT_FILE:-${VENV_DIR:-.}/.local-pkgs-constraint.txt}"
   if [ -f "$local_pkgs" ]; then
     args+=(-c "$local_pkgs")
+    # Same reasoning as -b "$pin" above: a package being built in isolation
+    # (e.g. featomic's CMakeLists.txt find_package(metatensor ...)) can
+    # depend by name on another local-editable package (metatensor) without
+    # that isolated build seeing our local checkout at all -- it resolves
+    # its own copy from PyPI instead (observed: a stale metatensor==0.2.4
+    # wheel, while the venv already has a newer local dev build installed).
+    # -b reaches inside that isolated build the same way -c reaches the
+    # top-level graph, forcing it to use the exact same local sources.
+    args+=(-b "$local_pkgs")
   fi
-  # See the file header: without --no-build-isolation, editable `[torch]`-
-  # extra builds run in an isolated env that can resolve too-old `packaging`
-  # (build error) or a fresh `torch` (ABI drift away from the pinned wheel).
+  # --exclude-newer-package still matters alongside --build-constraints
+  # above: it keeps *other* build-time resolutions (e.g. packaging, or a
+  # sibling package's own transitive deps) from drifting to a newer release
+  # than what everything else in the ecosystem was validated against, in
+  # index lookups build-constraints doesn't cover. See the
+  # TORCH_EXCLUDE_NEWER_DATE comment above.
+  args+=("${TORCH_EXCLUDE_NEWER_ARGS[@]}")
+  # --no-build-isolation: even with -b/--build-constraints pinning *which*
+  # local metatensor-torch a nested build resolves, that's not enough for
+  # packages whose build reads another package's runtime state rather than
+  # just its declared version -- metatensor_torch.utils.cmake_prefix_path
+  # picks its ABI subdirectory (torch-2.5 vs torch-2.14, it ships several
+  # side by side) from `torch.__version__` *in the process actually running
+  # the build*, so a separate isolated build env with its own, differently-
+  # resolved torch silently points CMake at the wrong one (observed: CMake
+  # error "metatensor-torch was built against v2.5.1 but we found v2.14.0",
+  # even though every constraint above was satisfied). --no-build-isolation
+  # removes the separate env entirely, so the build always sees exactly the
+  # torch (and every local editable package) already in this venv.
   #
-  # --refresh is needed too: uv's build cache for local/editable sources is
-  # keyed on the source tree, not on what's currently installed in the venv.
-  # metatomic-torch's setup.py (and similar packages) reads `torch.__version__`
-  # at build time and bakes an exact `torch == X.Y.*` pin into its own
-  # install-requires -- so a wheel built and cached from an earlier run, back
-  # when the venv's torch had drifted (e.g. to 2.13), gets silently reused
-  # and conflicts with the torch pinned now, even though the source hasn't
-  # changed. --refresh forces a real rebuild against the current venv.
+  # --refresh: uv's build cache for local/editable sources is keyed on the
+  # source tree, not on which torch/index config was active when it was
+  # last built -- a wheel built and cached from an earlier, differently-
+  # pinned run (e.g. back when torch had drifted, before the fixes above
+  # existed) can otherwise get silently reused even though none of them
+  # would produce that same wheel today. metatomic-torch's setup.py (and
+  # similar packages) reads torch.__version__ at build time and bakes an
+  # exact `torch == X.Y.*` pin into its own install-requires, so a stale
+  # cached wheel here surfaces as a confusing version-resolution conflict
+  # rather than an obviously-stale-cache symptom.
   uv pip install --python "$py" --no-build-isolation --refresh "${args[@]}" "$@"
->>>>>>> 23b7128 (Fix packaging build error, torch CUDA-channel drift, and local-package resolution in [torch]-extra installs)
 }

@@ -157,6 +157,144 @@ PYEOF
 }
 patch_featomic_cudnn_namespace_pkg_bug
 
+# featomic is cloned straight from upstream (metatensor/featomic) rather
+# than from a fork of ours, so unlike metatomic/metatensor we can't fix
+# this by committing to it -- patch it in place instead, same as the cudnn
+# bug above. featomic's own pins on metatensor-core / metatensor-torch
+# were written against the last released versions (0.2.x / 0.10.x); our
+# local editable metatensor checkout has since moved ahead to 0.3.x-dev /
+# 0.11.x-dev, which these pins reject outright:
+#   - the Python-level `metatensor-core >=0.2.2,<0.3` / `metatensor-torch
+#     >=0.10.0,<0.11` pins make `uv pip install -e featomic[torch]`
+#     unsatisfiable against the local dev versions.
+#   - the CMake-level `find_package(metatensor 0.2 ...)` / `find_package
+#     (metatensor_torch 0.10 ...)` calls use same-minor-version
+#     compatibility for 0.x releases, so they reject the installed 0.3 /
+#     0.11 configs outright at build time (see the same pattern fixed in
+#     metatomic's CMakeLists.txt).
+# No-op for any file/line upstream has already updated, or that we already
+# patched on a previous run.
+patch_featomic_metatensor_version_pins() {
+  local root="$BASE_DIR/featomic"
+  [ -d "$root" ] || return 0
+  python3 - "$root" <<'PYEOF'
+import sys
+
+root = sys.argv[1]
+
+# (file relative to featomic/, old substring, new substring)
+patches = [
+    (
+        "python/featomic/pyproject.toml",
+        "metatensor-core >=0.2.2,<0.3",
+        "metatensor-core >=0.2.2,<0.4",
+    ),
+    (
+        "python/featomic/pyproject.toml",
+        "metatensor-operations >=0.5.0,<0.6",
+        "metatensor-operations >=0.5.0,<0.7",
+    ),
+    (
+        "python/featomic/build-backend/backend.py",
+        'metatensor-core >=0.2.2,<0.3',
+        'metatensor-core >=0.2.2,<0.4',
+    ),
+    (
+        "python/featomic_torch/build-backend/backend.py",
+        'metatensor-torch >=0.10.0,<0.11',
+        'metatensor-torch >=0.10.0,<0.12',
+    ),
+    (
+        # 0.2.0.dev-prerelease local builds of metatomic-torch don't satisfy
+        # an exclusive "<0.2" bound: PEP 440 excludes *all* pre-releases of
+        # the excluded boundary version itself (0.2.0.devN < 0.2 numerically,
+        # but a bare "<0.2" with no pre-release marker on 0.2 still rejects
+        # it, by design -- see the SpecifierSet docs).
+        "python/featomic_torch/build-backend/backend.py",
+        'metatomic-torch >=0.1.15,<0.2',
+        'metatomic-torch >=0.1.15,<0.3',
+    ),
+    (
+        # Same two pins as above, duplicated in setup.py's own
+        # install_requires (the actual wheel metadata, computed separately
+        # from build-backend.py's build-time-only requirements).
+        "python/featomic_torch/setup.py",
+        'metatensor-torch >=0.10.0,<0.11',
+        'metatensor-torch >=0.10.0,<0.12',
+    ),
+    (
+        "python/featomic_torch/setup.py",
+        'metatomic-torch >=0.1.15,<0.2',
+        'metatomic-torch >=0.1.15,<0.3',
+    ),
+    (
+        "featomic/CMakeLists.txt",
+        'set(METATENSOR_REQUIRED_VERSION "0.2")',
+        'set(METATENSOR_REQUIRED_VERSION "0.3")',
+    ),
+    (
+        "featomic-torch/CMakeLists.txt",
+        'set(REQUIRED_METATENSOR_TORCH_VERSION "0.10")',
+        'set(REQUIRED_METATENSOR_TORCH_VERSION "0.11")',
+    ),
+    (
+        "featomic-torch/CMakeLists.txt",
+        'set(REQUIRED_METATOMIC_TORCH_VERSION "0.1")',
+        'set(REQUIRED_METATOMIC_TORCH_VERSION "0.2")',
+    ),
+    (
+        # scripts/git-version-info.py computes the build version from git,
+        # but its subprocess calls never pin cwd -- they rely on inheriting
+        # a CWD already inside the repo. That breaks under some PEP517
+        # build backends (e.g. setuptools' _build_with_temp_dir) that chdir
+        # elsewhere before running this code, so every git call fails with
+        # "not a git repository" (exit 128, empty stdout/stderr). Pin
+        # cwd=ROOT explicitly on both the shared run_subprocess() helper
+        # and the one raw subprocess.run() call that bypasses it.
+        "scripts/git-version-info.py",
+        '''    output = subprocess.run(
+        args,
+        capture_output=True,
+        encoding="utf8",
+        check=False,
+        env=env,
+    )''',
+        '''    output = subprocess.run(
+        args,
+        capture_output=True,
+        encoding="utf8",
+        check=False,
+        env=env,
+        cwd=ROOT,
+    )''',
+    ),
+    (
+        "scripts/git-version-info.py",
+        '''    output = subprocess.run(
+        ["git", "diff-index", "--quiet", "HEAD", "--"],
+        capture_output=True,
+    )''',
+        '''    output = subprocess.run(
+        ["git", "diff-index", "--quiet", "HEAD", "--"],
+        capture_output=True,
+        cwd=ROOT,
+    )''',
+    ),
+]
+
+import os
+for rel_path, old, new in patches:
+    path = os.path.join(root, rel_path)
+    if not os.path.isfile(path):
+        continue
+    text = open(path).read()
+    if old in text:
+        open(path, "w").write(text.replace(old, new, 1))
+        print("  patched", path)
+PYEOF
+}
+patch_featomic_metatensor_version_pins
+
 # ---- 2. build toolchain sanity check ---------------------------------------
 log "Checking build toolchain (these repos compile Rust/C++ extensions)"
 missing=0
@@ -214,6 +352,13 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_torch_cuda.sh"
 
 # ---- 4. GPU-aware PyTorch install -------------------------------------------
 log "Detecting GPU / CUDA driver"
+# metatrain's soap-bpnn extra depends on sphericart-torch, which pins
+# torch>=2.6,<2.14 -- without this, ensure_torch_for_driver just grabs the
+# newest torch that initializes CUDA on this driver (currently 2.14.0),
+# which is one release past sphericart-torch's ceiling and makes metatrain
+# [soap-bpnn] unsatisfiable. Remove/adjust this once sphericart-torch
+# supports newer torch.
+TORCH_VERSION_CONSTRAINT="torch>=2.6,<2.14"
 ensure_torch_for_driver "$VPY" || true
 # uv_pip_keep_torch below builds every [torch]-extra package with
 # --no-build-isolation (see _torch_cuda.sh) to keep both the build backend
