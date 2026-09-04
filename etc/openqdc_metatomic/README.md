@@ -327,9 +327,11 @@ int main(void) {
         return 1;
     }
 
-    const mts_labels_t* keys = NULL;
-    mts_tensormap_keys(tensor, &keys);
-    printf("n_blocks = %zu\n", keys->count);
+    const mts_labels_t* keys = mts_tensormap_keys(tensor);
+    const int32_t* values = NULL;
+    uintptr_t n_blocks = 0, n_dims = 0;
+    mts_labels_values_cpu(keys, &values, &n_blocks, &n_dims);
+    printf("n_blocks = %zu\n", (size_t)n_blocks);
 
     mts_tensormap_free(tensor);
     return 0;

@@ -63,19 +63,21 @@ def _indices(dataset, n_samples: str, seed: int) -> np.ndarray:
     return np.sort(rng.choice(n_frames, size=n, replace=False))
 
 
-def _has_forces(dataset, energy_method: int) -> bool:
+def _force_mask(dataset):
     mask = getattr(dataset, "force_mask", None)
     if mask is None:
-        return False
-    if energy_method >= len(mask):
-        return False
-    return bool(mask[energy_method])
+        mask = getattr(dataset, "__force_mask__", None)
+    return list(mask) if mask is not None else []
+
+
+def _has_forces(dataset, energy_method: int) -> bool:
+    mask = _force_mask(dataset)
+    return energy_method < len(mask) and bool(mask[energy_method])
 
 
 def _force_method_index(dataset, energy_method: int) -> int:
     """Map an energy-method index onto the (usually shorter) force axis."""
-    mask = list(getattr(dataset, "force_mask", []))
-    return int(sum(mask[:energy_method]))
+    return int(sum(_force_mask(dataset)[:energy_method]))
 
 
 def _entry_arrays(entry: dict, energy_method: int, force_method: int | None):
