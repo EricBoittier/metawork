@@ -216,39 +216,48 @@ if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
         else if (v >= 12.6) print "https://download.pytorch.org/whl/cu126"
         else if (v >= 12.4) print "https://download.pytorch.org/whl/cu124"
         else                print "https://download.pytorch.org/whl/cu121"
-        # torch>=2.7 wheels do not go below cu121 -- if your driver is older
-        # than that, you need a newer driver (or an older torch pin) instead.
+        # cu121 is the oldest channel PyTorch still publishes wheels for at
+        # all; a driver older than that (< CUDA 11.8-ish) needs a newer
+        # driver, there is no lower channel to fall back to.
       }')
   else
     echo "  Could not parse a CUDA version out of nvidia-smi -- using the default (newest) wheel"
   fi
 
-  # --reinstall-package is required here, not just cosmetic: `uv pip
-  # install "torch>=2.7"` is a no-op if any torch>=2.7 is already installed
-  # (e.g. a default cu130 build from a previous run), even when we're
-  # pointing at a different --index-url -- version satisfaction alone
-  # doesn't care which CUDA build is actually present. Without forcing a
-  # reinstall, the channel selection above silently has no effect.
+  # No version floor here on purpose: PyTorch's *minimum* supported CUDA
+  # version keeps rising with each release (e.g. cu121 tops out around
+  # torch 2.5.x -- nothing newer ships a cu121 build at all), so pinning
+  # e.g. "torch>=2.7" here makes an older-driver channel like cu121
+  # unsatisfiable by construction. Let uv pick the newest torch actually
+  # available on the chosen channel instead. If a specific package below
+  # needs a torch floor (e.g. metatrain's dpa3 extra needs >=2.7), that
+  # constraint belongs on that package's own extras, not hardcoded here.
+  #
+  # --reinstall-package is still required: `uv pip install "torch"` is a
+  # no-op if any torch is already installed, even when pointing at a
+  # different --index-url -- version satisfaction alone doesn't care which
+  # CUDA build is actually present. Without forcing a reinstall, the
+  # channel selection above would silently have no effect.
   if [ -n "$index_url" ]; then
     echo "  Installing PyTorch for CUDA <= $driver_cuda_ver ($index_url)"
-    uv pip install --python "$VPY" --reinstall-package torch "torch>=2.7" --index-url "$index_url"
+    uv pip install --python "$VPY" --reinstall-package torch torch --index-url "$index_url"
   else
     echo "  Installing default (newest CUDA-enabled) PyTorch wheel"
-    uv pip install --python "$VPY" --reinstall-package torch "torch>=2.7"
+    uv pip install --python "$VPY" --reinstall-package torch torch
   fi
 
   cuda_ok=$("$VPY" -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null || echo False)
   if [ "$cuda_ok" != "True" ]; then
     echo "  WARNING: a driver is present but torch.cuda.is_available() is still False." >&2
     echo "  Re-run with a lower channel by hand, e.g.:" >&2
-    echo "    uv pip install --python $VPY 'torch>=2.7' --index-url https://download.pytorch.org/whl/cu118" >&2
+    echo "    uv pip install --python $VPY torch --index-url https://download.pytorch.org/whl/cu118" >&2
   fi
 else
   echo "  No working NVIDIA driver found (this is the case on nouveau-only"
   echo "  boxes like this one) -- installing the smaller CPU-only wheel."
   echo "  Re-run this script unmodified on a machine with a real NVIDIA"
   echo "  driver to get CUDA-accelerated PyTorch instead."
-  uv pip install --python "$VPY" "torch>=2.7" --index-url https://download.pytorch.org/whl/cpu
+  uv pip install --python "$VPY" torch --index-url https://download.pytorch.org/whl/cpu
 fi
 
 # ---- 4b. CUDA toolkit (nvcc) detection --------------------------------------

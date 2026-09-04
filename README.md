@@ -200,13 +200,13 @@ separate problems, in the order you'll likely see them:
    too old (found version 12020)`. Fix: install a PyTorch build matching
    what the driver actually supports, e.g.
    ```bash
-   uv pip install --python .venv/bin/python 'torch>=2.7' --index-url https://download.pytorch.org/whl/cu121
+   uv pip install --python .venv/bin/python torch --index-url https://download.pytorch.org/whl/cu121
    ```
-   `setup-metawork.sh` now reads the driver's max supported CUDA version
-   straight out of `nvidia-smi`'s own header and picks a matching wheel
-   channel (`cu121`/`cu124`/`cu126`/default) automatically, then verifies
-   `torch.cuda.is_available()` after install and warns if it's still
-   `False`.
+   (no version floor -- see issue 6 for why). `setup-metawork.sh` now reads
+   the driver's max supported CUDA version straight out of `nvidia-smi`'s
+   own header and picks a matching wheel channel (`cu121`/`cu124`/`cu126`/
+   default) automatically, then verifies `torch.cuda.is_available()` after
+   install and warns if it's still `False`.
 
 5. **chemiscope needs a newer `node`/`npm` than the system default.** Its
    `pip install` runs `npm ci` to bundle the JS widget, which requires
@@ -222,25 +222,43 @@ separate problems, in the order you'll likely see them:
    newer node without root via [nvm](https://github.com/nvm-sh/nvm)
    (`nvm install 20`), then re-run the script.
 
-6. **`torch.cuda.is_available()` stays `False` even after issue 4's fix.**
-   `uv pip install "torch>=2.7"` is a no-op if a `torch` already satisfying
-   `>=2.7` is installed -- e.g. a default `cu130` build left over from a run
-   before this script picked the right channel -- *regardless* of
-   `--index-url`. Version satisfaction alone doesn't check which CUDA build
-   is actually present, so the driver-matched channel from issue 4 silently
-   had no effect on a machine that had already run this script once.
-   `setup-metawork.sh` now passes `--reinstall-package torch` alongside the
-   chosen `--index-url` so the correct build is always actually installed,
-   not just "some version >=2.7".
+6. **`torch.cuda.is_available()` stays `False` even after issue 4's fix,
+   or the install becomes unsatisfiable outright.** Two separate bugs, both
+   in the `torch` install command, hit back to back:
+   - `uv pip install "torch>=2.7"` is a no-op if a `torch` already
+     satisfying `>=2.7` is installed (e.g. a default `cu130` build left
+     over from a run before this script picked the right channel),
+     *regardless* of `--index-url` -- version satisfaction alone doesn't
+     check which CUDA build is present, so the driver-matched channel from
+     issue 4 silently had no effect on a machine that had already run this
+     script once. Fixed by adding `--reinstall-package torch`.
+   - Pinning `torch>=2.7` at all was itself wrong: PyTorch's *minimum*
+     supported CUDA version keeps rising with each release, so older
+     channels stop shipping new versions entirely (`cu121` tops out around
+     `torch==2.5.1` -- there is no `torch>=2.7` build on that channel,
+     full stop). On `cosmopc27` this showed up as
+     `No solution found ... only torch<=2.5.1+cu121 is available and you
+     require torch>=2.7`. The `>=2.7` floor came from metatrain's `dpa3`
+     extra, which we don't install by default -- it never belonged on the
+     shared `torch` install. Fixed by dropping the floor entirely and
+     letting uv pick the newest version actually available on the chosen
+     channel.
 
-7. **`metatomic[torch,torchsim]` fails to resolve.** `metatomic-ase`
-   (pulled in by the `torch` extra) requires `vesin>=0.6.0,<0.7`, while
-   `metatomic-torchsim` requires `vesin>=0.5.6,<0.6` -- disjoint ranges, so
-   uv can't satisfy both extras together at this dev snapshot. This is an
-   upstream version-pin mismatch, not a local problem.
-   `setup-metawork.sh` installs `metatomic` with just the `torch` extra (no
-   `torchsim`) until upstream syncs those pins -- so TorchSim isn't
-   currently installed by the default setup. If you need it now, install
-   `metatomic-torchsim` on its own in a separate venv, or watch
+7. **`metatomic[torch,torchsim]` fails to resolve, and it is not just an
+   extras-combination problem.** `metatomic-torch` (installed by the
+   `torch` extra) depends on `metatomic-ase`, which requires
+   `vesin>=0.6.0,<0.7`; `metatomic-torchsim` requires `vesin>=0.5.6,<0.6`
+   *and* depends on `metatomic-torch` itself -- so the conflict is baked
+   into `metatomic-torchsim`'s own dependency graph at this dev snapshot,
+   not something combining extras causes. Confirmed by testing
+   `metatomic[torchsim]` completely alone, in its own empty venv with
+   nothing else installed: identical unsatisfiable-dependencies error. So
+   **a separate venv does not work around this one** -- it's an upstream
+   version-pin mismatch that has to be fixed upstream (or worked around
+   with a resolver override forcing a single `vesin` version, which is
+   fragile and not done here). `setup-metawork.sh` installs `metatomic`
+   with just the `torch` extra (no `torchsim`) until upstream syncs those
+   pins -- so TorchSim isn't currently usable from this setup at all. Watch
    [metatensor/metatomic](https://github.com/metatensor/metatomic) for the
-   fix and re-add `torchsim` to `INSTALL_REPOS` in `setup-metawork.sh`.
+   fix and re-add `torchsim` to `INSTALL_REPOS` in `setup-metawork.sh` once
+   it lands.
