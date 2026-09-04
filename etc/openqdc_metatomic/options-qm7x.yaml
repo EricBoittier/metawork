@@ -1,0 +1,30 @@
+# Train on a QM7-X subset written by openqdc_to_metatrain.py --format xyz
+#
+#   python etc/openqdc_metatomic/openqdc_to_metatrain.py --dataset QM7X --n-samples 1000
+#   mtt train etc/openqdc_metatomic/options-qm7x.yaml
+#
+# For --format zip, set read_from: qm7x.zip and drop the forces: key
+# (forces are stored as a positions gradient inside energy.mts).
+# For --format memmap, set read_from: qm7x_memmap/ and
+#   energy.key: energy, energy.forces.key: energy_forces
+seed: 42
+
+architecture:
+  name: pet
+  training:
+    num_epochs: 10
+    batch_size: 16
+
+training_set:
+  systems:
+    read_from: qm7x.xyz
+    length_unit: angstrom
+  targets:
+    energy:
+      key: energy
+      unit: eV
+      forces:
+        key: forces
+
+test_set: 0.1
+validation_set: 0.1

@@ -19,25 +19,44 @@ FORK_OWNER="EricBoittier"     # repos are cloned from your fork when one exists
 UPSTREAM_ORG="metatensor"     # falls back to the upstream org otherwise
 
 # Repos that get built + pip-installed (editable) into the venv, in
-# dependency order. Format is "name:extras" (extras is a comma list passed
-# as .[extras]; leave empty for none).
+# dependency order. Format is "name:extras:org" -- extras is a comma list
+# passed as .[extras] (empty for none), org is the upstream GitHub org/user
+# this repo lives under (empty defaults to $UPSTREAM_ORG).
 INSTALL_REPOS=(
-  "metatensor:torch"
-  "metatomic:torch"
-  "featomic:torch"
-  "metatrain:soap-bpnn,pet"   # add mace / dpa3 / gap here for more model
+  "metatensor:torch:"
+  "metatomic:torch,torchsim:"   # torchsim extra pulls in TorchSim itself as
+                                 # a plain pip dependency -- no separate clone
+                                 # needed to use the TorchSim engine
+  "featomic:torch:"
+  "metatrain:soap-bpnn,pet:"   # add mace / dpa3 / gap here for more model
                                # types -- they pull in heavier/pinned deps
                                # (e.g. dpa3 needs deepmd-kit, mace pins its
                                # own torch/e3nn versions)
+  "i-pi::i-pi"                 # pure-Python force engine, no special build
+  "chemiscope::lab-cosmo"       # structure/property viewer widget; its
+                                 # build runs `npm` to bundle JS assets, see
+                                 # the toolchain check below
 )
 
 # Repos worth having on disk for reference (docs, a header-only helper lib,
-# a tiny test model) but not something to pip-install into the venv.
+# a tiny test model, or an engine with its own separate native build system)
+# but not something to pip-install into the venv. Format is "name:org" (org
+# empty defaults to $UPSTREAM_ORG).
 CLONE_ONLY_REPOS=(
-  gpu-lite    # header-only CUDA runtime wrapper, used internally by some of
-              # the packages above at build time -- nothing to install
-  hpc-docs    # metatensor-ecosystem docs for HPC / GPU cluster deployment
-  lj-test     # tiny reference metatomic model, useful for smoke-testing
+  "gpu-lite:"    # header-only CUDA runtime wrapper, used internally by some
+                 # of the packages above at build time -- nothing to install
+  "hpc-docs:"    # metatensor-ecosystem docs for HPC / GPU cluster deployment
+  "lj-test:"     # tiny reference metatomic model, useful for smoke-testing
+  "lammps:"      # metatomic-enabled LAMMPS fork -- build per
+                 # https://docs.metatensor.org/metatomic/latest/engines/lammps.html
+  "gromacs:"     # metatomic staging branch for GROMACS -- build per
+                 # https://docs.metatensor.org/metatomic/latest/engines/gromacs.html
+  "eOn:TheochemUI"    # transition-state/eOn engine, metatomic support is in
+                      # the official version -- build per
+                      # https://docs.metatensor.org/metatomic/latest/engines/eon.html
+  "plumed2:plumed"    # PLUMED, metatomic support is in the official
+                      # (development) version -- build per
+                      # https://docs.metatensor.org/metatomic/latest/engines/plumed.html
 )
 
 # Deliberately NOT cloned by default -- edit the arrays above to add any of
@@ -48,15 +67,18 @@ CLONE_ONLY_REPOS=(
 #     ecosystem-article
 #   Workshop-spring-2025                       archived tutorial notebooks
 #   metatensor_metatomic_benchmarks            ASV benchmark suite
-#   gromacs, lammps, openmm-ml (+ feedstocks)  full external simulation
-#                                               codes with their own huge,
-#                                               non-Python build systems
+#   openmm-ml (+ feedstock)                    another full external
+#                                               simulation code, same
+#                                               reasoning as lammps/gromacs
 
 log() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 
 # ---- 1. clone or update a repo, preferring your own fork -------------------
+# org defaults to $UPSTREAM_ORG when empty (i.e. "" or omitted).
 clone_or_update() {
   local repo="$1"
+  local org="${2:-$UPSTREAM_ORG}"
+  [ -z "$org" ] && org="$UPSTREAM_ORG"
   if [ -d "$BASE_DIR/$repo/.git" ]; then
     log "Updating $repo"
     git -C "$BASE_DIR/$repo" pull --ff-only \
@@ -65,19 +87,21 @@ clone_or_update() {
   fi
   log "Cloning $repo"
   if git clone "https://github.com/$FORK_OWNER/$repo.git" "$BASE_DIR/$repo" 2>/dev/null; then
-    git -C "$BASE_DIR/$repo" remote add upstream "https://github.com/$UPSTREAM_ORG/$repo.git" 2>/dev/null || true
+    git -C "$BASE_DIR/$repo" remote add upstream "https://github.com/$org/$repo.git" 2>/dev/null || true
   else
-    echo "  (no $FORK_OWNER/$repo fork found -- cloning upstream $UPSTREAM_ORG/$repo instead)"
-    git clone "https://github.com/$UPSTREAM_ORG/$repo.git" "$BASE_DIR/$repo"
+    echo "  (no $FORK_OWNER/$repo fork found -- cloning upstream $org/$repo instead)"
+    git clone "https://github.com/$org/$repo.git" "$BASE_DIR/$repo"
   fi
 }
 
 mkdir -p "$BASE_DIR"
 for entry in "${INSTALL_REPOS[@]}"; do
-  clone_or_update "${entry%%:*}"
+  IFS=':' read -r repo _extras org <<< "$entry"
+  clone_or_update "$repo" "$org"
 done
-for repo in "${CLONE_ONLY_REPOS[@]}"; do
-  clone_or_update "$repo"
+for entry in "${CLONE_ONLY_REPOS[@]}"; do
+  IFS=':' read -r repo org <<< "$entry"
+  clone_or_update "$repo" "$org"
 done
 
 # ---- 1b. known upstream build-bug patches -----------------------------------
@@ -124,6 +148,19 @@ for tool in rustc cargo cmake gcc; do
   fi
 done
 [ "$missing" = 0 ] && echo "  rustc, cargo, cmake, gcc all present"
+
+# npm/node are only needed for chemiscope (it bundles its JS widget assets
+# via npm at build time, and requires node >=20) -- not a hard requirement
+# for everything else, so just record whether it's usable and skip
+# chemiscope later instead of hard-failing the whole script.
+chemiscope_buildable=1
+if ! command -v npm >/dev/null || ! command -v node >/dev/null; then
+  echo "  MISSING: npm/node (only needed to build chemiscope)"
+  chemiscope_buildable=0
+elif [ "$(node -e 'console.log(process.versions.node.split(".")[0])')" -lt 20 ]; then
+  echo "  npm/node present but node is too old for chemiscope (needs >=20): $(node --version)"
+  chemiscope_buildable=0
+fi
 
 # `cargo` existing on PATH isn't enough: on some machines it's a rustup shim
 # with no default toolchain configured, which makes it print an error
@@ -230,8 +267,11 @@ fi
 
 # ---- 5. install the ecosystem packages, in dependency order ----------------
 for entry in "${INSTALL_REPOS[@]}"; do
-  repo="${entry%%:*}"
-  extras="${entry#*:}"
+  IFS=':' read -r repo extras _org <<< "$entry"
+  if [ "$repo" = "chemiscope" ] && [ "$chemiscope_buildable" = 0 ]; then
+    log "Skipping chemiscope (no usable npm/node -- see toolchain check above)"
+    continue
+  fi
   target="$BASE_DIR/$repo"
   [ -n "$extras" ] && target="$target[$extras]"
   log "Installing $repo${extras:+ [$extras]}"
@@ -247,7 +287,7 @@ import torch
 print(f"torch {torch.__version__}  (cuda build: {torch.version.cuda}, "
       f"cuda available at runtime: {torch.cuda.is_available()})")
 
-for mod in ("metatensor", "metatensor.torch", "metatomic", "metatomic.torch", "featomic", "metatrain"):
+for mod in ("metatensor", "metatensor.torch", "metatomic", "metatomic.torch", "featomic", "metatrain", "ipi", "chemiscope"):
     try:
         m = importlib.import_module(mod)
         print(f"{mod:20s} ok  ({getattr(m, '__version__', '')})")

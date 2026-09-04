@@ -16,20 +16,28 @@ set -euo pipefail
 FORK_OWNER="EricBoittier"
 UPSTREAM_ORG="metatensor"
 
+# "name:org" -- org empty defaults to $UPSTREAM_ORG. Keep this in sync with
+# the INSTALL_REPOS/CLONE_ONLY_REPOS repo list in setup-metawork.sh.
 REPOS=(
-  metatensor
-  metatomic
-  metatrain
-  featomic
-  gpu-lite
-  hpc-docs
-  lj-test
+  "metatensor:"
+  "metatomic:"
+  "metatrain:"
+  "featomic:"
+  "gpu-lite:"
+  "hpc-docs:"
+  "lj-test:"
+  "lammps:"
+  "gromacs:"
+  "i-pi:i-pi"
+  "chemiscope:lab-cosmo"
+  "eOn:TheochemUI"
+  "plumed2:plumed"
 )
 
-owner="$UPSTREAM_ORG"
 pages=(issues pulls)
+use_fork=0
 if [ "${1:-}" = "--fork" ]; then
-  owner="$FORK_OWNER"
+  use_fork=1
   pages=(pulls)   # forks don't have their own Issues tab by default
 fi
 
@@ -38,7 +46,10 @@ if ! command -v firefox >/dev/null; then
   exit 1
 fi
 
-for repo in "${REPOS[@]}"; do
+for entry in "${REPOS[@]}"; do
+  IFS=':' read -r repo org <<< "$entry"
+  owner="${org:-$UPSTREAM_ORG}"
+  [ "$use_fork" = 1 ] && owner="$FORK_OWNER"
   for page in "${pages[@]}"; do
     firefox --new-tab "https://github.com/$owner/$repo/$page" >/dev/null 2>&1 &
   done
