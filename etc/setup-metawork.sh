@@ -91,10 +91,28 @@ for tool in rustc cargo cmake gcc; do
 done
 [ "$missing" = 0 ] && echo "  rustc, cargo, cmake, gcc all present"
 
+# `cargo` existing on PATH isn't enough: on some machines it's a rustup shim
+# with no default toolchain configured, which makes it print an error
+# instead of a version -- and that in turn breaks metatensor-core's CMake
+# version check in a confusing way. Detect and self-heal that specific case.
+if [ "$missing" = 0 ] && ! cargo --version >/dev/null 2>&1; then
+  if command -v rustup >/dev/null; then
+    echo "  cargo is a rustup shim with no default toolchain -- running 'rustup default stable'"
+    rustup default stable
+  else
+    echo "  cargo does not run and rustup isn't available to fix it -- builds below will fail" >&2
+  fi
+fi
+
 # ---- 3. venv ----------------------------------------------------------------
 if ! command -v uv >/dev/null; then
-  echo "uv is required (https://astral.sh/uv) but not found on PATH." >&2
-  exit 1
+  log "Installing uv (https://astral.sh/uv)"
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v uv >/dev/null; then
+    echo "uv install ran but 'uv' still isn't on PATH -- open a new shell and re-run this script." >&2
+    exit 1
+  fi
 fi
 if [ ! -d "$VENV_DIR" ]; then
   log "Creating venv at $VENV_DIR"
