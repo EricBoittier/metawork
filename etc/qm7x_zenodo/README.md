@@ -20,6 +20,22 @@ Zenodo 8000.xz  →  8000.hdf5  →  TensorMap(s) + System(s)
                     mtt train etc/qm7x_zenodo/options/<endpoint>-<model>.yaml
 ```
 
+Runnable wrappers (data dir defaults to `~/data/qm7x`):
+
+| folder | purpose |
+| --- | --- |
+| [`convert/`](convert/) | download a shard and write `qm7x.xyz` |
+| [`train/`](train/) | `mtt train` one YAML, or every matching YAML |
+| [`inspect/`](inspect/) | HDF5 key catalog, dump one conformation, summarize XYZ |
+| [`options/`](options/) | one YAML per endpoint × architecture |
+
+```bash
+bash etc/qm7x_zenodo/convert/convert.sh          # 200 structures from 8000.xz
+bash etc/qm7x_zenodo/train/train.sh              # multi-pet, 5 epochs
+bash etc/qm7x_zenodo/train/train.sh energy-pet
+bash etc/qm7x_zenodo/convert/convert_all_shards.sh   # all 8 shards, 200 each
+```
+
 
 ## What lives in the HDF5
 
@@ -44,7 +60,8 @@ that README recommends for a first pass.
 
 The other ~30 keys (HOMO/LUMO, quadrupole, Hirshfeld volumes, KS eigenvalues, …)
 follow the same pattern: pick a sample kind and a tensor type, wrap a
-`TensorBlock`, save `.mts`.
+`TensorBlock`, save `.mts`. Full catalog:
+[`inspect/hdf5-properties.md`](inspect/hdf5-properties.md).
 
 
 ## Endpoint shapes
@@ -75,8 +92,19 @@ and Cartesian rank 1, but not rank 2.
 
 ## Convert
 
-Needs `h5py` (`pip install h5py`). Run from the directory where you want
-`qm7x.xyz` written, or pass `--output`.
+Needs `h5py` (`uv pip install --python .venv/bin/python h5py`). The
+wrappers in [`convert/`](convert/) write to `~/data/qm7x` by default:
+
+```bash
+bash etc/qm7x_zenodo/convert/convert.sh                    # 200 from 8000.xz
+bash etc/qm7x_zenodo/convert/convert.sh --n-samples all    # whole shard
+bash etc/qm7x_zenodo/convert/convert.sh --format zip
+bash etc/qm7x_zenodo/convert/convert_shard.sh 1000
+bash etc/qm7x_zenodo/convert/convert_all_shards.sh         # all shards, 200 each
+```
+
+Same thing by calling the Python converter yourself (writes into the
+current directory):
 
 ```bash
 # 200 random structures from the small 8000.xz shard (downloaded on first run)
@@ -112,12 +140,21 @@ The spherical conversion of `mTPOL` uses the same λ=0 (trace) / λ=2
 ## Train
 
 Option files live in [`options/`](options/) — one YAML per endpoint and
-architecture, plus a few multi-target combinations. See that folder's
-README for the full list and which models support which tensor types.
+architecture. [`train/`](train/) runs `mtt train` in a per-job folder
+under `$DATA_DIR/runs/<stem>/`.
+
+```bash
+bash etc/qm7x_zenodo/convert/convert.sh
+bash etc/qm7x_zenodo/train/train.sh                         # multi-pet
+bash etc/qm7x_zenodo/train/train.sh energy-pet
+bash etc/qm7x_zenodo/train/train.sh dipole-soap_bpnn
+bash etc/qm7x_zenodo/train/train_all.sh --model pet
+```
+
+Or invoke metatrain directly from the directory that holds `qm7x.xyz`:
 
 ```bash
 python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
-
 mtt train etc/qm7x_zenodo/options/energy-pet.yaml
 mtt train etc/qm7x_zenodo/options/dipole-soap_bpnn.yaml
 mtt train etc/qm7x_zenodo/options/polarizability-spherical-mace.yaml
@@ -130,8 +167,9 @@ Each `mtt::…` block declares `sample_kind` (`system` vs `atom`) and `type`
 (`scalar`, `cartesian.rank`, or `spherical.irreps`), as in the
 [generic-targets tutorial](https://docs.metatensor.org/metatrain/latest/generated_examples/1-advanced/03-fitting-generic-targets.html).
 
-To add another HDF5 property, extend `load_structure()` / `to_targets()` and
-append a target section. Examples:
+To add another HDF5 property, see [`inspect/README.md`](inspect/README.md)
+and [`inspect/hdf5-properties.md`](inspect/hdf5-properties.md). Extend
+`load_structure()` / `to_targets()` and append a target section. Examples:
 
 ```yaml
 mtt::c6:                    # molecular C6 — per-structure scalar

@@ -181,7 +181,9 @@ separate path:
 - original Zenodo HDF5, several endpoints of different tensor character —
   [`etc/qm7x_zenodo/`](etc/qm7x_zenodo/)
   ([record 4288677](https://zenodo.org/records/4288677));
-  training YAMLs are in [`etc/qm7x_zenodo/options/`](etc/qm7x_zenodo/options/)
+  [`convert/`](etc/qm7x_zenodo/convert/) writes `~/data/qm7x/qm7x.xyz`,
+  [`train/`](etc/qm7x_zenodo/train/) runs `mtt train` against the YAMLs in
+  [`options/`](etc/qm7x_zenodo/options/)
 
 
 # Known issues

@@ -86,10 +86,18 @@ clone_or_update() {
   local org="${2:-$UPSTREAM_ORG}"
   [ -z "$org" ] && org="$UPSTREAM_ORG"
   if [ -d "$BASE_DIR/$repo/.git" ]; then
-    log "Updating $repo"
-    git -C "$BASE_DIR/$repo" pull --ff-only \
-      || echo "  (skipped: local changes or diverged branch -- update $repo by hand)"
-    return
+    # A checkout can be headless (no commit checked out) even after this
+    # branch runs, e.g. from a clone interrupted before this self-healing
+    # logic existed. `git pull` on a headless repo doesn't fix that, so
+    # detect it and fall through to a fresh clone instead of just skipping.
+    if git -C "$BASE_DIR/$repo" rev-parse --verify HEAD >/dev/null 2>&1; then
+      log "Updating $repo"
+      git -C "$BASE_DIR/$repo" pull --ff-only \
+        || echo "  (skipped: local changes or diverged branch -- update $repo by hand)"
+      return
+    fi
+    echo "  $repo has no commit checked out (broken/interrupted clone) -- re-cloning"
+    rm -rf "$BASE_DIR/$repo"
   fi
   log "Cloning $repo"
   # An empty GitHub fork still clones successfully, but has no HEAD -- git

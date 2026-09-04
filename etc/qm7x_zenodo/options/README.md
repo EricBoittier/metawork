@@ -3,15 +3,24 @@
 Each file is a complete `mtt train` input. Naming is `{endpoint}-{model}.yaml`.
 Only combinations the architecture can actually train are included.
 
-Convert a subset first (from the directory that will hold `qm7x.xyz`):
+Convert a subset first:
+
+```bash
+bash etc/qm7x_zenodo/convert/convert.sh
+bash etc/qm7x_zenodo/train/train.sh energy-pet
+```
+
+Or from the directory that will hold `qm7x.xyz`:
 
 ```bash
 python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
 mtt train etc/qm7x_zenodo/options/energy-pet.yaml
 ```
 
-Spherical polarizability also needs `polarizability_spherical.mts` next to the
-XYZ. The zip multi file needs `--format zip`.
+[`../train/`](../train/) wraps `mtt train` (per-job `runs/<stem>/`,
+`--model` / `--endpoint` filters). Spherical polarizability also needs
+`polarizability_spherical.mts` next to the XYZ. The zip multi file needs
+`--format zip`.
 
 Architecture names in YAML:
 

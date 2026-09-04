@@ -1,0 +1,27 @@
+# Ecosystem repos cloned/managed by etc/setup-metawork.sh -- each is its own
+# git checkout (with its own history/remotes), not something to embed here.
+# Keep this list in sync with INSTALL_REPOS/CLONE_ONLY_REPOS in that script.
+/metatensor/
+/metatomic/
+/featomic/
+/metatrain/
+/i-pi/
+/chemiscope/
+/upet/
+/gpu-lite/
+/hpc-docs/
+/lj-test/
+/lammps/
+/gromacs/
+/eOn/
+/plumed2/
+
+# venvs created by etc/setup-metawork.sh
+/.venv/
+/.venv-upet/
+
+# datasets downloaded by etc/download-datasets.sh (when pointed inside this repo)
+/data/
+
+__pycache__/
+*.pyc
