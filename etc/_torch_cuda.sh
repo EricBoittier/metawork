@@ -125,6 +125,17 @@ uv_pip_keep_torch() {
   local args=()
   if [ -n "${TORCH_INDEX_URL:-}" ]; then
     args+=(--extra-index-url "$TORCH_INDEX_URL")
+    # uv's default index-strategy ("first-index") stops looking for a
+    # package as soon as *any* configured index has it, even if that index
+    # only carries old releases. download.pytorch.org/whl/* mirrors plain
+    # PyPI packages too (e.g. packaging, up to whatever version torch's own
+    # build needed at the time), which silently caps things like
+    # `packaging` well below what other packages we build here need at
+    # build time (e.g. setuptools >=77 requires packaging >=24.2, and some
+    # setup.py scripts use packaging APIs added in 26.0), causing
+    # hard-to-diagnose build isolation failures. unsafe-best-match makes uv
+    # consider all indexes and pick the best version instead.
+    args+=(--index-strategy unsafe-best-match)
   fi
   local pin="${TORCH_PIN_FILE:-${VENV_DIR:-.}/.torch-constraint.txt}"
   if [ -f "$pin" ]; then
