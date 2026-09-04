@@ -159,8 +159,44 @@ log "Detecting GPU / CUDA driver"
 if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
   echo "  Working NVIDIA driver detected:"
   nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | sed 's/^/    /'
-  echo "  Installing default (CUDA-enabled) PyTorch wheel"
-  uv pip install --python "$VPY" "torch>=2.7"
+
+  # The driver caps the *newest* CUDA runtime it can run -- not just whether
+  # it can run one at all. Installing PyTorch's default (newest bundled
+  # CUDA) wheel on an older driver installs fine but then fails at runtime
+  # with "CUDA initialization: The NVIDIA driver on your system is too old".
+  # So read the driver's max supported CUDA version from `nvidia-smi`'s own
+  # header and pick a wheel channel it can actually run.
+  driver_cuda_ver=$(nvidia-smi | grep -oE 'CUDA Version: [0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+' | head -1)
+  index_url=""   # empty = default index = newest bundled CUDA build
+  if [ -n "$driver_cuda_ver" ]; then
+    echo "  Driver supports up to CUDA $driver_cuda_ver"
+    index_url=$(awk -v v="$driver_cuda_ver" '
+      BEGIN {
+        if (v >= 12.8)      print ""
+        else if (v >= 12.6) print "https://download.pytorch.org/whl/cu126"
+        else if (v >= 12.4) print "https://download.pytorch.org/whl/cu124"
+        else                print "https://download.pytorch.org/whl/cu121"
+        # torch>=2.7 wheels do not go below cu121 -- if your driver is older
+        # than that, you need a newer driver (or an older torch pin) instead.
+      }')
+  else
+    echo "  Could not parse a CUDA version out of nvidia-smi -- using the default (newest) wheel"
+  fi
+
+  if [ -n "$index_url" ]; then
+    echo "  Installing PyTorch for CUDA <= $driver_cuda_ver ($index_url)"
+    uv pip install --python "$VPY" "torch>=2.7" --index-url "$index_url"
+  else
+    echo "  Installing default (newest CUDA-enabled) PyTorch wheel"
+    uv pip install --python "$VPY" "torch>=2.7"
+  fi
+
+  cuda_ok=$("$VPY" -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null || echo False)
+  if [ "$cuda_ok" != "True" ]; then
+    echo "  WARNING: a driver is present but torch.cuda.is_available() is still False." >&2
+    echo "  Re-run with a lower channel by hand, e.g.:" >&2
+    echo "    uv pip install --python $VPY 'torch>=2.7' --index-url https://download.pytorch.org/whl/cu118" >&2
+  fi
 else
   echo "  No working NVIDIA driver found (this is the case on nouveau-only"
   echo "  boxes like this one) -- installing the smaller CPU-only wheel."
