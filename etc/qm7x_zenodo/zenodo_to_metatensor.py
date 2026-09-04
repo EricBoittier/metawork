@@ -298,7 +298,9 @@ def to_atoms(entry: dict) -> Atoms:
     if entry["hlgap"] is not None:
         atoms.info["hlgap"] = entry["hlgap"]
     if entry["dipole"] is not None:
-        atoms.info["dipole"] = entry["dipole"]
+        # ASE extxyz parks the reserved name `dipole` on the calculator when
+        # reading; metatrain's ASE wrapper copies it back to atoms.info.
+        atoms.info["dipole"] = np.asarray(entry["dipole"], dtype=float).reshape(3)
     if entry["hirshfeld_charge"] is not None:
         atoms.arrays["hirshfeld_charge"] = entry["hirshfeld_charge"]
     if entry["hirshfeld_dipole"] is not None:

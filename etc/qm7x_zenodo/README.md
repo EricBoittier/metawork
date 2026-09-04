@@ -86,6 +86,11 @@ member of the zip `DiskDataset`). A Cartesian rank-2 alternative
 but not with SOAP-BPNN; the spherical form is the one that matches how
 metatrain's own QM7-X tests are written.
 
+`dipole` is an ASE reserved name (like `energy` / `forces`): extxyz writes
+`dipole="x y z"` but `ase.io.read` puts it on the calculator, not
+`atoms.info`. Metatrain's ASE reader copies it back; vanilla `ase.io.read`
+will not see `atoms.info["dipole"]`.
+
 PET can train on all six. SOAP-BPNN can do energy, scalars, spherical tensors,
 and Cartesian rank 1, but not rank 2.
 
