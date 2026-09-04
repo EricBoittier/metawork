@@ -135,6 +135,29 @@ else
   uv pip install --python "$VPY" "torch>=2.7" --index-url https://download.pytorch.org/whl/cpu
 fi
 
+# ---- 4b. CUDA toolkit (nvcc) detection --------------------------------------
+# metatensor-torch / metatomic-torch / featomic compile actual CUDA kernels
+# at build time, which needs `nvcc`, not just a driver. On machines where
+# CUDA is installed but not wired into PATH by default (common when it's not
+# loaded via an environment module), find it and export it here.
+if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && ! command -v nvcc >/dev/null 2>&1; then
+  log "nvidia-smi works but nvcc isn't on PATH -- looking for a CUDA toolkit install"
+  for cuda_dir in "${CUDA_HOME:-}" /usr/local/cuda /usr/local/cuda-*; do
+    if [ -n "$cuda_dir" ] && [ -x "$cuda_dir/bin/nvcc" ]; then
+      echo "  Found CUDA toolkit at $cuda_dir -- exporting PATH/CUDA_HOME/CUDACXX"
+      export CUDA_HOME="$cuda_dir"
+      export CUDACXX="$cuda_dir/bin/nvcc"
+      export PATH="$cuda_dir/bin:$PATH"
+      export LD_LIBRARY_PATH="$cuda_dir/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      break
+    fi
+  done
+  if ! command -v nvcc >/dev/null 2>&1; then
+    echo "  No CUDA toolkit found in the usual locations -- CUDA kernel builds below may fail." >&2
+    echo "  If it's installed somewhere nonstandard, export CUDA_HOME before running this script." >&2
+  fi
+fi
+
 # ---- 5. install the ecosystem packages, in dependency order ----------------
 for entry in "${INSTALL_REPOS[@]}"; do
   repo="${entry%%:*}"
