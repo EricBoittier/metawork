@@ -80,6 +80,40 @@ for repo in "${CLONE_ONLY_REPOS[@]}"; do
   clone_or_update "$repo"
 done
 
+# ---- 1b. known upstream build-bug patches -----------------------------------
+# featomic_torch's setup.py assumes `nvidia.cudnn.__file__` is always a real
+# path, but on some CUDA-13 wheel builds `nvidia.cudnn` is a namespace
+# package (no __init__.py) and __file__ is None, which turns the intended
+# ImportError fallback into an unhandled TypeError at build time. Patch it
+# to fall through to the existing fallback in that case. No-op if the repo
+# isn't installed here, if upstream has already fixed it, or if we already
+# patched it on a previous run.
+patch_featomic_cudnn_namespace_pkg_bug() {
+  local f="$BASE_DIR/featomic/python/featomic_torch/setup.py"
+  [ -f "$f" ] || return 0
+  python3 - "$f" <<'PYEOF'
+import sys
+
+path = sys.argv[1]
+old = "            cudnn_root = os.path.dirname(nvidia.cudnn.__file__)\n"
+new = (
+    "            # FEATOMIC_CUDNN_NAMESPACE_PKG_FIX: nvidia.cudnn can be a namespace\n"
+    "            # package (no __init__.py) on some CUDA-13 wheel builds, in which\n"
+    "            # case __file__ is None and os.path.dirname() raises TypeError\n"
+    "            # instead of the ImportError this try/except expects.\n"
+    "            if nvidia.cudnn.__file__ is None:\n"
+    "                raise ImportError(\"nvidia.cudnn has no __file__ (namespace package)\")\n"
+    "            cudnn_root = os.path.dirname(nvidia.cudnn.__file__)\n"
+)
+
+text = open(path).read()
+if old in text:
+    open(path, "w").write(text.replace(old, new, 1))
+    print("  patched", path)
+PYEOF
+}
+patch_featomic_cudnn_namespace_pkg_bug
+
 # ---- 2. build toolchain sanity check ---------------------------------------
 log "Checking build toolchain (these repos compile Rust/C++ extensions)"
 missing=0
