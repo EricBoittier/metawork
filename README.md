@@ -25,8 +25,9 @@ Python, no special native build):
   [ASE integration docs](https://docs.metatensor.org/metatomic/latest/engines/ase.html)
   and [`2-running-ase-md.py`](https://github.com/metatensor/metatomic/blob/main/python/examples/2-running-ase-md.py).
 - **[TorchSim](https://github.com/TorchSim/torch-sim)** -- batched,
-  GPU-native MD in pure PyTorch, installed via metatomic's `torchsim` extra
-  (no separate repo needed). See the
+  GPU-native MD in pure PyTorch. Would install via metatomic's `torchsim`
+  extra (no separate repo needed), but that extra is currently broken by an
+  upstream dependency conflict -- see Known Issues below. See the
   [TorchSim integration docs](https://docs.metatensor.org/metatomic/latest/engines/torchsim.html)
   and the `5-torchsim-getting-started` / `6-torchsim-batched` examples below.
 - **[i-PI](https://ipi-code.org/)** ([repo](https://github.com/i-pi/i-pi),
@@ -150,7 +151,7 @@ Re-running is idempotent -- already-downloaded `.npz` files are skipped.
 
 # Known issues
 
-Building this ecosystem on a fresh GPU machine (e.g. `cosmopc27`) hit five
+Building this ecosystem on a fresh GPU machine (e.g. `cosmopc27`) hit seven
 separate problems, in the order you'll likely see them:
 
 1. **`cargo`/`rustc` present but not working.** On some machines `cargo` is a
@@ -220,3 +221,26 @@ separate problems, in the order you'll likely see them:
    ecosystem still installs. Fix, if you actually need chemiscope: install a
    newer node without root via [nvm](https://github.com/nvm-sh/nvm)
    (`nvm install 20`), then re-run the script.
+
+6. **`torch.cuda.is_available()` stays `False` even after issue 4's fix.**
+   `uv pip install "torch>=2.7"` is a no-op if a `torch` already satisfying
+   `>=2.7` is installed -- e.g. a default `cu130` build left over from a run
+   before this script picked the right channel -- *regardless* of
+   `--index-url`. Version satisfaction alone doesn't check which CUDA build
+   is actually present, so the driver-matched channel from issue 4 silently
+   had no effect on a machine that had already run this script once.
+   `setup-metawork.sh` now passes `--reinstall-package torch` alongside the
+   chosen `--index-url` so the correct build is always actually installed,
+   not just "some version >=2.7".
+
+7. **`metatomic[torch,torchsim]` fails to resolve.** `metatomic-ase`
+   (pulled in by the `torch` extra) requires `vesin>=0.6.0,<0.7`, while
+   `metatomic-torchsim` requires `vesin>=0.5.6,<0.6` -- disjoint ranges, so
+   uv can't satisfy both extras together at this dev snapshot. This is an
+   upstream version-pin mismatch, not a local problem.
+   `setup-metawork.sh` installs `metatomic` with just the `torch` extra (no
+   `torchsim`) until upstream syncs those pins -- so TorchSim isn't
+   currently installed by the default setup. If you need it now, install
+   `metatomic-torchsim` on its own in a separate venv, or watch
+   [metatensor/metatomic](https://github.com/metatensor/metatomic) for the
+   fix and re-add `torchsim` to `INSTALL_REPOS` in `setup-metawork.sh`.

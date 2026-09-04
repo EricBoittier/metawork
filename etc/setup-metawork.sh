@@ -24,9 +24,12 @@ UPSTREAM_ORG="metatensor"     # falls back to the upstream org otherwise
 # this repo lives under (empty defaults to $UPSTREAM_ORG).
 INSTALL_REPOS=(
   "metatensor:torch:"
-  "metatomic:torch,torchsim:"   # torchsim extra pulls in TorchSim itself as
-                                 # a plain pip dependency -- no separate clone
-                                 # needed to use the TorchSim engine
+  "metatomic:torch:"   # NOT ",torchsim" -- metatomic-torchsim currently
+                        # pins vesin<0.6 while metatomic-ase (pulled in by
+                        # the torch extra) pins vesin>=0.6, so uv can't
+                        # resolve both together. Upstream version-pin bug,
+                        # see Known Issues in the README. Try re-adding
+                        # torchsim here once that's fixed upstream.
   "featomic:torch:"
   "metatrain:soap-bpnn,pet:"   # add mace / dpa3 / gap here for more model
                                # types -- they pull in heavier/pinned deps
@@ -220,12 +223,18 @@ if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
     echo "  Could not parse a CUDA version out of nvidia-smi -- using the default (newest) wheel"
   fi
 
+  # --reinstall-package is required here, not just cosmetic: `uv pip
+  # install "torch>=2.7"` is a no-op if any torch>=2.7 is already installed
+  # (e.g. a default cu130 build from a previous run), even when we're
+  # pointing at a different --index-url -- version satisfaction alone
+  # doesn't care which CUDA build is actually present. Without forcing a
+  # reinstall, the channel selection above silently has no effect.
   if [ -n "$index_url" ]; then
     echo "  Installing PyTorch for CUDA <= $driver_cuda_ver ($index_url)"
-    uv pip install --python "$VPY" "torch>=2.7" --index-url "$index_url"
+    uv pip install --python "$VPY" --reinstall-package torch "torch>=2.7" --index-url "$index_url"
   else
     echo "  Installing default (newest CUDA-enabled) PyTorch wheel"
-    uv pip install --python "$VPY" "torch>=2.7"
+    uv pip install --python "$VPY" --reinstall-package torch "torch>=2.7"
   fi
 
   cuda_ok=$("$VPY" -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null || echo False)
