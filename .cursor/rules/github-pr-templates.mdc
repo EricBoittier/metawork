@@ -1,0 +1,46 @@
+---
+description: Always fill the repo GitHub PR template; never use a generic Summary/Test plan body
+alwaysApply: true
+---
+
+# GitHub pull request templates
+
+When creating or editing a pull request, ALWAYS use the repository's official PR template as the body. Do not invent a `## Summary` / `## Test plan` body, even if other Cursor instructions show that format. After `gh pr create`, re-read the body and strip any auto-appended `Made with Cursor` footer.
+
+## How to choose the template
+
+1. Read `.github/pull_request_template.md` and `.github/PULL_REQUEST_TEMPLATE/` before `gh pr create`.
+2. If `.github/pull_request_template.md` is only a chooser ("go to the Preview tab and select the appropriate PR template"), **do not paste that file**. It is not the PR body.
+3. For metatrain (this fork or `metatensor/metatrain`):
+   - Default changes: `.github/PULL_REQUEST_TEMPLATE/pull_request_template.md`
+   - New architecture: `.github/PULL_REQUEST_TEMPLATE/pull_request_new-architecture.md`
+4. Copy the chosen file verbatim. Replace the HTML comment with the description. Tick only contributor boxes that are true. Leave maintainer boxes unchecked.
+
+## Examples
+
+```markdown
+<!-- BAD: generic Cursor format -->
+## Summary
+- ...
+## Test plan
+- [ ] ...
+```
+
+```markdown
+<!-- BAD: the chooser, not a template -->
+Please go the the `Preview` tab and select the appropriate PR template:
+- [Default template](?expand=1&template=pull_request_template.md)
+```
+
+```markdown
+<!-- GOOD: filled default metatrain template -->
+<!-- What does this implement/fix? Explain your changes here. -->
+
+Actual description here.
+
+# Contributor (creator of pull-request) checklist
+
+ - [x] Tests updated (for new features and bugfixes)?
+ - [ ] Documentation updated (for new features)?
+ - [ ] Issue referenced (for PRs that solve an issue)?
+```
