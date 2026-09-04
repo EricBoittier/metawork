@@ -8,9 +8,11 @@ read (`qm7x.xyz` plus `polarizability_spherical.mts`, or `qm7x.zip`).
 
 Default output directory is `~/data/qm7x` (override with `--data-dir` or
 `QM7X_DATA_DIR`). Raw `.xz` / `.hdf5` files are cached under `raw/` so
-re-runs do not download again.
+re-runs do not download again. Convert also fetches the Zenodo `README.txt`
+and `DupMols.dat` into `raw/` (small; skipped if already present).
 
-Needs `h5py` in the metawork venv (`uv pip install --python .venv/bin/python h5py`).
+`h5py` is installed by `etc/setup-metawork.sh`. If an older venv is missing
+it: `uv pip install --python .venv/bin/python h5py`.
 
 
 ## Which script
@@ -77,6 +79,8 @@ structures — see [`../inspect/hdf5-properties.md`](../inspect/hdf5-properties.
   raw/
     8000.xz
     8000.hdf5
+    README.txt             # Zenodo key list
+    DupMols.dat            # duplicated equilibrium ids
   shards/8000/…            # only after convert_shard / convert_all_shards
 ```
 
@@ -84,7 +88,7 @@ Then:
 
 ```bash
 bash etc/qm7x_zenodo/train/train.sh --data-dir ~/data/qm7x
-bash etc/qm7x_zenodo/inspect/list_hdf5.py ~/data/qm7x/raw/8000.hdf5
+bash etc/qm7x_zenodo/inspect/run.sh list_hdf5 ~/data/qm7x/raw/8000.hdf5
 ```
 
 Pass extra flags through to the Python converter after `--`, e.g.

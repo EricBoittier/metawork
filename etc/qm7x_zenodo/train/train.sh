@@ -70,6 +70,13 @@ if [[ "$STEM" == *zip* ]] && [ ! -e "$DATA_DIR/qm7x.zip" ]; then
   exit 1
 fi
 
+if grep -q 'polarizability_spherical.mts' "$YAML" \
+   && [ ! -e "$DATA_DIR/polarizability_spherical.mts" ]; then
+  echo "$STEM needs polarizability_spherical.mts next to qm7x.xyz." >&2
+  echo "  bash $QM7X_DIR/convert/convert.sh --data-dir $DATA_DIR --force" >&2
+  exit 1
+fi
+
 link_train_inputs "$DATA_DIR" "$RUN_DIR"
 log "mtt train $YAML  (cwd=$RUN_DIR)"
 ( cd "$RUN_DIR" && "$MTT" train "$YAML" -o model.pt )

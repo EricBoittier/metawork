@@ -22,15 +22,13 @@ Those indices are **not** sorted by PBE0+MBD energy.
 
 ## Scripts
 
+Use [`run.sh`](run.sh) so the metawork venv (and `h5py`) is picked up even
+if that venv is not activated:
+
 ```bash
-# inventory of keys / shapes in a shard (after convert, or any .hdf5)
-python etc/qm7x_zenodo/inspect/list_hdf5.py ~/data/qm7x/raw/8000.hdf5
-
-# walk one conformation the same way the converter does
-python etc/qm7x_zenodo/inspect/example_read_conf.py ~/data/qm7x/raw/8000.hdf5
-
-# what the XYZ actually contains (info / arrays keys, energy range)
-python etc/qm7x_zenodo/inspect/summarize_xyz.py ~/data/qm7x/qm7x.xyz
+bash etc/qm7x_zenodo/inspect/run.sh list_hdf5 ~/data/qm7x/raw/8000.hdf5
+bash etc/qm7x_zenodo/inspect/run.sh example_read_conf ~/data/qm7x/raw/8000.hdf5 --tmap
+bash etc/qm7x_zenodo/inspect/run.sh summarize_xyz ~/data/qm7x/qm7x.xyz
 ```
 
 [`hdf5-properties.md`](hdf5-properties.md) is the full key list from the
@@ -41,12 +39,12 @@ a metatrain target.
 ## Duplicates
 
 Zenodo ships `DupMols.dat`: some equilibrium structures appear in more
-than one shard. The authors' `createDB.py` can drop those molecules
-**and** their 100 displaced structures (uncomment their line 55). This
-example does **not** drop them — a subsample of `8000.xz` is unlikely to
-hit the list, and the displaced geometries are not identical. Decide
-before a full-dump training run; the file is
-[DupMols.dat](https://zenodo.org/records/4288677/files/DupMols.dat?download=1).
+than one shard. `convert.sh` copies it into `$DATA_DIR/raw/` next to the
+HDF5. The authors' `createDB.py` can drop those molecules **and** their
+100 displaced structures (uncomment their line 55). This example does
+**not** drop them — a subsample of `8000.xz` is unlikely to hit the list,
+and the displaced geometries are not identical. Decide before a full-dump
+training run.
 
 
 ## Adding another HDF5 property

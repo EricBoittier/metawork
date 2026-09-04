@@ -92,7 +92,7 @@ and Cartesian rank 1, but not rank 2.
 
 ## Convert
 
-Needs `h5py` (`uv pip install --python .venv/bin/python h5py`). The
+Needs `h5py`, which `etc/setup-metawork.sh` installs into the venv. The
 wrappers in [`convert/`](convert/) write to `~/data/qm7x` by default:
 
 ```bash

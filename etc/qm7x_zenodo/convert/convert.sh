@@ -57,6 +57,7 @@ done
 require_h5py
 [ -n "$CACHE_DIR" ] || CACHE_DIR="$DATA_DIR/raw"
 mkdir -p "$DATA_DIR" "$CACHE_DIR"
+fetch_zenodo_info "$CACHE_DIR"
 
 if [ "$FORMAT" = "zip" ]; then
   out="$DATA_DIR/qm7x.zip"
@@ -64,7 +65,13 @@ else
   out="$DATA_DIR/qm7x.xyz"
 fi
 
-if [ -e "$out" ] && [ "$FORCE" -eq 0 ]; then
+already=0
+if [ "$FORMAT" = "zip" ]; then
+  [ -e "$out" ] && already=1
+elif [ -e "$out" ] && [ -e "$DATA_DIR/polarizability_spherical.mts" ]; then
+  already=1
+fi
+if [ "$already" -eq 1 ] && [ "$FORCE" -eq 0 ]; then
   log "already converted ($out) -- pass --force to rebuild"
   exit 0
 fi

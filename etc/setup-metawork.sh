@@ -340,6 +340,12 @@ else
 fi
 uv pip install --python "$UPET_VPY" -e "$BASE_DIR/upet"
 
+# ---- 5c. extra PyPI packages for etc/ examples ------------------------------
+# Not part of the ecosystem checkouts. Used by etc/qm7x_zenodo (HDF5).
+# Safe to re-run -- uv is a no-op if the version is already satisfied.
+log "Installing extra example dependencies"
+uv pip install --python "$VPY" h5py
+
 # ---- 6. summary --------------------------------------------------------------
 log "Summary"
 "$VPY" - <<'EOF'
@@ -349,7 +355,10 @@ import torch
 print(f"torch {torch.__version__}  (cuda build: {torch.version.cuda}, "
       f"cuda available at runtime: {torch.cuda.is_available()})")
 
-for mod in ("metatensor", "metatensor.torch", "metatomic", "metatomic.torch", "featomic", "metatrain", "ipi", "chemiscope"):
+for mod in (
+    "metatensor", "metatensor.torch", "metatomic", "metatomic.torch",
+    "featomic", "metatrain", "ipi", "chemiscope", "h5py",
+):
     try:
         m = importlib.import_module(mod)
         print(f"{mod:20s} ok  ({getattr(m, '__version__', '')})")

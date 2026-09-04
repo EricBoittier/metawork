@@ -24,8 +24,9 @@ require_venv() {
 require_h5py() {
   require_venv
   if ! "$VPY" -c "import h5py" >/dev/null 2>&1; then
-    echo "h5py is not installed in the venv. Install it with:" >&2
-    echo "  uv pip install --python $VPY h5py" >&2
+    echo "h5py is not installed in the venv (needed to read QM7-X HDF5)." >&2
+    echo "  bash $REPO_DIR/etc/setup-metawork.sh          # installs it" >&2
+    echo "  uv pip install --python $VPY h5py             # or just this" >&2
     exit 1
   fi
 }
@@ -49,4 +50,30 @@ link_train_inputs() {
       ln -sfn "$data_dir/$name" "$run_dir/$name"
     fi
   done
+}
+
+# Small Zenodo sidecars (HDF5 key list, duplicate-molecule ids). Best-effort.
+fetch_zenodo_info() {
+  local cache="$1"
+  mkdir -p "$cache"
+  "$VPY" - "$cache" <<'PY'
+import sys
+import urllib.request
+from pathlib import Path
+
+cache = Path(sys.argv[1])
+base = "https://zenodo.org/records/4288677/files"
+for name in ("README.txt", "DupMols.dat"):
+    dest = cache / name
+    if dest.exists():
+        continue
+    url = f"{base}/{name}?download=1"
+    req = urllib.request.Request(url, headers={"User-Agent": "metawork-qm7x"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as src:
+            dest.write_bytes(src.read())
+        print(f"  fetched {name} -> {dest}")
+    except Exception as exc:
+        print(f"  skip {name}: {exc}")
+PY
 }
