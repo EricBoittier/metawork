@@ -98,6 +98,35 @@ bash etc/open-github-pages.sh --fork   # your own fork's PRs
   multi-GPU, DOS training.
 
 
+# Datasets
+
+The bundled example `.xyz` files above (e.g. `ethanol_reduced_100.xyz`) are
+tiny 100-structure teaching samples checked into the repos themselves --
+nothing to download. For real training/benchmarking, `etc/download-datasets.sh`
+fetches full reference datasets from [sGDML](http://www.sgdml.org/#datasets)
+into a data directory (default `~/data`) and converts them to extended-XYZ
+(energy in eV, forces in eV/A, read back via the standard
+`atoms.get_potential_energy()` / `atoms.get_forces()` ASE calculator
+convention -- not `atoms.info`/`.arrays`).
+
+```bash
+bash etc/download-datasets.sh                       # ethanol -> ~/data/md17/
+bash etc/download-datasets.sh aspirin naphthalene    # multiple molecules
+bash etc/download-datasets.sh --data-dir /scratch/data ethanol
+```
+
+Available MD17 molecules (the classic 8-molecule benchmark):
+`aspirin`, `benzene2017`, `ethanol`, `malonaldehyde`, `naphthalene`,
+`salicylic`, `toluene`, `uracil`. The larger MD22 molecules work too, e.g.
+`Ac-Ala3-NHMe`, `AT-AT`, `AT-AT-CG-CG`, `buckyball-catcher`, `DHA`,
+`double-walled_nanotube`, `stachyose`.
+
+Each molecule downloads as a raw `.npz` (the full trajectory -- hundreds of
+thousands of near-duplicate frames, kept as-is) plus a ready-to-train
+`.xyz` with a random 1000-frame subsample
+(`etc/md17_npz_to_xyz.py --n-samples all` for the full thing instead).
+Re-running is idempotent -- already-downloaded `.npz` files are skipped.
+
 
 # Known issues
 
