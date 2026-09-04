@@ -215,6 +215,11 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_torch_cuda.sh"
 # ---- 4. GPU-aware PyTorch install -------------------------------------------
 log "Detecting GPU / CUDA driver"
 ensure_torch_for_driver "$VPY" || true
+# uv_pip_keep_torch below builds every [torch]-extra package with
+# --no-build-isolation (see _torch_cuda.sh) to keep both the build backend
+# and the torch it links against pinned to what's already in the venv --
+# seed those build-time packages now since `uv venv` doesn't install them.
+ensure_build_seed_packages "$VPY"
 
 # ---- 4b. CUDA toolkit (nvcc) detection --------------------------------------
 # metatensor-torch / metatomic-torch / featomic compile actual CUDA kernels
@@ -249,6 +254,10 @@ for entry in "${INSTALL_REPOS[@]}"; do
   target="$BASE_DIR/$repo"
   [ -n "$extras" ] && target="$target[$extras]"
   log "Installing $repo${extras:+ [$extras]}"
+  # Refresh right before each install: a repo installed earlier in this loop
+  # (e.g. metatensor) may be depended on by name from one installed later
+  # (e.g. metatomic) -- see write_local_pkgs_constraint in _torch_cuda.sh.
+  write_local_pkgs_constraint "$VPY"
   uv_pip_keep_torch "$VPY" -e "$target"
 done
 
@@ -272,9 +281,13 @@ UPET_VPY="$UPET_VENV/bin/python"
 
 log "Installing upet (separate venv)"
 TORCH_PIN_FILE="$UPET_VENV/.torch-constraint.txt"
+LOCAL_PKGS_CONSTRAINT_FILE="$UPET_VENV/.local-pkgs-constraint.txt"
 ensure_torch_for_driver "$UPET_VPY" || true
+ensure_build_seed_packages "$UPET_VPY"
+write_local_pkgs_constraint "$UPET_VPY"
 uv_pip_keep_torch "$UPET_VPY" -e "$BASE_DIR/upet"
 TORCH_PIN_FILE="$VENV_DIR/.torch-constraint.txt"
+LOCAL_PKGS_CONSTRAINT_FILE="$VENV_DIR/.local-pkgs-constraint.txt"
 
 # ---- 5c. extra PyPI packages for etc/ examples ------------------------------
 # Not part of the ecosystem checkouts. Used by etc/qm7x_zenodo (HDF5).

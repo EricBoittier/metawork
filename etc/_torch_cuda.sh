@@ -6,6 +6,23 @@
 # PyPI's default cu130 build: the versions both satisfy `torch`, and uv does
 # not care which CUDA runtime is inside. Pin the installed torch and pass
 # --extra-index-url so that does not happen.
+#
+# That alone isn't enough, though: by default uv builds each `[torch]`-extra
+# package in an *isolated* build env, resolved fresh from PyPI. Two bugs
+# follow from that, both fixed the same way (see uv_pip_keep_torch below):
+#   1. metatensor's setup.py needs `packaging >=24.2` (for Version.__replace__)
+#     but only declares `packaging >=23`, so an isolated build env can legally
+#     resolve something older and hit `AttributeError: 'Version' object has
+#     no attribute '__replace__'` at build time.
+#   2. the isolated build env resolves its own `torch` too, which can pick a
+#     different CUDA channel than the one pinned in the venv, compile the
+#     extension against *that* torch, and then require it at install time --
+#     silently reintroducing the exact cu121-vs-cu130 swap this file exists
+#     to prevent (the extension ends up ABI-mismatched against the pinned
+#     wheel: "compiled against torch vX, which is not ABI compatible").
+# `--no-build-isolation` fixes both: the build then reuses whatever is
+# already installed in the venv (a packaging new enough, and the pinned
+# torch) instead of resolving anything fresh.
 
 # Newest first. Empty string = PyPI default (currently a CUDA 13 wheel).
 TORCH_CUDA_CHANNELS=(
@@ -146,6 +163,37 @@ ensure_torch_for_driver() {
   return 1
 }
 
+# `--no-build-isolation` (see uv_pip_keep_torch) needs setuptools/wheel/a
+# recent-enough packaging already present in the venv -- `uv venv` doesn't
+# seed those by default. Call this once per venv before the first
+# uv_pip_keep_torch install.
+ensure_build_seed_packages() {
+  local py="$1"
+  uv pip install --python "$py" -U "packaging>=24.2" setuptools wheel
+}
+
+# When one editable-installed local package (e.g. metatomic-torch) depends
+# by name on another that's *also* installed from a local path (e.g.
+# metatensor-core, metatensor-operations), uv refuses to resolve it unless
+# that local source is stated explicitly as a direct requirement or
+# constraint -- otherwise it tries to satisfy the dependency from PyPI,
+# which can be a much older release than the local dev version and fail
+# the resolve outright ("URL dependencies must be expressed as direct
+# requirements or constraints", or an unrelated-looking version conflict
+# against a stale PyPI release). Regenerate this before each install in the
+# dependency-ordered loop, since later repos depend on earlier ones.
+write_local_pkgs_constraint() {
+  local py="$1"
+  local dest="${LOCAL_PKGS_CONSTRAINT_FILE:-${VENV_DIR:-.}/.local-pkgs-constraint.txt}"
+  mkdir -p "$(dirname "$dest")"
+  # Only named "pkg @ file://..." lines are valid as constraints; `uv pip
+  # freeze` also emits unnamed "-e file://..." lines for the top-level
+  # package of each editable checkout, which uv rejects here -- drop those.
+  uv pip freeze --python "$py" \
+    | grep -E '^[A-Za-z0-9_.-]+ @ file://' \
+    > "$dest" || true
+}
+
 # Install packages without replacing the driver-matched torch wheel.
 uv_pip_keep_torch() {
   local py="$1"
@@ -169,6 +217,7 @@ uv_pip_keep_torch() {
   if [ -f "$pin" ]; then
     args+=(-c "$pin")
   fi
+<<<<<<< HEAD
   # A `-c` constraints file only scopes the top-level install graph, not
   # the separate isolated build environment each package's own
   # `build-system.requires` resolves for itself -- so it does not stop
@@ -179,4 +228,23 @@ uv_pip_keep_torch() {
   # TORCH_EXCLUDE_NEWER_DATE comment above.
   args+=("${TORCH_EXCLUDE_NEWER_ARGS[@]}")
   uv pip install --python "$py" "${args[@]}" "$@"
+=======
+  local local_pkgs="${LOCAL_PKGS_CONSTRAINT_FILE:-${VENV_DIR:-.}/.local-pkgs-constraint.txt}"
+  if [ -f "$local_pkgs" ]; then
+    args+=(-c "$local_pkgs")
+  fi
+  # See the file header: without --no-build-isolation, editable `[torch]`-
+  # extra builds run in an isolated env that can resolve too-old `packaging`
+  # (build error) or a fresh `torch` (ABI drift away from the pinned wheel).
+  #
+  # --refresh is needed too: uv's build cache for local/editable sources is
+  # keyed on the source tree, not on what's currently installed in the venv.
+  # metatomic-torch's setup.py (and similar packages) reads `torch.__version__`
+  # at build time and bakes an exact `torch == X.Y.*` pin into its own
+  # install-requires -- so a wheel built and cached from an earlier run, back
+  # when the venv's torch had drifted (e.g. to 2.13), gets silently reused
+  # and conflicts with the torch pinned now, even though the source hasn't
+  # changed. --refresh forces a real rebuild against the current venv.
+  uv pip install --python "$py" --no-build-isolation --refresh "${args[@]}" "$@"
+>>>>>>> 23b7128 (Fix packaging build error, torch CUDA-channel drift, and local-package resolution in [torch]-extra installs)
 }
