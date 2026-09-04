@@ -1,0 +1,92 @@
+# Multi-endpoint PET training on a QM7-X subset converted from Zenodo.
+#
+#   python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
+#   mtt train etc/qm7x_zenodo/options-multi.yaml
+#
+# Systems and most targets come from the XYZ file. The polarizability
+# spherical tensor (λ=0 + λ=2) cannot be stored in ASE, so it is read
+# from the sidecar .mts file. For --format zip, point every read_from at
+# qm7x.zip and drop the polarizability read_from override (see README).
+seed: 42
+
+architecture:
+  name: pet
+  training:
+    num_epochs: 5
+    batch_size: 8
+    loss:
+      energy:
+        weight: 1.0
+        gradients:
+          positions:
+            weight: 1.0
+      mtt::hlgap:
+        weight: 1.0
+      mtt::dipole:
+        weight: 1.0
+      mtt::hirshfeld_charge:
+        weight: 1.0
+      mtt::hirshfeld_dipole:
+        weight: 1.0
+      mtt::polarizability:
+        weight: 1.0
+
+training_set:
+  systems:
+    read_from: qm7x.xyz
+    length_unit: angstrom
+  targets:
+    # 1. conservative potential — per-structure scalar + per-atom rank-1 gradient
+    energy:
+      key: energy
+      unit: eV
+      forces:
+        key: forces
+
+    # 2. per-structure scalar (intensive electronic property)
+    mtt::hlgap:
+      key: hlgap
+      quantity: energy
+      unit: eV
+      sample_kind: system
+      type: scalar
+
+    # 3. per-structure Cartesian vector
+    mtt::dipole:
+      key: dipole
+      quantity: dipole
+      unit: e*A
+      sample_kind: system
+      type:
+        cartesian:
+          rank: 1
+
+    # 4. per-atom scalar
+    mtt::hirshfeld_charge:
+      key: hirshfeld_charge
+      quantity: charge
+      unit: e
+      sample_kind: atom
+      type: scalar
+
+    # 5. per-atom Cartesian vector
+    mtt::hirshfeld_dipole:
+      key: hirshfeld_dipole
+      sample_kind: atom
+      type:
+        cartesian:
+          rank: 1
+
+    # 6. per-structure spherical tensor (two irreps) — metatensor reader
+    mtt::polarizability:
+      read_from: polarizability_spherical.mts
+      sample_kind: system
+      unit: a0^3
+      type:
+        spherical:
+          irreps:
+            - {o3_lambda: 0, o3_sigma: 1}
+            - {o3_lambda: 2, o3_sigma: 1}
+
+test_set: 0.1
+validation_set: 0.1
