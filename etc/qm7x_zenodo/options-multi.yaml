@@ -46,7 +46,7 @@ training_set:
     # 2. per-structure scalar (intensive electronic property)
     mtt::hlgap:
       key: hlgap
-      quantity: energy
+      quantity: ""
       unit: eV
       sample_kind: system
       type: scalar
@@ -54,7 +54,7 @@ training_set:
     # 3. per-structure Cartesian vector
     mtt::dipole:
       key: dipole
-      quantity: dipole
+      quantity: ""
       unit: e*A
       sample_kind: system
       type:
@@ -64,7 +64,7 @@ training_set:
     # 4. per-atom scalar
     mtt::hirshfeld_charge:
       key: hirshfeld_charge
-      quantity: charge
+      quantity: ""
       unit: e
       sample_kind: atom
       type: scalar
@@ -72,6 +72,7 @@ training_set:
     # 5. per-atom Cartesian vector
     mtt::hirshfeld_dipole:
       key: hirshfeld_dipole
+      quantity: ""
       sample_kind: atom
       type:
         cartesian:
@@ -80,6 +81,7 @@ training_set:
     # 6. per-structure spherical tensor (two irreps) — metatensor reader
     mtt::polarizability:
       read_from: polarizability_spherical.mts
+      quantity: ""
       sample_kind: system
       unit: a0^3
       type:

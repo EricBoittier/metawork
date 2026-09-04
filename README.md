@@ -64,6 +64,32 @@ follow the linked docs for the actual build):
   [PLUMED integration docs](https://docs.metatensor.org/metatomic/latest/engines/plumed.html).
 
 
+# Models
+
+**[upet](https://github.com/lab-cosmo/upet)** (fork:
+[EricBoittier/upet](https://github.com/EricBoittier/upet)) -- the lab's
+universal interatomic potentials (PET-MAD, PET-OAM, PET-MAD-DOS), successor
+to the now-deprecated PET-MAD repo. [Docs](https://lab-cosmo.github.io/upet/latest/).
+
+```py
+from upet.calculator import UPETCalculator
+calculator = UPETCalculator(model="pet-mad-s", version="1.5.0", device="cuda")
+```
+
+upet pins `metatrain>=2026.4,<2026.5` (a released version), which the
+editable dev `metatrain` checkout in the main venv above does not satisfy --
+installing it there would silently swap that editable checkout for the
+pinned PyPI release, breaking "edit metatrain, see it everywhere" for the
+rest of the ecosystem. So `setup-metawork.sh` gives upet **its own venv**
+(`.venv-upet`) instead, with its own pinned `metatrain==2026.4` -- the main
+venv's editable `metatrain` is left untouched.
+
+```bash
+source .venv-upet/bin/activate
+# or: uv run --python .venv-upet/bin/python <command>
+```
+
+
 # Documentation
 
 Per-project hosted docs:
@@ -147,6 +173,14 @@ thousands of near-duplicate frames, kept as-is) plus a ready-to-train
 `.xyz` with a random 1000-frame subsample
 (`etc/md17_npz_to_xyz.py --n-samples all` for the full thing instead).
 Re-running is idempotent -- already-downloaded `.npz` files are skipped.
+
+QM7-X (small organics, ~4.2 M PBE0+MBD structures, 40+ properties) is a
+separate path:
+
+- energy + forces via OpenQDC — [`etc/openqdc_metatomic/`](etc/openqdc_metatomic/)
+- original Zenodo HDF5, several endpoints of different tensor character —
+  [`etc/qm7x_zenodo/`](etc/qm7x_zenodo/)
+  ([record 4288677](https://zenodo.org/records/4288677))
 
 
 # Known issues

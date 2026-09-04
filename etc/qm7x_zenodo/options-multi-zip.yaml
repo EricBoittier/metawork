@@ -37,13 +37,13 @@ training_set:
       unit: eV
     mtt::hlgap:
       key: hlgap
-      quantity: energy
+      quantity: ""
       unit: eV
       sample_kind: system
       type: scalar
     mtt::dipole:
       key: dipole
-      quantity: dipole
+      quantity: ""
       unit: e*A
       sample_kind: system
       type:
@@ -51,18 +51,20 @@ training_set:
           rank: 1
     mtt::hirshfeld_charge:
       key: hirshfeld_charge
-      quantity: charge
+      quantity: ""
       unit: e
       sample_kind: atom
       type: scalar
     mtt::hirshfeld_dipole:
       key: hirshfeld_dipole
+      quantity: ""
       sample_kind: atom
       type:
         cartesian:
           rank: 1
     mtt::polarizability:
       key: polarizability
+      quantity: ""
       sample_kind: system
       unit: a0^3
       type:

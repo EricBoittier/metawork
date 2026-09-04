@@ -50,11 +50,10 @@ OpenQDC's `QM7X` wrapper keeps the geometries plus:
 | `0` | PBE0+MBD (`ePBE0+MBD`) | yes (`pbe0FOR`) |
 | `1` | DFTB3+MBD (`eDFTB+MBD`) | no |
 
-Original units in OpenQDC are eV and Å, which already match the metatrain
-examples. The original paper's extra properties (polarizability tensors, …)
-are **not** in the OpenQDC energy/force subset; metatrain's test file
-`qm7x_reduced_100.xyz` is a small XYZ extract that *does* include
-polarizability, used for spherical-target tests.
+The original paper's extra properties (polarizability tensors, dipoles,
+Hirshfeld charges, …) are **not** in the OpenQDC energy/force subset. To
+train on those, convert the Zenodo HDF5 files instead —
+[`../qm7x_zenodo/`](../qm7x_zenodo/).
 
 
 ## Loading from OpenQDC
@@ -412,26 +411,11 @@ forces array.
 
 ### Spherical targets (polarizability)
 
-OpenQDC's `QM7X` does not ship the polarizability tensor. The original QM7-X
-HDF5 does (`mPOL`), and metatrain already has a 100-structure extract
-(`metatrain/tests/resources/qm7x_reduced_100.xyz`) plus
-`dump_spherical_targets.py` that converts Cartesian polarizability to an
-`.mts` file with `o3_lambda=0,2` blocks. Point a generic target at that
-file:
-
-```yaml
-targets:
-  mtt::polarizability:
-    read_from: qm7x_reduced_100.mts
-    type:
-      spherical:
-        irreps:
-          - {o3_lambda: 0, o3_sigma: 1}
-          - {o3_lambda: 2, o3_sigma: 1}
-```
-
-`MemmapDataset` cannot store spherical targets; use XYZ + a side `.mts`, or
-a `DiskDataset` zip.
+OpenQDC's `QM7X` does not ship the polarizability tensor. Convert it from
+the [Zenodo HDF5](https://zenodo.org/records/4288677) with
+[`../qm7x_zenodo/`](../qm7x_zenodo/), which writes a λ=0+λ=2 `.mts` file
+and a multi-endpoint metatrain YAML. Metatrain also has a 100-structure
+extract (`metatrain/tests/resources/qm7x_reduced_100.xyz`) used in tests.
 
 
 ## References

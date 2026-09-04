@@ -326,10 +326,6 @@ def to_targets(entry: dict, system: int) -> dict[str, TensorMap]:
         targets["polarizability"] = polarizability_spherical(
             [entry["polarizability"]], [system]
         )
-    if entry["c6"] is not None:
-        targets["c6"] = scalar_system(entry["c6"], system)
-    if entry["atomic_c6"] is not None:
-        targets["atomic_c6"] = scalar_atom(entry["atomic_c6"], system)
     return targets
 
 

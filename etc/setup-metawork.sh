@@ -296,6 +296,34 @@ for entry in "${INSTALL_REPOS[@]}"; do
   uv pip install --python "$VPY" -e "$target"
 done
 
+# ---- 5b. upet, in its own separate venv -------------------------------------
+# upet (https://github.com/lab-cosmo/upet, universal PET-MAD/PET-OAM
+# potentials) pins metatrain>=2026.4,<2026.5 -- a released version range our
+# editable local `metatrain` checkout (a dev snapshot) does not satisfy.
+# Installing upet into the shared venv works, but uv silently *replaces* the
+# editable metatrain with the pinned PyPI release to satisfy it, which would
+# stop picking up local edits to metatrain for everything else in the shared
+# venv too. So upet gets its own venv instead, with its own pinned metatrain
+# -- the shared venv's editable metatrain is left untouched.
+UPET_VENV="$BASE_DIR/.venv-upet"
+clone_or_update "upet" "lab-cosmo"
+
+if [ ! -d "$UPET_VENV" ]; then
+  log "Creating separate venv for upet at $UPET_VENV"
+  uv venv "$UPET_VENV" --python "$PYTHON_VERSION"
+fi
+UPET_VPY="$UPET_VENV/bin/python"
+
+log "Installing upet (separate venv)"
+if [ -n "${index_url:-}" ]; then
+  uv pip install --python "$UPET_VPY" --reinstall-package torch torch --index-url "$index_url"
+elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+  uv pip install --python "$UPET_VPY" --reinstall-package torch torch
+else
+  uv pip install --python "$UPET_VPY" --reinstall-package torch torch --index-url https://download.pytorch.org/whl/cpu
+fi
+uv pip install --python "$UPET_VPY" -e "$BASE_DIR/upet"
+
 # ---- 6. summary --------------------------------------------------------------
 log "Summary"
 "$VPY" - <<'EOF'
@@ -313,6 +341,25 @@ for mod in ("metatensor", "metatensor.torch", "metatomic", "metatomic.torch", "f
         print(f"{mod:20s} FAILED: {e}")
 EOF
 
+log "Summary (upet venv)"
+"$UPET_VPY" - <<'EOF'
+import importlib
+import torch
+
+print(f"torch {torch.__version__}  (cuda available at runtime: {torch.cuda.is_available()})")
+for mod in ("metatrain", "upet"):
+    try:
+        m = importlib.import_module(mod)
+        print(f"{mod:20s} ok  ({getattr(m, '__version__', '')})")
+    except Exception as e:
+        print(f"{mod:20s} FAILED: {e}")
+EOF
+
 echo
 echo "Activate with:  source $VENV_DIR/bin/activate"
 echo "Or run one-off: uv run --python $VPY <command>"
+echo
+echo "upet lives in its own venv (separate pinned metatrain, does not touch"
+echo "the editable one above):"
+echo "  Activate with:  source $UPET_VENV/bin/activate"
+echo "  Or run one-off: uv run --python $UPET_VPY <command>"
