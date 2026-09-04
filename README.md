@@ -16,15 +16,35 @@ bash ~/metawork/etc/setup-metawork.sh
 Simulation engines with a metatensor/metatomic integration, so a model built
 with this stack can be dropped in as the potential:
 
+Installed straight into the shared venv by `setup-metawork.sh` (pure/mostly
+Python, no special native build):
+
 - **[ASE](https://wiki.fysik.dtu.dk/ase/)** ([repo](https://gitlab.com/ase/ase)) --
-  the Atomic Simulation Environment. The lightest-weight way to run a
-  metatomic model: see the
+  the Atomic Simulation Environment, pulled in as a dependency. The
+  lightest-weight way to run a metatomic model: see the
   [ASE integration docs](https://docs.metatensor.org/metatomic/latest/engines/ase.html)
   and [`2-running-ase-md.py`](https://github.com/metatensor/metatomic/blob/main/python/examples/2-running-ase-md.py).
 - **[TorchSim](https://github.com/TorchSim/torch-sim)** -- batched,
-  GPU-native MD in pure PyTorch (no C++/Rust build required). See the
+  GPU-native MD in pure PyTorch, installed via metatomic's `torchsim` extra
+  (no separate repo needed). See the
   [TorchSim integration docs](https://docs.metatensor.org/metatomic/latest/engines/torchsim.html)
   and the `5-torchsim-getting-started` / `6-torchsim-batched` examples below.
+- **[i-PI](https://ipi-code.org/)** ([repo](https://github.com/i-pi/i-pi),
+  imports as `ipi`) -- a universal, Python-based force engine; metatomic
+  support is in the official version. See the
+  [i-PI integration docs](https://docs.metatensor.org/metatomic/latest/engines/ipi.html)
+  and [hpc-docs' i-PI notes](https://github.com/metatensor/hpc-docs/blob/main/CSCS-Alps/molecular-dynamics-with-i-Pi.md).
+- **[chemiscope](https://chemiscope.org/)** ([repo](https://github.com/lab-cosmo/chemiscope)) --
+  interactive structure/property viewer. Its build bundles JS assets via
+  `npm` and needs **node >=20**; `setup-metawork.sh` checks for this and
+  skips chemiscope with a warning instead of failing the whole run if it's
+  missing/too old (this was the case on `cosmopc7`, which ships node/npm
+  too old to build it).
+
+Cloned for reference but *not* auto-built (each has its own large,
+non-Python/CMake+MPI-style build, too machine-specific to script here --
+follow the linked docs for the actual build):
+
 - **[LAMMPS](https://www.lammps.org/)** ([docs](https://docs.lammps.org/)) --
   via the metatomic-enabled fork at
   [metatensor/lammps](https://github.com/metatensor/lammps). See the
@@ -33,14 +53,14 @@ with this stack can be dropped in as the potential:
   via the metatomic staging branch at
   [metatensor/gromacs](https://github.com/metatensor/gromacs). See the
   [GROMACS integration docs](https://docs.metatensor.org/metatomic/latest/engines/gromacs.html).
-
-Also supported (not currently cloned in this workspace, add them to
-`INSTALL_REPOS`/`CLONE_ONLY_REPOS` in `etc/setup-metawork.sh` if you need
-them): [i-PI](https://docs.metatensor.org/metatomic/latest/engines/ipi.html),
-[PLUMED](https://docs.metatensor.org/metatomic/latest/engines/plumed.html),
-[EON](https://docs.metatensor.org/metatomic/latest/engines/eon.html), and
-[chemiscope](https://docs.metatensor.org/metatomic/latest/engines/chemiscope.html)
-for visualization.
+- **[eOn](https://eondocs.org/)** ([repo](https://github.com/TheochemUI/eOn)) --
+  long-timescale transition-state/kinetics engine; metatomic support is in
+  the official version. See the
+  [eOn integration docs](https://docs.metatensor.org/metatomic/latest/engines/eon.html).
+- **[PLUMED](https://www.plumed.org/)** ([repo](https://github.com/plumed/plumed2))
+  -- enhanced-sampling/free-energy library; metatomic support is in the
+  official development version. See the
+  [PLUMED integration docs](https://docs.metatensor.org/metatomic/latest/engines/plumed.html).
 
 
 # Documentation
@@ -130,7 +150,7 @@ Re-running is idempotent -- already-downloaded `.npz` files are skipped.
 
 # Known issues
 
-Building this ecosystem on a fresh GPU machine (e.g. `cosmopc27`) hit four
+Building this ecosystem on a fresh GPU machine (e.g. `cosmopc27`) hit five
 separate problems, in the order you'll likely see them:
 
 1. **`cargo`/`rustc` present but not working.** On some machines `cargo` is a
@@ -186,3 +206,17 @@ separate problems, in the order you'll likely see them:
    channel (`cu121`/`cu124`/`cu126`/default) automatically, then verifies
    `torch.cuda.is_available()` after install and warns if it's still
    `False`.
+
+5. **chemiscope needs a newer `node`/`npm` than the system default.** Its
+   `pip install` runs `npm ci` to bundle the JS widget, which requires
+   **node >=20**. On `cosmopc7` the system npm is 9.2.0 (needs node >=20,
+   found an older one), so the build fails with
+   `npm ERR! notsup Not compatible with your version of node/npm`. This
+   would abort the whole script (everything after chemiscope in
+   `INSTALL_REPOS` never gets installed) if left uncaught, since one failed
+   `uv pip install` under `set -e` stops the run. `setup-metawork.sh` now
+   checks the `node` major version during the toolchain check and skips
+   chemiscope with a warning instead of failing, so the rest of the
+   ecosystem still installs. Fix, if you actually need chemiscope: install a
+   newer node without root via [nvm](https://github.com/nvm-sh/nvm)
+   (`nvm install 20`), then re-run the script.

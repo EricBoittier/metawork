@@ -188,7 +188,8 @@ energy_block.add_gradient(
 energy_map = TensorMap(Labels.single(), [energy_block])
 
 energy_map.save("energy.mts")   # also: import metatensor as mts; mts.save(...)
-system.save("system.mta")       # metatomic System
+import metatomic.torch as mta
+mta.save("system.mta", system)  # metatomic System
 ```
 
 `metatensor` (numpy backend) and `metatensor.torch` write the same `.mts`
@@ -231,16 +232,18 @@ Headers: `<metatensor.hpp>`. `TensorMap::load` allocates
 `SimpleDataArray` buffers by default.
 
 ```cpp
-#include <metatensor.hpp>
+#include <algorithm>
 #include <iostream>
+#include <metatensor.hpp>
 
 int main() {
     auto tensor = metatensor::TensorMap::load("energy.mts");
     auto block = tensor.block_by_id(0);
-    auto values = block.values();   // NDArray<double>, shape (1, 1)
+    auto values = block.values();   // DLPackArray<double>, shape (1, 1)
     std::cout << "energy = " << values(0, 0) << "\n";
 
-    if (block.has_gradient("positions")) {
+    auto grads = block.gradients_list();
+    if (std::find(grads.begin(), grads.end(), "positions") != grads.end()) {
         auto grad = block.gradient("positions").values();
         // grad(atom, xyz, property); force = -dE/dx
         std::cout << "n_atoms = " << grad.shape()[0] << "\n";
@@ -258,7 +261,7 @@ int main() {
     std::vector<metatensor::TensorBlock> blocks;
     blocks.push_back(std::move(energy_block));
     auto built = metatensor::TensorMap(
-        metatensor::Labels::single(),
+        metatensor::Labels({"_"}, {{0}}),
         std::move(blocks)
     );
     metatensor::io::save("energy_cpp.mts", built);
@@ -277,17 +280,14 @@ use metatensor::{Labels, TensorBlock, TensorMap};
 fn main() -> Result<(), metatensor::Error> {
     let tensor = TensorMap::load("energy.mts")?;
     let block = tensor.block_by_id(0);
-    let values = block.values();
-    println!("energy shape = {:?}", values.shape()?);
+    println!("energy shape = {:?}", block.values().shape()?);
 
     // construct and save
-    let block = TensorBlock::new(
-        vec![-123.4],
-        Labels::new(["system"], &[[0]])?,
-        Vec::new(),
-        Labels::new(["energy"], &[[0]])?,
-    )?;
-    let built = TensorMap::new(Labels::single()?, vec![block])?;
+    let samples = Labels::new(["system"], [[0]]);
+    let properties = Labels::new(["energy"], [[0]]);
+    let values = ndarray::Array::from_elem(vec![1, 1], -123.4);
+    let block = TensorBlock::new(values, &samples, &[], &properties)?;
+    let built = TensorMap::new(Labels::single(), vec![block])?;
     built.save("energy_rust.mts")?;
     Ok(())
 }
