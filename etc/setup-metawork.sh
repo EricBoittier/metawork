@@ -2,8 +2,11 @@
 # ============================================================================
 # setup-metawork.sh
 #
-# Clones/updates the metatensor-ecosystem repos used in ~/Documents/metawork
-# and (re)builds the shared uv-managed Python venv there, installing PyTorch
+# Clones/updates the metatensor-ecosystem repos and (re)builds the shared
+# uv-managed Python venv, both rooted at the parent of this script's own
+# etc/ directory (so this works wherever the project folder actually lives
+# -- ~/metawork, ~/Documents/metawork, wherever you put it -- as long as
+# this script stays inside its etc/ subdirectory) -- installing PyTorch
 # appropriate to whatever GPU is actually usable on the machine this runs on.
 #
 # Safe to re-run: existing repos are `git pull`-ed instead of re-cloned, and
@@ -11,7 +14,7 @@
 # ============================================================================
 set -euo pipefail
 
-BASE_DIR="$HOME/Documents/metawork"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV_DIR="$BASE_DIR/.venv"
 PYTHON_VERSION="3.12"
 
@@ -89,10 +92,15 @@ clone_or_update() {
     return
   fi
   log "Cloning $repo"
-  if git clone "https://github.com/$FORK_OWNER/$repo.git" "$BASE_DIR/$repo" 2>/dev/null; then
+  # An empty GitHub fork still clones successfully, but has no HEAD -- git
+  # add of the parent repo then fails with "does not have a commit checked
+  # out". Treat that the same as "no fork".
+  if git clone "https://github.com/$FORK_OWNER/$repo.git" "$BASE_DIR/$repo" 2>/dev/null \
+     && git -C "$BASE_DIR/$repo" rev-parse --verify HEAD >/dev/null 2>&1; then
     git -C "$BASE_DIR/$repo" remote add upstream "https://github.com/$org/$repo.git" 2>/dev/null || true
   else
-    echo "  (no $FORK_OWNER/$repo fork found -- cloning upstream $org/$repo instead)"
+    rm -rf "$BASE_DIR/$repo"
+    echo "  (no usable $FORK_OWNER/$repo fork -- cloning upstream $org/$repo instead)"
     git clone "https://github.com/$org/$repo.git" "$BASE_DIR/$repo"
   fi
 }

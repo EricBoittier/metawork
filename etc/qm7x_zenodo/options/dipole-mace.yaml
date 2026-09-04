@@ -1,0 +1,33 @@
+# endpoint: dipole  |  model: mace
+# mtt train etc/qm7x_zenodo/options/dipole-mace.yaml
+# Data: qm7x.xyz (+ polarizability_spherical.mts when needed).
+# Convert first: python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
+# molecular dipole, Cartesian rank-1 (DPA3/GAP cannot)
+
+seed: 42
+
+architecture:
+  name: experimental.mace
+  training:
+    num_epochs: 5
+    batch_size: 8
+    loss:
+      mtt::dipole:
+        weight: 1.0
+
+training_set:
+  systems:
+    read_from: qm7x.xyz
+    length_unit: angstrom
+  targets:
+    mtt::dipole:
+      key: dipole
+      quantity: ""
+      unit: e*A
+      sample_kind: system
+      type:
+        cartesian:
+          rank: 1
+
+test_set: 0.1
+validation_set: 0.1

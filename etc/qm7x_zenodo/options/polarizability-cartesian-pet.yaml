@@ -1,0 +1,33 @@
+# endpoint: polarizability-cartesian  |  model: pet
+# mtt train etc/qm7x_zenodo/options/polarizability-cartesian-pet.yaml
+# Data: qm7x.xyz (+ polarizability_spherical.mts when needed).
+# Convert first: python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
+# mTPOL as Cartesian rank-2 from XYZ; PET only
+
+seed: 42
+
+architecture:
+  name: pet
+  training:
+    num_epochs: 5
+    batch_size: 8
+    loss:
+      mtt::polarizability:
+        weight: 1.0
+
+training_set:
+  systems:
+    read_from: qm7x.xyz
+    length_unit: angstrom
+  targets:
+    mtt::polarizability:
+      key: polarizability
+      quantity: ""
+      sample_kind: system
+      unit: a0^3
+      type:
+        cartesian:
+          rank: 2
+
+test_set: 0.1
+validation_set: 0.1

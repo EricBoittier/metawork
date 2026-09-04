@@ -1,12 +1,13 @@
-# Same endpoints as options-multi.yaml, but everything lives in a
-# DiskDataset zip (including the spherical polarizability).
-#
-#   python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200 --format zip
-#   mtt train etc/qm7x_zenodo/options-multi-zip.yaml
+# endpoint: multi  |  model: mace
+# mtt train etc/qm7x_zenodo/options/multi-mace.yaml
+# Data: qm7x.xyz (+ polarizability_spherical.mts when needed).
+# Convert first: python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
+# all six demo endpoints (no Cartesian rank-2)
+
 seed: 42
 
 architecture:
-  name: pet
+  name: experimental.mace
   training:
     num_epochs: 5
     batch_size: 8
@@ -29,12 +30,14 @@ architecture:
 
 training_set:
   systems:
-    read_from: qm7x.zip
+    read_from: qm7x.xyz
     length_unit: angstrom
   targets:
     energy:
       key: energy
       unit: eV
+      forces:
+        key: forces
     mtt::hlgap:
       key: hlgap
       quantity: ""
@@ -63,7 +66,7 @@ training_set:
         cartesian:
           rank: 1
     mtt::polarizability:
-      key: polarizability
+      read_from: polarizability_spherical.mts
       quantity: ""
       sample_kind: system
       unit: a0^3

@@ -1,0 +1,31 @@
+# endpoint: hlgap  |  model: space
+# mtt train etc/qm7x_zenodo/options/hlgap-space.yaml
+# Data: qm7x.xyz (+ polarizability_spherical.mts when needed).
+# Convert first: python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
+# HOMO-LUMO gap, per-structure scalar
+
+seed: 42
+
+architecture:
+  name: experimental.space
+  training:
+    num_epochs: 5
+    batch_size: 8
+    loss:
+      mtt::hlgap:
+        weight: 1.0
+
+training_set:
+  systems:
+    read_from: qm7x.xyz
+    length_unit: angstrom
+  targets:
+    mtt::hlgap:
+      key: hlgap
+      quantity: ""
+      unit: eV
+      sample_kind: system
+      type: scalar
+
+test_set: 0.1
+validation_set: 0.1

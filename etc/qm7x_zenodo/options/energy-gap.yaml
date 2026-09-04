@@ -1,0 +1,27 @@
+# endpoint: energy  |  model: gap
+# mtt train etc/qm7x_zenodo/options/energy-gap.yaml
+# Data: qm7x.xyz (+ polarizability_spherical.mts when needed).
+# Convert first: python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
+# GAP only supports energy/forces
+
+seed: 42
+
+architecture:
+  name: gap
+  training:
+    regularizer: 1.0e-4
+    regularizer_forces: 1.0e-3
+
+training_set:
+  systems:
+    read_from: qm7x.xyz
+    length_unit: angstrom
+  targets:
+    energy:
+      key: energy
+      unit: eV
+      forces:
+        key: forces
+
+test_set: 0.1
+validation_set: 0.1

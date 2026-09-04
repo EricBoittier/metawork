@@ -1,12 +1,9 @@
-# Multi-endpoint PET training on a QM7-X subset converted from Zenodo.
-#
-#   python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
-#   mtt train etc/qm7x_zenodo/options-multi.yaml
-#
-# Systems and most targets come from the XYZ file. The polarizability
-# spherical tensor (λ=0 + λ=2) cannot be stored in ASE, so it is read
-# from the sidecar .mts file. For --format zip, point every read_from at
-# qm7x.zip and drop the polarizability read_from override (see README).
+# endpoint: multi-zip  |  model: pet
+# mtt train etc/qm7x_zenodo/options/multi-zip-pet.yaml
+# Data: qm7x.xyz (+ polarizability_spherical.mts when needed).
+# Convert first: python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
+# DiskDataset zip; convert with --format zip
+
 seed: 42
 
 architecture:
@@ -33,25 +30,18 @@ architecture:
 
 training_set:
   systems:
-    read_from: qm7x.xyz
+    read_from: qm7x.zip
     length_unit: angstrom
   targets:
-    # 1. conservative potential — per-structure scalar + per-atom rank-1 gradient
     energy:
       key: energy
       unit: eV
-      forces:
-        key: forces
-
-    # 2. per-structure scalar (intensive electronic property)
     mtt::hlgap:
       key: hlgap
       quantity: ""
       unit: eV
       sample_kind: system
       type: scalar
-
-    # 3. per-structure Cartesian vector
     mtt::dipole:
       key: dipole
       quantity: ""
@@ -60,16 +50,12 @@ training_set:
       type:
         cartesian:
           rank: 1
-
-    # 4. per-atom scalar
     mtt::hirshfeld_charge:
       key: hirshfeld_charge
       quantity: ""
       unit: e
       sample_kind: atom
       type: scalar
-
-    # 5. per-atom Cartesian vector
     mtt::hirshfeld_dipole:
       key: hirshfeld_dipole
       quantity: ""
@@ -77,10 +63,8 @@ training_set:
       type:
         cartesian:
           rank: 1
-
-    # 6. per-structure spherical tensor (two irreps) — metatensor reader
     mtt::polarizability:
-      read_from: polarizability_spherical.mts
+      key: polarizability
       quantity: ""
       sample_kind: system
       unit: a0^3

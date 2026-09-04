@@ -17,7 +17,7 @@ Zenodo 8000.xz  →  8000.hdf5  →  TensorMap(s) + System(s)
                          xyz + polarizability_spherical.mts
                          or  qm7x.zip (DiskDataset)
                                       │
-                               mtt train options-multi.yaml
+                    mtt train etc/qm7x_zenodo/options/<endpoint>-<model>.yaml
 ```
 
 
@@ -111,14 +111,23 @@ The spherical conversion of `mTPOL` uses the same λ=0 (trace) / λ=2
 
 ## Train
 
+Option files live in [`options/`](options/) — one YAML per endpoint and
+architecture, plus a few multi-target combinations. See that folder's
+README for the full list and which models support which tensor types.
+
 ```bash
-mtt train etc/qm7x_zenodo/options-multi.yaml          # xyz + .mts
-mtt train etc/qm7x_zenodo/options-multi-zip.yaml      # DiskDataset
+python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
+
+mtt train etc/qm7x_zenodo/options/energy-pet.yaml
+mtt train etc/qm7x_zenodo/options/dipole-soap_bpnn.yaml
+mtt train etc/qm7x_zenodo/options/polarizability-spherical-mace.yaml
+mtt train etc/qm7x_zenodo/options/multi-pet.yaml
 ```
 
-Each `mtt::…` block in the YAML is the declaration of one endpoint: `sample_kind`
-(`system` vs `atom`) and `type` (`scalar`, `cartesian.rank`, or `spherical.irreps`).
-That is the same schema as the
+`--format zip` plus `options/multi-zip-pet.yaml` reads a DiskDataset instead.
+
+Each `mtt::…` block declares `sample_kind` (`system` vs `atom`) and `type`
+(`scalar`, `cartesian.rank`, or `spherical.irreps`), as in the
 [generic-targets tutorial](https://docs.metatensor.org/metatrain/latest/generated_examples/1-advanced/03-fitting-generic-targets.html).
 
 To add another HDF5 property, extend `load_structure()` / `to_targets()` and

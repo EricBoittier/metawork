@@ -1,0 +1,33 @@
+# endpoint: energy  |  model: soap_bpnn
+# mtt train etc/qm7x_zenodo/options/energy-soap_bpnn.yaml
+# Data: qm7x.xyz (+ polarizability_spherical.mts when needed).
+# Convert first: python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
+# atomization energy + PBE0+MBD forces
+
+seed: 42
+
+architecture:
+  name: soap_bpnn
+  training:
+    num_epochs: 5
+    batch_size: 8
+    loss:
+      energy:
+        weight: 1.0
+        gradients:
+          positions:
+            weight: 1.0
+
+training_set:
+  systems:
+    read_from: qm7x.xyz
+    length_unit: angstrom
+  targets:
+    energy:
+      key: energy
+      unit: eV
+      forces:
+        key: forces
+
+test_set: 0.1
+validation_set: 0.1

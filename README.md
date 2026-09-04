@@ -180,7 +180,8 @@ separate path:
 - energy + forces via OpenQDC — [`etc/openqdc_metatomic/`](etc/openqdc_metatomic/)
 - original Zenodo HDF5, several endpoints of different tensor character —
   [`etc/qm7x_zenodo/`](etc/qm7x_zenodo/)
-  ([record 4288677](https://zenodo.org/records/4288677))
+  ([record 4288677](https://zenodo.org/records/4288677));
+  training YAMLs are in [`etc/qm7x_zenodo/options/`](etc/qm7x_zenodo/options/)
 
 
 # Known issues
@@ -241,6 +242,21 @@ separate problems, in the order you'll likely see them:
    own header and picks a matching wheel channel (`cu121`/`cu124`/`cu126`/
    default) automatically, then verifies `torch.cuda.is_available()` after
    install and warns if it's still `False`.
+
+4b. **Everything installs into the wrong directory, silently.**
+   `setup-metawork.sh` used to hardcode `BASE_DIR="$HOME/Documents/metawork"`
+   -- a path from investigating this on `cosmopc7`, where the project
+   genuinely lives at `~/Documents/metawork`. On `cosmopc27` the project
+   lives at `~/metawork` instead (no `Documents/`), so every run silently
+   built a second, orphaned tree at `~/Documents/metawork` while
+   `download-datasets.sh` (which correctly derives its paths from its own
+   script location) kept looking in `~/metawork/.venv` and finding nothing.
+   No error at the time -- both trees "worked" independently, just not
+   together. Fixed by deriving `BASE_DIR` from the script's own location
+   (`etc/../..`) in every script, so this works wherever the project folder
+   actually is. If you hit this before the fix: the orphaned tree's
+   editable installs point at its own absolute paths, so don't just `mv` it
+   into place -- delete it and re-run fresh at the correct location.
 
 5. **chemiscope needs a newer `node`/`npm` than the system default.** Its
    `pip install` runs `npm ci` to bundle the JS widget, which requires

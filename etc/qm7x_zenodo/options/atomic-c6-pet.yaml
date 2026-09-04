@@ -1,0 +1,30 @@
+# endpoint: atomic-c6  |  model: pet
+# mtt train etc/qm7x_zenodo/options/atomic-c6-pet.yaml
+# Data: qm7x.xyz (+ polarizability_spherical.mts when needed).
+# Convert first: python etc/qm7x_zenodo/zenodo_to_metatensor.py --n-samples 200
+# atomic C6; skip if frames lack arrays['atomic_c6']
+
+seed: 42
+
+architecture:
+  name: pet
+  training:
+    num_epochs: 5
+    batch_size: 8
+    loss:
+      mtt::atomic_c6:
+        weight: 1.0
+
+training_set:
+  systems:
+    read_from: qm7x.xyz
+    length_unit: angstrom
+  targets:
+    mtt::atomic_c6:
+      key: atomic_c6
+      quantity: ""
+      sample_kind: atom
+      type: scalar
+
+test_set: 0.1
+validation_set: 0.1
