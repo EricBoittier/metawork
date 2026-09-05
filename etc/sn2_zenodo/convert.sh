@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Download Zenodo 2605341 and write ~/data/sn2/sn2.xyz (1000 structures).
+# Download Zenodo 2605341 and write ~/data/sn2/sn2.xyz (10000 structures).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

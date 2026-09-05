@@ -14,7 +14,7 @@ puts ``metatrain/src`` on ``PYTHONPATH`` so ``mtt`` uses the checkout
 tox install.
 
 ```bash
-bash etc/sn2_zenodo/convert.sh          # 1000 random structures → ~/data/sn2
+bash etc/sn2_zenodo/convert.sh          # 10000 random structures → ~/data/sn2
 bash etc/sn2_zenodo/train.sh            # energy + forces + dipole (restarts from model.ckpt)
 RESTART=0 bash etc/sn2_zenodo/train.sh  # from scratch
 ```
@@ -38,7 +38,7 @@ and the six-atom SN2 complexes). Pass ``--min-atoms 0`` to include
 HX / XY / CHX fragments.
 
 ```bash
-python etc/sn2_zenodo/convert.py --n-samples 1000 --data-dir ~/data/sn2
+python etc/sn2_zenodo/convert.py --n-samples 10000 --data-dir ~/data/sn2
 DATA_DIR=~/data/sn2 bash etc/sn2_zenodo/train.sh
 # mapping smoke test (no download):
 pytest etc/sn2_zenodo/test_convert.py
@@ -46,10 +46,10 @@ pytest etc/sn2_zenodo/test_convert.py
 metatrain/.tox/lorem-tests/bin/python etc/sn2_zenodo/plot_reaction_coordinate.py
 ```
 
-A 50-epoch CPU run on 1000 structures (800/100/100, 93k parameters)
-does learn. Best checkpoint was epoch 39. ``train.sh`` then continues
-from ``model.ckpt`` with ``learning_rate: 0.0001`` and
-``scheduler_factor: 0.8`` on that same 0.8/0.1/0.1 split.
+A first 50-epoch CPU run on 1000 structures (800/100/100, 93k parameters)
+does learn. The recipe default is now a **10000**-structure subset
+(8000/1000/1000). ``train.sh`` continues from ``model.ckpt`` with
+``learning_rate: 0.0001`` and ``scheduler_factor: 0.8``.
 
 | | energy (meV/atom) | forces (meV/Å) | dipole (e·Å/atom) |
 | --- | ---: | ---: | ---: |
