@@ -42,4 +42,12 @@ DATA_DIR=~/data/sn2 bash etc/sn2_zenodo/train.sh
 pytest etc/sn2_zenodo/test_convert.py
 ```
 
+A 50-epoch CPU run on 1000 structures (800/100/100, 93k parameters)
+does learn. Best checkpoint was epoch 39:
+
+| | energy (meV/atom) | forces (meV/Å) | dipole (e·Å/atom) |
+| --- | ---: | ---: | ---: |
+| val, epoch 0 | 128 | 1158 | 0.162 |
+| test, best | 33 | 268 | 0.042 |
+
 Cite the PhysNet paper and the Zenodo DOI when you use the numbers.

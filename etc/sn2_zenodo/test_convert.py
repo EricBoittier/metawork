@@ -12,7 +12,7 @@ _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
-from convert import npz_to_atoms
+from convert import npz_to_atoms, write_extxyz
 
 
 class _FakeNpz:
@@ -79,3 +79,14 @@ def test_npz_to_atoms_strips_padding(tmp_path) -> None:
     assert frames[1].get_atomic_numbers().tolist() == [9, 17]
     assert "dipole" not in frames[0].info
     assert np.allclose(frames[0].info["dipole_moment"], [0.1, 0.2, 0.3])
+
+
+def test_write_extxyz_roundtrip(tmp_path) -> None:
+    data = _FakeNpz()
+    xyz = tmp_path / "sn2.xyz"
+    write_extxyz(data, [0, 1], xyz)
+    frames = read(xyz, index=":")
+    assert len(frames) == 2
+    assert frames[0].get_atomic_numbers().tolist() == [6, 1, 1]
+    assert np.allclose(frames[0].info["dipole_moment"], [0.1, 0.2, 0.3])
+    assert np.isclose(frames[0].get_potential_energy(), -10.0)
