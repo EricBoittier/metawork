@@ -4,8 +4,8 @@ Optional recipes to run **experimental.lorem** next to the official JAX
 examples. This folder is not part of metatrain CI.
 
 `experimental.lorem` is a metatrain-native port. Same equations and knobs
-as the paper / lorem-jax; **no bit-exact energy match** (different SH,
-radial basis, PME, RNG). Contract tests live in
+as the paper / lorem-jax; **no bit-exact energy match** (PME
+implementation, RNG, e3x cartesian vs ``m = -ℓ … +ℓ``). Contract tests live in
 [`metatrain/src/metatrain/experimental/lorem/tests/test_paper_contracts.py`](../../metatrain/src/metatrain/experimental/lorem/tests/test_paper_contracts.py).
 The comparison table is
 [`metatrain/src/metatrain/experimental/lorem/README.md`](../../metatrain/src/metatrain/experimental/lorem/README.md).
@@ -72,6 +72,31 @@ DATASETS=. python prepare.py
 cd my_experiment
 DATASETS=.. lorem-train
 ```
+
+## Architecture keys and comparison numbers
+
+From the metawork root, with the PyTorch / mtt env:
+
+```bash
+metatrain/.tox/lorem-tests/bin/python etc/lorem-parity/compare.py
+# or:  .../compare.py path/to/model.pt
+```
+
+That script:
+
+1. Parses ``lorem.Lorem`` field names from the submodule source (no JAX
+   import) and prints them next to ``experimental.lorem`` hypers keys.
+2. Prints the torch ``named_parameters`` tree (``sr`` / ``lr`` scopes).
+3. Scores a trained ``model.pt`` against the DFT labels on the same
+   21-frame toy XYZ (energy / force RMSE and a per-frame table).
+
+Default model path is the jax-toy run directory
+``outputs/2026-09-05/10-21-57/model.pt``. Re-train if that is gone.
+
+This is **fit-to-labels**, not ``E_mtt − E_jax``. Different spherical
+harmonics, radial-basis implementation, PME, and independent RNG. The
+in-repo CI test ``test_hypers_keys_overlap_lorem_jax`` prints the same
+key table without touching this folder.
 
 If you want numbers, run both trainers and look. There is no energy-diff
 script.

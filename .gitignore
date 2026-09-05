@@ -25,6 +25,9 @@
 # datasets downloaded by etc/download-datasets.sh (when pointed inside this repo)
 /data/
 
+# isolated JAX venv for etc/lorem-parity/ (do not install JAX into .venv)
+/etc/lorem-parity/.venv-jax/
+
 # mtt train/eval artifacts when run from the repo root (see etc/lorem-parity/)
 /outputs/
 /model.pt
