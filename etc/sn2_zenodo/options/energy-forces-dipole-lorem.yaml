@@ -11,12 +11,12 @@ architecture:
   model:
     cutoff: 5.0
     cutoff_width: 0.5
-    max_degree: 2
-    max_degree_lr: 1
+    max_degree: 6
+    max_degree_lr: 2
     num_features: 64
-    num_spherical_features: 8
+    num_spherical_features: 16
     num_radial: 16
-    num_message_passing: 1
+    num_message_passing: 2
     long_range:
       enable: true
       use_ewald: true
