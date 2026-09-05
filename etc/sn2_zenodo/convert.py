@@ -71,24 +71,36 @@ def main() -> int:
         default="200",
         help="random subsample size, or 'all' (default: 200)",
     )
+    parser.add_argument(
+        "--min-atoms",
+        type=int,
+        default=5,
+        help="drop fragments smaller than this (default: 5, keeps CH3X / SN2)",
+    )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     args.data_dir.mkdir(parents=True, exist_ok=True)
     npz_path = _download(args.data_dir / NPZ_NAME)
     data = np.load(npz_path)
-    n_total = int(data["N"].shape[0])
+    n_atoms = np.asarray(data["N"], dtype=int)
+    eligible = np.flatnonzero(n_atoms >= int(args.min_atoms))
+    n_total = int(n_atoms.shape[0])
     if str(args.n_samples) == "all":
-        indices = np.arange(n_total)
+        indices = eligible
     else:
-        n_keep = min(int(args.n_samples), n_total)
+        n_keep = min(int(args.n_samples), int(eligible.shape[0]))
         rng = np.random.default_rng(args.seed)
-        indices = np.sort(rng.choice(n_total, size=n_keep, replace=False))
+        indices = np.sort(rng.choice(eligible, size=n_keep, replace=False))
 
     frames = [npz_to_atoms(data, int(i)) for i in indices]
     xyz_path = args.data_dir / "sn2.xyz"
     write(xyz_path, frames, format="extxyz")
-    print(f"wrote {len(frames)} / {n_total} structures -> {xyz_path}")
+    print(
+        f"wrote {len(frames)} structures "
+        f"(from {len(eligible)} with N>= {args.min_atoms}, "
+        f"{n_total} total) -> {xyz_path}"
+    )
     return 0
 
 
