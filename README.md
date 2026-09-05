@@ -90,6 +90,22 @@ source .venv-upet/bin/activate
 ```
 
 
+# Reference implementations
+
+**[iris-infra](https://github.com/sirmarcel/iris-infra)** is the JAX PET /
+PETLR trainer (`iris.pet.PET`, `iris.pet.PETLR`, `iris-train`). It is a git
+submodule at [`iris-infra/`](iris-infra), not an ecosystem pip install.
+
+```bash
+git submodule update --init iris-infra
+# or re-run setup-metawork.sh, which inits the submodule from .gitmodules
+```
+
+A side-by-side of iris PETLR, paper LOREM / lorem-jax, metatrain
+`experimental.lorem`, and PET `long_range` lives in
+[`metatrain/src/metatrain/experimental/lorem/README.md`](metatrain/src/metatrain/experimental/lorem/README.md).
+
+
 # Documentation
 
 Per-project hosted docs:

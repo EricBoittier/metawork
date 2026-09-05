@@ -1,6 +1,7 @@
 # Ecosystem repos cloned/managed by etc/setup-metawork.sh -- each is its own
 # git checkout (with its own history/remotes), not something to embed here.
 # Keep this list in sync with INSTALL_REPOS/CLONE_ONLY_REPOS in that script.
+# iris-infra/ is a tracked git submodule (see .gitmodules), not one of these.
 /metatensor/
 /metatomic/
 /featomic/

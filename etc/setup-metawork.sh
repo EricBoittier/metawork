@@ -123,6 +123,14 @@ for entry in "${CLONE_ONLY_REPOS[@]}"; do
   clone_or_update "$repo" "$org"
 done
 
+# iris-infra is a tracked git submodule (JAX PET/PETLR reference), not an
+# INSTALL_REPOS / CLONE_ONLY_REPOS checkout. The recorded gitlink is the
+# source of truth -- do not git pull it.
+if [ -f "$BASE_DIR/.gitmodules" ]; then
+  log "Initializing git submodules"
+  git -C "$BASE_DIR" submodule update --init iris-infra
+fi
+
 # ---- 1b. known upstream build-bug patches -----------------------------------
 # featomic_torch's setup.py assumes `nvidia.cudnn.__file__` is always a real
 # path, but on some CUDA-13 wheel builds `nvidia.cudnn` is a namespace
