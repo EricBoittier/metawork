@@ -1,0 +1,44 @@
+# Tiny experimental.lorem train. Run from the metawork root:
+#   mtt train etc/lorem-parity/options.yaml
+# Paper-shaped knobs, reduced sizes. Not a JAX energy match.
+
+seed: 42
+
+architecture:
+  name: experimental.lorem
+  model:
+    cutoff: 3.0
+    cutoff_width: 0.5
+    max_degree: 1
+    max_degree_lr: 0
+    num_features: 16
+    num_spherical_features: 2
+    num_radial: 4
+    num_message_passing: 0
+    long_range:
+      enable: true
+      use_ewald: true
+      lr_scale_init: 1.0
+  training:
+    num_epochs: 2
+    batch_size: 4
+    loss:
+      energy:
+        weight: 1.0
+        gradients:
+          positions:
+            weight: 1.0
+
+training_set:
+  systems:
+    read_from: metatrain/tests/resources/carbon_reduced_100.xyz
+    length_unit: angstrom
+  targets:
+    energy:
+      key: energy
+      unit: eV
+      forces:
+        key: force
+
+test_set: 0.1
+validation_set: 0.1
