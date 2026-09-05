@@ -1,0 +1,56 @@
+# SN2 (Zenodo 2605341): atomization energy, forces, molecular dipole.
+# Convert first:
+#   bash etc/sn2_zenodo/convert.sh
+# Then from ~/data/sn2 (or pass this file to train.sh):
+#   mtt train /path/to/energy-forces-dipole-lorem.yaml
+
+seed: 42
+
+architecture:
+  name: experimental.lorem
+  model:
+    cutoff: 5.0
+    cutoff_width: 0.5
+    max_degree: 2
+    max_degree_lr: 1
+    num_features: 32
+    num_spherical_features: 4
+    num_radial: 8
+    num_message_passing: 0
+    long_range:
+      enable: true
+      use_ewald: true
+      lr_scale_init: 1.0
+  training:
+    num_epochs: 5
+    batch_size: 8
+    loss:
+      energy:
+        weight: 1.0
+        gradients:
+          positions:
+            weight: 1.0
+      mtt::dipole:
+        weight: 1.0
+
+training_set:
+  systems:
+    read_from: sn2.xyz
+    length_unit: angstrom
+  targets:
+    energy:
+      key: energy
+      unit: eV
+      forces:
+        key: forces
+    mtt::dipole:
+      key: dipole_moment
+      quantity: ""
+      unit: e*A
+      sample_kind: system
+      type:
+        cartesian:
+          rank: 1
+
+test_set: 0.1
+validation_set: 0.1

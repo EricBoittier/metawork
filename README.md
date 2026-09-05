@@ -107,7 +107,9 @@ A side-by-side of iris PETLR, paper LOREM / lorem-jax, metatrain
 `experimental.lorem`, and PET `long_range` lives in
 [`metatrain/src/metatrain/experimental/lorem/README.md`](metatrain/src/metatrain/experimental/lorem/README.md).
 Optional `mtt` / lorem-jax train recipes (not metatrain CI) are in
-[`etc/lorem-parity/`](etc/lorem-parity/).
+[`etc/lorem-parity/`](etc/lorem-parity/). Energy / force / dipole training
+on the [PhysNet SN2 set](https://zenodo.org/records/2605341) is in
+[`etc/sn2_zenodo/`](etc/sn2_zenodo/).
 
 
 # Documentation
