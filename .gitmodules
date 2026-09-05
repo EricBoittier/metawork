@@ -1,0 +1,3 @@
+[submodule "iris-infra"]
+	path = iris-infra
+	url = https://github.com/sirmarcel/iris-infra.git
