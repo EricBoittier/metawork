@@ -1,3 +1,6 @@
 [submodule "iris-infra"]
 	path = iris-infra
 	url = https://github.com/sirmarcel/iris-infra.git
+[submodule "lorem-jax"]
+	path = lorem-jax
+	url = https://github.com/lab-cosmo/lorem-jax.git
