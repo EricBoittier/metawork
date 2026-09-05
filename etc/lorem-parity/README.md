@@ -100,3 +100,6 @@ key table without touching this folder.
 
 If you want numbers, run both trainers and look. There is no energy-diff
 script.
+
+Energy, forces, and dipoles on the [PhysNet SN2 set](https://zenodo.org/records/2605341)
+(Zenodo 2605341) live in [`../sn2_zenodo/`](../sn2_zenodo/).
