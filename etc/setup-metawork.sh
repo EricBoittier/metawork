@@ -123,12 +123,12 @@ for entry in "${CLONE_ONLY_REPOS[@]}"; do
   clone_or_update "$repo" "$org"
 done
 
-# iris-infra is a tracked git submodule (JAX PET/PETLR reference), not an
-# INSTALL_REPOS / CLONE_ONLY_REPOS checkout. The recorded gitlink is the
-# source of truth -- do not git pull it.
+# iris-infra and lorem-jax are tracked git submodules (JAX reference
+# implementations), not INSTALL_REPOS / CLONE_ONLY_REPOS checkouts. The
+# recorded gitlink is the source of truth -- do not git pull them.
 if [ -f "$BASE_DIR/.gitmodules" ]; then
   log "Initializing git submodules"
-  git -C "$BASE_DIR" submodule update --init iris-infra
+  git -C "$BASE_DIR" submodule update --init
 fi
 
 # ---- 1b. known upstream build-bug patches -----------------------------------
