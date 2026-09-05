@@ -13,8 +13,8 @@ architecture:
     cutoff_width: 0.5
     max_degree: 2
     max_degree_lr: 1
-    num_features: 32
-    num_spherical_features: 16
+    num_features: 64
+    num_spherical_features: 8
     num_radial: 16
     num_message_passing: 1
     long_range:
@@ -22,9 +22,10 @@ architecture:
       use_ewald: true
       lr_scale_init: 1.0
   training:
-    num_epochs: 5
-    batch_size: 8
-    learning_rate: 0.0001
+    num_epochs: 50
+    batch_size: 16
+    learning_rate: 0.0003
+    log_interval: 5
     scale_targets: true
     loss:
       energy:

@@ -10,11 +10,12 @@ DSD-BLYP-D3(BJ)/def2-TZVP.
 This folder is **not** metatrain CI. The in-repo one-step tests use
 synthetic dipoles; this recipe downloads the real set. ``train.sh``
 puts ``metatrain/src`` on ``PYTHONPATH`` so ``mtt`` uses the checkout
-(dipole head) rather than a stale tox install.
+(dipole head + isolated-atom force-grad sanitize) rather than a stale
+tox install.
 
 ```bash
-bash etc/sn2_zenodo/convert.sh          # 200 random structures → ~/data/sn2
-bash etc/sn2_zenodo/train.sh            # 5-epoch energy + forces + dipole
+bash etc/sn2_zenodo/convert.sh          # 1000 random structures → ~/data/sn2
+bash etc/sn2_zenodo/train.sh            # 50-epoch energy + forces + dipole
 ```
 
 | file | role |

@@ -4,15 +4,15 @@
 Source: https://zenodo.org/records/2605341
 Unke & Meuwly, *PhysNet* (arXiv:1902.08408); DOI 10.5281/zenodo.2605341.
 
-The npz is 119 MB and ~452k structures. Default is a random subsample
-so a first ``mtt train`` stays small. Energies are atomization energies
-(eV), forces eV/Å, dipoles e·Å wrt the origin.
+The npz is 119 MB and ~452k structures. Default is a 1000-structure
+random subsample. Energies are atomization energies (eV), forces eV/Å,
+dipoles e·Å wrt the origin.
 
 The XYZ key is ``dipole_moment`` (not ASE-reserved ``dipole``).
 
 Examples:
 
-    python etc/sn2_zenodo/convert.py --n-samples 200
+    python etc/sn2_zenodo/convert.py --n-samples 1000
     python etc/sn2_zenodo/convert.py --n-samples all --data-dir ~/data/sn2
 """
 
@@ -68,8 +68,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--n-samples",
-        default="200",
-        help="random subsample size, or 'all' (default: 200)",
+        default="1000",
+        help="random subsample size, or 'all' (default: 1000)",
     )
     parser.add_argument(
         "--min-atoms",
