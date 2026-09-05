@@ -1,0 +1,22 @@
+---
+description: Run metatrain CI ruff before finishing Python edits
+globs: metatrain/**/*.py
+alwaysApply: false
+---
+
+# metatrain ruff (CI lint)
+
+The [lint job](https://github.com/EricBoittier/metatrain/actions) runs `tox -e lint`, which starts with:
+
+```bash
+ruff format --diff src/ tests/ examples/ developer/ docs/src/
+ruff check src/ tests/ examples/ developer/ docs/src/
+```
+
+After any `metatrain/**/*.py` change, run the same ruff as CI (local binary: `metatrain/.tox/lint/bin/ruff`) on every file you touched, then fix I001/import sort and format diffs before you stop. Do not push a metatrain commit that `ruff check` or `ruff format --diff` would fail.
+
+```bash
+# from the metatrain checkout
+.tox/lint/bin/ruff format <files>
+.tox/lint/bin/ruff check --fix <files>
+```

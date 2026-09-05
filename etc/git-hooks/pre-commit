@@ -1,0 +1,43 @@
+#!/bin/sh
+# Run the same ruff as metatrain CI (`tox -e lint`) on staged Python files.
+# Install into a metatrain checkout:
+#   ln -sf ../../etc/git-hooks/pre-commit metatrain/.git/hooks/pre-commit
+# or, from inside metatrain:
+#   ln -sf "$(git rev-parse --show-toplevel)/../etc/git-hooks/pre-commit" .git/hooks/pre-commit
+
+set -e
+
+if git rev-parse --verify HEAD >/dev/null 2>&1; then
+    against=HEAD
+else
+    against=$(git hash-object -t tree /dev/null)
+fi
+
+files=$(git diff --cached --name-only --diff-filter=ACMR -z "$against" -- '*.py' | tr '\0' '\n')
+if [ -z "$files" ]; then
+    exit 0
+fi
+
+root=$(git rev-parse --show-toplevel)
+ruff=""
+for candidate in \
+    "$root/.tox/lint/bin/ruff" \
+    "$root/../metatrain/.tox/lint/bin/ruff"
+do
+    if [ -x "$candidate" ]; then
+        ruff=$candidate
+        break
+    fi
+done
+if [ -z "$ruff" ] && command -v ruff >/dev/null 2>&1; then
+    ruff=ruff
+fi
+if [ -z "$ruff" ]; then
+    echo "pre-commit: ruff not found (expected $root/.tox/lint/bin/ruff)" >&2
+    exit 1
+fi
+
+# shellcheck disable=SC2086
+$ruff format --check $files
+# shellcheck disable=SC2086
+$ruff check $files
