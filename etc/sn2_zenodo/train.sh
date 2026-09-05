@@ -19,5 +19,14 @@ if [ ! -f "$DATA_DIR/sn2.xyz" ]; then
 fi
 
 cd "$DATA_DIR"
-"$MTT" train "$YAML"
+RESTART="${RESTART:-}"
+if [ -z "$RESTART" ] && [ -f "$DATA_DIR/model.ckpt" ]; then
+  RESTART="$DATA_DIR/model.ckpt"
+fi
+if [ -n "$RESTART" ] && [ "$RESTART" != "0" ]; then
+  echo "restarting from $RESTART (lr=$(grep -E 'learning_rate:' "$YAML" | awk '{print $2}'))"
+  "$MTT" train "$YAML" --restart "$RESTART"
+else
+  "$MTT" train "$YAML"
+fi
 "$MTT" eval model.pt "$ROOT/etc/sn2_zenodo/eval.yaml" -o sn2-eval.xyz

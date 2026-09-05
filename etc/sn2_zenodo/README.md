@@ -15,7 +15,8 @@ tox install.
 
 ```bash
 bash etc/sn2_zenodo/convert.sh          # 1000 random structures → ~/data/sn2
-bash etc/sn2_zenodo/train.sh            # 50-epoch energy + forces + dipole
+bash etc/sn2_zenodo/train.sh            # energy + forces + dipole (restarts from model.ckpt)
+RESTART=0 bash etc/sn2_zenodo/train.sh  # from scratch
 ```
 
 | file | role |
@@ -25,6 +26,7 @@ bash etc/sn2_zenodo/train.sh            # 50-epoch energy + forces + dipole
 | [`options/energy-forces-dipole-lorem.yaml`](options/energy-forces-dipole-lorem.yaml) | `mtt train` |
 | [`eval.yaml`](eval.yaml) | `mtt eval` on the same XYZ |
 | [`train.sh`](train.sh) | train then eval from `~/data/sn2` |
+| [`plot_reaction_coordinate.py`](plot_reaction_coordinate.py) | ASE POV-Ray snapshots on a shared-ξ matplotlib figure |
 
 The XYZ key for the dipole is ``dipole_moment`` so ASE does not park it
 on the calculator (reserved name ``dipole``). Units: energy eV
@@ -40,10 +42,14 @@ python etc/sn2_zenodo/convert.py --n-samples 1000 --data-dir ~/data/sn2
 DATA_DIR=~/data/sn2 bash etc/sn2_zenodo/train.sh
 # mapping smoke test (no download):
 pytest etc/sn2_zenodo/test_convert.py
+# Cl–Br reaction coordinate with POV-Ray annotations (needs povray + ASE):
+metatrain/.tox/lorem-tests/bin/python etc/sn2_zenodo/plot_reaction_coordinate.py
 ```
 
 A 50-epoch CPU run on 1000 structures (800/100/100, 93k parameters)
-does learn. Best checkpoint was epoch 39:
+does learn. Best checkpoint was epoch 39. ``train.sh`` then continues
+from ``model.ckpt`` with ``learning_rate: 0.0001`` and
+``scheduler_factor: 0.8`` on that same 0.8/0.1/0.1 split.
 
 | | energy (meV/atom) | forces (meV/Å) | dipole (e·Å/atom) |
 | --- | ---: | ---: | ---: |

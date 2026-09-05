@@ -22,9 +22,12 @@ architecture:
       use_ewald: true
       lr_scale_init: 1.0
   training:
+    # ``num_epochs`` is additional when restarting from model.ckpt.
     num_epochs: 50
     batch_size: 16
-    learning_rate: 0.0003
+    learning_rate: 0.0001
+    scheduler_factor: 0.8
+    scheduler_patience: 20
     log_interval: 5
     scale_targets: true
     loss:
