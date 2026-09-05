@@ -25,5 +25,14 @@
 # datasets downloaded by etc/download-datasets.sh (when pointed inside this repo)
 /data/
 
+# mtt train/eval artifacts when run from the repo root (see etc/lorem-parity/)
+/outputs/
+/model.pt
+/model.ckpt
+/output.xyz
+/extensions/
+/error.log
+
+
 __pycache__/
 *.pyc

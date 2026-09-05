@@ -1,0 +1,13 @@
+# After `mtt train` (model.pt in the current directory):
+#   mtt eval model.pt etc/lorem-parity/eval.yaml -o output.xyz
+# Same lorem-jax toy XYZ as options-jax-toy.yaml.
+
+systems:
+  read_from: lorem-jax/examples/train-mlp/data.xyz
+  length_unit: angstrom
+
+targets:
+  energy:
+    key: energy
+    unit: eV
+
