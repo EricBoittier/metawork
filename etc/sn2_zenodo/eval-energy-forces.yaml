@@ -1,0 +1,17 @@
+# After `mtt train` on an energy+forces-only recipe (model.pt in the current
+# directory):
+#   mtt eval model.pt etc/sn2_zenodo/eval-energy-forces.yaml -o sn2-eval.xyz
+# Run from the directory that contains sn2.xyz (usually ~/data/sn2).
+#
+# Same as eval.yaml but without mtt::dipole -- for models trained without a
+# dipole target, since `mtt eval` requires eval targets to be a subset of
+# what the model actually supports.
+
+systems:
+  read_from: sn2.xyz
+  length_unit: angstrom
+
+targets:
+  energy:
+    key: energy
+    unit: eV
