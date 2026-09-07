@@ -4,3 +4,21 @@
 [submodule "lorem-jax"]
 	path = lorem-jax
 	url = https://github.com/lab-cosmo/lorem-jax.git
+[submodule "chemiscope"]
+	path = chemiscope
+	url = https://github.com/lab-cosmo/chemiscope.git
+[submodule "featomic"]
+	path = featomic
+	url = https://github.com/metatensor/featomic.git
+[submodule "i-pi"]
+	path = i-pi
+	url = https://github.com/i-pi/i-pi.git
+[submodule "metatensor"]
+	path = metatensor
+	url = https://github.com/EricBoittier/metatensor.git
+[submodule "metatomic"]
+	path = metatomic
+	url = git@github.com:EricBoittier/metatomic.git
+[submodule "metatrain"]
+	path = metatrain
+	url = git@github.com:EricBoittier/metatrain.git
