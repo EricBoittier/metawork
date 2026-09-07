@@ -11,12 +11,16 @@ This folder is **not** metatrain CI. The in-repo one-step tests use
 synthetic dipoles; this recipe downloads the real set. ``train.sh``
 puts ``metatrain/src`` on ``PYTHONPATH`` so ``mtt`` uses the checkout
 (dipole head + isolated-atom force-grad sanitize) rather than a stale
-tox install.
+tox install. After a ``max_degree > 2`` train it also passes ``-e extensions``
+to ``mtt eval`` (sphericart TorchScript op).
 
 ```bash
 bash etc/sn2_zenodo/convert.sh          # 10000 random structures → ~/data/sn2
-bash etc/sn2_zenodo/train.sh            # energy + forces + dipole (restarts from model.ckpt)
-RESTART=0 bash etc/sn2_zenodo/train.sh  # from scratch
+# From scratch (required after architecture changes; see below):
+mv ~/data/sn2/model.ckpt ~/data/sn2/model-degree2.ckpt   # if an old ckpt exists
+RESTART=0 bash etc/sn2_zenodo/train.sh
+# Compatible restart only (same max_degree / trunk / widths as the ckpt):
+bash etc/sn2_zenodo/train.sh
 # PET short-range trunk (optional pet.pretrained → PET-MAD):
 YAML=etc/sn2_zenodo/options/energy-forces-dipole-lorem-pet.yaml \
   RESTART=0 bash etc/sn2_zenodo/train.sh
@@ -50,9 +54,28 @@ pytest etc/sn2_zenodo/test_convert.py
 metatrain/.tox/lorem-tests/bin/python etc/sn2_zenodo/plot_reaction_coordinate.py
 ```
 
-A first 50-epoch CPU run on 1000 structures (800/100/100, 93k parameters)
-does learn. The recipe default is now a **10000**-structure subset
-(8000/1000/1000). ``train.sh`` continues from ``model.ckpt`` with
+A first 50-epoch CPU run on 1000 structures (800/100/100, 93k parameters,
+``max_degree: 2``) does learn. The recipe default is now a **10000**-structure
+subset (8000/1000/1000) and a larger spherical model (``max_degree: 6``,
+``num_spherical_features: 16``, ``num_message_passing: 2``, ~132k parameters).
+
+``train.sh`` restarts from ``~/data/sn2/model.ckpt`` only when that
+checkpoint's model hypers match the yaml. Otherwise it **refuses**: this
+checkout's ``mtt train --restart`` keeps the checkpoint architecture and
+ignores yaml (upstream metatrain [#1232](https://github.com/metatensor/metatrain/pull/1232)
+is not in ``experimental/lorem`` yet). Train the current yaml from scratch:
+
+```bash
+mv ~/data/sn2/model.ckpt ~/data/sn2/model-degree2.ckpt
+cd ~/data/sn2
+PYTHONPATH=/path/to/metawork/metatrain/src \
+  /path/to/metawork/metatrain/.tox/lorem-tests/bin/mtt train \
+  /path/to/metawork/etc/sn2_zenodo/options/energy-forces-dipole-lorem.yaml
+# or:
+RESTART=0 bash etc/sn2_zenodo/train.sh
+```
+
+``num_epochs: 50`` is a full run, not "50 more on top of the old 92k ckpt".
 ``learning_rate: 0.0001`` and ``scheduler_factor: 0.8``.
 
 | | energy (meV/atom) | forces (meV/Å) | dipole (e·Å/atom) |

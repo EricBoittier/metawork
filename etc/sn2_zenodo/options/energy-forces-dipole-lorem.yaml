@@ -2,7 +2,10 @@
 # Convert first:
 #   bash etc/sn2_zenodo/convert.sh
 # Then from ~/data/sn2 (or pass this file to train.sh):
-#   mtt train /path/to/energy-forces-dipole-lorem.yaml
+#   RESTART=0 bash etc/sn2_zenodo/train.sh
+# Architecture changes (max_degree, PET trunk, …) cannot restart from the
+# older 92k-param model.ckpt; this checkout's mtt --restart keeps the
+# checkpoint hypers. Move that file aside and train from scratch.
 
 seed: 42
 

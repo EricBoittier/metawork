@@ -7,7 +7,8 @@ examples. This folder is not part of metatrain CI.
 as the paper / lorem-jax; **no bit-exact energy match** (PME
 implementation, RNG, e3x cartesian vs ``m = -ℓ … +ℓ``). Contract tests live in
 [`metatrain/src/metatrain/experimental/lorem/tests/test_paper_contracts.py`](../../metatrain/src/metatrain/experimental/lorem/tests/test_paper_contracts.py).
-The comparison table is
+The comparison table (including the private fahrenheit torch
+inference port vs. this architecture) is
 [`metatrain/src/metatrain/experimental/lorem/README.md`](../../metatrain/src/metatrain/experimental/lorem/README.md).
 
 ## Setup

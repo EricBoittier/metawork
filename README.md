@@ -96,7 +96,11 @@ source .venv-upet/bin/activate
 PETLR trainer (`iris.pet.PET`, `iris.pet.PETLR`, `iris-train`).
 **[lorem-jax](https://github.com/lab-cosmo/lorem-jax)** is the official JAX
 LOREM / `LoremBEC` package. Both are git submodules, not ecosystem pip
-installs.
+installs. **[fahrenheit-dev](https://github.com/sirmarcel/fahrenheit-dev)**
+is a private torch inference port of lorem-jax (train in JAX, fp64
+parity). It is a sibling of this fork's metatrain
+`experimental.lorem` architecture, not a drop-in — package layout and
+file mapping live in the lorem README below.
 
 ```bash
 git submodule update --init

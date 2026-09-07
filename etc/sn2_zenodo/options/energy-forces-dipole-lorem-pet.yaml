@@ -3,7 +3,9 @@
 # Convert first:
 #   bash etc/sn2_zenodo/convert.sh
 # Then from ~/data/sn2:
-#   mtt train /path/to/energy-forces-dipole-lorem-pet.yaml
+#   YAML=etc/sn2_zenodo/options/energy-forces-dipole-lorem-pet.yaml \
+#     RESTART=0 bash etc/sn2_zenodo/train.sh
+# Do not restart from the spherical 92k model.ckpt.
 #
 # From scratch by default. To initialize the short-range PET from PET-MAD-s,
 # set pet.pretrained to a local .ckpt or Hugging Face URL, for example:
