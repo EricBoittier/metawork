@@ -5,7 +5,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DATA_DIR="${DATA_DIR:-$HOME/data/sn2}"
 MTT="${MTT:-$(command -v mtt || echo "$ROOT/metatrain/.tox/lorem-tests/bin/mtt")}"
-YAML="${YAML:-$ROOT/etc/sn2_zenodo/options/energy-forces-lorem.yaml}"
+YAML="${YAML:-$ROOT/etc/sn2_zenodo/options/energy-forces-dipole-lorem.yaml}"
+if [ ! -f "$YAML" ] && [ -f "$ROOT/$YAML" ]; then
+  YAML="$ROOT/$YAML"
+fi
+YAML="$(cd "$(dirname "$YAML")" && pwd)/$(basename "$YAML")"
 # eval.yaml requests mtt::dipole too, which only exists on models actually
 # trained with a dipole target -- default to the matching eval config based
 # on the training YAML's name, override with EVAL_YAML for full control.
