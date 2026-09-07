@@ -27,8 +27,9 @@ metatrain venv from `setup-metawork.sh`.
 - **JAX / lorem-jax** — a separate venv; follow
   [`lorem-jax/README.md`](../../lorem-jax/README.md).
 
-iris PETLR is a different trunk (PET + scalar charges). It is documented
-in the architecture README; there is no iris recipe here.
+iris PETLR is a different trunk (PET + scalar charges). Use
+[`etc/sn2_zenodo/options/energy-forces-dipole-lorem-pet.yaml`](../sn2_zenodo/options/energy-forces-dipole-lorem-pet.yaml)
+(`trunk: pet`, optional `pet.pretrained` from PET-MAD).
 
 ## experimental.lorem (`mtt`)
 

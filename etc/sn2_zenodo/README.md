@@ -17,13 +17,17 @@ tox install.
 bash etc/sn2_zenodo/convert.sh          # 10000 random structures → ~/data/sn2
 bash etc/sn2_zenodo/train.sh            # energy + forces + dipole (restarts from model.ckpt)
 RESTART=0 bash etc/sn2_zenodo/train.sh  # from scratch
+# PET short-range trunk (optional pet.pretrained → PET-MAD):
+YAML=etc/sn2_zenodo/options/energy-forces-dipole-lorem-pet.yaml \
+  RESTART=0 bash etc/sn2_zenodo/train.sh
 ```
 
 | file | role |
 | --- | --- |
 | [`convert.py`](convert.py) | download `sn2_reactions.npz`, write `sn2.xyz` |
 | [`convert.sh`](convert.sh) | wrapper (`--n-samples all` for the full set) |
-| [`options/energy-forces-dipole-lorem.yaml`](options/energy-forces-dipole-lorem.yaml) | `mtt train` |
+| [`options/energy-forces-dipole-lorem.yaml`](options/energy-forces-dipole-lorem.yaml) | `mtt train` (spherical short-range) |
+| [`options/energy-forces-dipole-lorem-pet.yaml`](options/energy-forces-dipole-lorem-pet.yaml) | `mtt train` (PET short-range; optional PET-MAD init) |
 | [`eval.yaml`](eval.yaml) | `mtt eval` on the same XYZ |
 | [`train.sh`](train.sh) | train then eval from `~/data/sn2` |
 | [`plot_reaction_coordinate.py`](plot_reaction_coordinate.py) | ASE POV-Ray snapshots on a shared-ξ matplotlib figure |

@@ -1,0 +1,81 @@
+# SN2 (Zenodo 2605341): atomization energy, forces, molecular dipole.
+# experimental.lorem with a PET short-range trunk (iris PETLR-style).
+# Convert first:
+#   bash etc/sn2_zenodo/convert.sh
+# Then from ~/data/sn2:
+#   mtt train /path/to/energy-forces-dipole-lorem-pet.yaml
+#
+# From scratch by default. To initialize the short-range PET from PET-MAD-s,
+# set pet.pretrained to a local .ckpt or Hugging Face URL, for example:
+#   pretrained: https://huggingface.co/lab-cosmo/upet/resolve/main/models/pet-mad-s-v1.5.0.ckpt
+# PET dimensions and cutoff then come from that checkpoint; num_features
+# below still sets the LOREM readout / long-range width (a linear map
+# projects PET d_node onto it). Long-range charges are scalar
+# (max_degree_lr: 0) because PET does not produce a spherical density.
+
+seed: 42
+
+architecture:
+  name: experimental.lorem
+  model:
+    trunk: pet
+    cutoff: 5.0
+    cutoff_width: 0.5
+    max_degree: 1
+    max_degree_lr: 0
+    num_features: 64
+    num_spherical_features: 1
+    num_radial: 16
+    num_message_passing: 0
+    pet:
+      d_pet: 64
+      d_node: 64
+      d_head: 64
+      d_feedforward: 128
+      num_heads: 4
+      num_attention_layers: 1
+      num_gnn_layers: 1
+      pretrained: null
+    long_range:
+      enable: true
+      use_ewald: true
+      lr_scale_init: 1.0
+  training:
+    # ``num_epochs`` is additional when restarting from model.ckpt.
+    num_epochs: 50
+    batch_size: 16
+    learning_rate: 0.0001
+    scheduler_factor: 0.8
+    scheduler_patience: 20
+    log_interval: 5
+    scale_targets: true
+    loss:
+      energy:
+        weight: 1.0
+        gradients:
+          positions:
+            weight: 1.0
+      mtt::dipole:
+        weight: 1.0
+
+training_set:
+  systems:
+    read_from: sn2.xyz
+    length_unit: angstrom
+  targets:
+    energy:
+      key: energy
+      unit: eV
+      forces:
+        key: forces
+    mtt::dipole:
+      key: dipole_moment
+      quantity: ""
+      unit: e*A
+      sample_kind: system
+      type:
+        cartesian:
+          rank: 1
+
+test_set: 0.1
+validation_set: 0.1
