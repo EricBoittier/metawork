@@ -4,8 +4,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DATA_DIR="${DATA_DIR:-$HOME/data/sn2}"
-MTT="${MTT:-$ROOT/metatrain/.tox/lorem-tests/bin/mtt}"
-YAML="$ROOT/etc/sn2_zenodo/options/energy-forces-dipole-lorem.yaml"
+MTT="${MTT:-$(command -v mtt || echo "$ROOT/metatrain/.tox/lorem-tests/bin/mtt")}"
+YAML="${YAML:-$ROOT/etc/sn2_zenodo/options/energy-forces-lorem.yaml}"
 # Prefer the metatrain checkout (dipole head) over the tox site-packages snapshot.
 export PYTHONPATH="$ROOT/metatrain/src${PYTHONPATH:+:$PYTHONPATH}"
 

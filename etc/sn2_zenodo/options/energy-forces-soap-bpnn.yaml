@@ -1,0 +1,41 @@
+# SN2 (Zenodo 2605341): atomization energy, forces. SOAP-BPNN baseline for
+# comparison against experimental.lorem on the same dataset/split.
+# Convert first:
+#   bash etc/sn2_zenodo/convert.sh
+# Then from ~/data/sn2 (or pass this file to train.sh):
+#   mtt train /path/to/energy-forces-soap-bpnn.yaml
+
+seed: 42
+
+architecture:
+  name: soap_bpnn
+  model:
+    soap:
+      max_angular: 6
+      max_radial: 7
+      cutoff:
+        radius: 5.0
+        width: 0.5
+    bpnn:
+      num_hidden_layers: 2
+      num_neurons_per_layer: 32
+  training:
+    num_epochs: 50
+    batch_size: 16
+    learning_rate: 0.001
+    log_interval: 5
+    scale_targets: true
+
+training_set:
+  systems:
+    read_from: sn2.xyz
+    length_unit: angstrom
+  targets:
+    energy:
+      key: energy
+      unit: eV
+      forces:
+        key: forces
+
+test_set: 0.1
+validation_set: 0.1

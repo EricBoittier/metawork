@@ -1,0 +1,53 @@
+# SN2 (Zenodo 2605341): atomization energy, forces, molecular dipole.
+# Short-range PET baseline for comparison against experimental.lorem on the
+# same dataset/split. PET's generic per-target heads accept the rank-1
+# Cartesian dipole target with no architecture changes.
+# Convert first:
+#   bash etc/sn2_zenodo/convert.sh
+# Then from ~/data/sn2 (or pass this file to train.sh):
+#   mtt train /path/to/energy-forces-dipole-pet.yaml
+
+seed: 42
+
+architecture:
+  name: pet
+  model:
+    cutoff: 5.0
+    cutoff_width: 0.5
+    d_pet: 64
+    d_head: 64
+    d_node: 128
+    d_feedforward: 128
+    num_heads: 4
+    num_attention_layers: 2
+    num_gnn_layers: 2
+    long_range:
+      enable: false
+  training:
+    num_epochs: 50
+    batch_size: 16
+    learning_rate: 0.0001
+    log_interval: 5
+    scale_targets: true
+
+training_set:
+  systems:
+    read_from: sn2.xyz
+    length_unit: angstrom
+  targets:
+    energy:
+      key: energy
+      unit: eV
+      forces:
+        key: forces
+    mtt::dipole:
+      key: dipole_moment
+      quantity: ""
+      unit: e*A
+      sample_kind: system
+      type:
+        cartesian:
+          rank: 1
+
+test_set: 0.1
+validation_set: 0.1
