@@ -409,3 +409,17 @@ separate problems, in the order you'll likely see them:
     the version crossed `0.11`, or patch the downstream repos'
     `metatensor-torch` upper bound the way `_torch_cuda.sh` already patches
     featomic's cudnn bug) -- not done here.
+
+    **Resolved for metatrain**: the same drift eventually hit `uv pip
+    install -e metatrain[soap-bpnn,pet]` outright (`metatensor-learn` was
+    the first pin to reject the local dev version, with
+    `metatensor-operations`/`metatensor-torch`/`metatomic-torch`/
+    `metatomic-ase` queued up behind it). Since `metatrain` is our own
+    fork, its pin ceilings were widened directly in
+    `metatrain/pyproject.toml` (commit on `experimental/lorem`) rather
+    than patched at install time -- same choice already made for
+    metatomic's `CMakeLists.txt` pins, as opposed to featomic (upstream
+    clone, no fork) which still gets patched in place by
+    `setup-metawork.sh` on every run. `metatensor` itself was left
+    untouched, so this will need re-widening again once its dev version
+    drifts past the new ceilings.
