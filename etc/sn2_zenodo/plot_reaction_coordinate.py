@@ -97,6 +97,7 @@ def align_sn2(atoms: Atoms) -> Atoms:
         raise ValueError("not a six-atom SN2 complex")
     aligned = atoms.copy()
     aligned.positions -= aligned.positions[rc["carbon"]]
+    # ASE rotate(a, v): if a is a vector, rotate a onto v (light halogen → −x).
     aligned.rotate(aligned.positions[rc["light"]], (-1.0, 0.0, 0.0), rotate_cell=False)
     h_mean = aligned.positions[aligned.numbers == 1].mean(axis=0)
     aligned.rotate(-np.degrees(np.arctan2(h_mean[1], h_mean[2])), "x")
