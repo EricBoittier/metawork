@@ -1,26 +1,29 @@
 # SN2 (Zenodo 2605341): atomization energy, forces, molecular dipole.
-# Matched-budget comparison recipe -- see ./README.md. ~99K parameters,
+# Matched-budget comparison recipe -- see ./README.md. ~95.6K parameters,
 # same LR/schedule/epochs/batch size as the LOREM and PET recipes in this
 # directory. Short-range only (default long_range.enable: false) -- the
 # deliberate difference under test against LOREM's long-range block.
 #
-# NOTE (2026-09-07): max_radial bumped 3->4 (neurons 11->6 to compensate)
-# vs. the energy/forces-only recipe. Investigation of the original (max_radial=3)
-# dipole run showed the dipole loss plateaus almost immediately (training-set
-# RMSE 0.404->0.382 e*A over 50 epochs, matching validation -- i.e. an
-# optimization/capacity plateau, not overfitting) and does NOT respond to a
-# 20x increase in the dipole loss weight (epoch-10 RMSE 0.389 either way).
-# That rules out gradient competition with the energy/forces losses as the
-# cause. Unlike LOREM/PET (which had genuine gradient-flow bugs in their old
-# heads, now fixed), SOAP-BPNN's native rank-1 Cartesian head is architecturally
-# sound (proper equivariant vector-basis x invariant-coefficient contraction,
-# verified gradients flow correctly). The likely explanation is a genuine
-# representational gap: SOAP-BPNN's learned vector-basis has no built-in
-# geometric prior tying it to atomic positions, unlike LOREM/PET's
-# charge-times-position head, which encodes mu = sum(q_i * r_i) directly and
-# is far more data-efficient. This bump gives the vector-basis richer radial
-# information as a fairer shot, not a bug fix -- see the artifact notes for
-# the resulting numbers.
+# NOTE (2026-09-08): SOAP-BPNN's native rank-1 Cartesian head (a learned,
+# position-agnostic vector basis) was investigated after a weak dipole fit
+# (r=0.31-0.32) and found to hit a genuine, capacity-independent plateau: the
+# training-set dipole loss barely moves across 50 epochs while energy/forces
+# converge normally, it does not respond to a 20x increase in the dipole
+# loss weight, and a `max_radial` capacity bump (3->4) left it unchanged.
+# Gradients were verified to flow correctly -- so this was not a bug, but a
+# real representational gap: the native head has no built-in link between
+# its predicted vector and the atom's actual position, unlike LOREM/PET's
+# charge*position head (mu = sum(q_i * r_i)), a far more data-efficient
+# physical prior for this task.
+#
+# Fix: `soap_bpnn/model.py` now special-cases rank-1 Cartesian targets to
+# use the same charge*position construction (see the `charge_dipole_targets`
+# branch in `_add_output`/`forward`), replacing the TensorBasis/vector-basis
+# machinery for this target type only (scalar and rank-2 Cartesian targets
+# are unaffected). This is a real architecture change, not a hyperparameter
+# tweak -- see the SN2 Reaction Profiles artifact for the resulting numbers.
+# max_radial reverted to 3 (matching the energy/forces-only recipe) since
+# the new head needs far less capacity than the old vector-basis one did.
 #
 # Convert first:
 #   bash etc/sn2_zenodo/convert.sh
@@ -34,13 +37,13 @@ architecture:
   model:
     soap:
       max_angular: 2
-      max_radial: 4
+      max_radial: 3
       cutoff:
         radius: 5.0
         width: 0.5
     bpnn:
       num_hidden_layers: 1
-      num_neurons_per_layer: 6
+      num_neurons_per_layer: 11
   training:
     num_epochs: 50
     batch_size: 16
