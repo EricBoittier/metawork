@@ -1,27 +1,35 @@
 [submodule "iris-infra"]
 	path = iris-infra
 	url = git@github.com:sirmarcel/iris-infra.git
+	branch = main
 [submodule "lorem-jax"]
 	path = lorem-jax
 	url = https://github.com/lab-cosmo/lorem-jax.git
+	branch = main
 [submodule "chemiscope"]
 	path = chemiscope
-	url = https://github.com/lab-cosmo/chemiscope.git
+	url = https://github.com/EricBoittier/chemiscope.git
+	branch = main
 [submodule "featomic"]
 	path = featomic
 	url = https://github.com/metatensor/featomic.git
+	branch = main
 [submodule "i-pi"]
 	path = i-pi
 	url = https://github.com/i-pi/i-pi.git
+	branch = main
 [submodule "metatensor"]
 	path = metatensor
 	url = https://github.com/EricBoittier/metatensor.git
+	branch = metatomic-core
 [submodule "metatomic"]
 	path = metatomic
 	url = git@github.com:EricBoittier/metatomic.git
+	branch = metatomic-core
 [submodule "metatrain"]
 	path = metatrain
 	url = git@github.com:EricBoittier/metatrain.git
+	branch = experimental/lorem
 [submodule "atomistic-cookbook"]
 	path = atomistic-cookbook
 	url = https://github.com/lab-cosmo/atomistic-cookbook.git

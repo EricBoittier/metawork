@@ -21,6 +21,22 @@ PYTHON_VERSION="3.12"
 FORK_OWNER="EricBoittier"     # repos are cloned from your fork when one exists
 UPSTREAM_ORG="metatensor"     # falls back to the upstream org otherwise
 
+# Intended checkout branch for each repo (submodule or independent clone).
+# Keep this in sync with the `branch =` lines in .gitmodules. Empty / omitted
+# means "leave whatever the clone defaulted to".
+declare -A REPO_BRANCH=(
+  [metatensor]="metatomic-core"
+  [metatomic]="metatomic-core"
+  [metatrain]="experimental/lorem"
+  [featomic]="main"
+  [i-pi]="main"
+  [chemiscope]="main"
+  [atomistic-cookbook]="metatomic-hourglass"
+  [iris-infra]="main"
+  [lorem-jax]="main"
+  [upet]="main"
+)
+
 # Repos that get built + pip-installed (editable) into the venv, in
 # dependency order. Format is "name:extras:org" -- extras is a comma list
 # passed as .[extras] (empty for none), org is the upstream GitHub org/user
@@ -39,9 +55,10 @@ INSTALL_REPOS=(
                                # (e.g. dpa3 needs deepmd-kit, mace pins its
                                # own torch/e3nn versions)
   "i-pi::i-pi"                 # pure-Python force engine, no special build
-  "chemiscope::lab-cosmo"       # structure/property viewer widget; its
-                                 # build runs `npm` to bundle JS assets, see
-                                 # the toolchain check below
+  "chemiscope::lab-cosmo"       # structure/property viewer; git submodule
+                                 # from $FORK_OWNER/chemiscope (upstream
+                                 # lab-cosmo). Build runs `npm` to bundle
+                                 # JS assets -- see the toolchain check.
 )
 
 # Repos worth having on disk for reference (docs, a header-only helper lib,
@@ -79,18 +96,55 @@ CLONE_ONLY_REPOS=(
 
 log() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 
+# True if $1 is listed as a git submodule of this repo (even if the
+# checkout is still empty / not initialized).
+is_submodule() {
+  git -C "$BASE_DIR" config -f .gitmodules --get "submodule.$1.path" >/dev/null 2>&1
+}
+
+# Check out $2 in $1 if that branch exists on origin or upstream.
+# No-op when the branch is empty, already checked out, or not found.
+checkout_intended_branch() {
+  local repo="$1"
+  local branch="${2:-${REPO_BRANCH[$repo]:-}}"
+  local dir="$BASE_DIR/$repo"
+  [ -z "$branch" ] && return 0
+  [ -e "$dir/.git" ] || return 0
+  git -C "$dir" rev-parse --verify HEAD >/dev/null 2>&1 || return 0
+  local current
+  current="$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  if [ "$current" = "$branch" ]; then
+    return 0
+  fi
+  log "Checking out $repo on $branch"
+  git -C "$dir" fetch --all --quiet 2>/dev/null || true
+  if git -C "$dir" show-ref --verify --quiet "refs/heads/$branch" \
+     || git -C "$dir" show-ref --verify --quiet "refs/remotes/origin/$branch" \
+     || git -C "$dir" show-ref --verify --quiet "refs/remotes/upstream/$branch"; then
+    git -C "$dir" checkout "$branch" \
+      || echo "  (could not checkout $branch on $repo -- leaving as-is)"
+  else
+    echo "  (no $branch branch on $repo -- leaving $current)"
+  fi
+}
+
 # ---- 1. clone or update a repo, preferring your own fork -------------------
 # org defaults to $UPSTREAM_ORG when empty (i.e. "" or omitted).
+# After clone/update, checkout the intended branch from REPO_BRANCH.
 clone_or_update() {
   local repo="$1"
   local org="${2:-$UPSTREAM_ORG}"
+  local branch="${3:-${REPO_BRANCH[$repo]:-}}"
   [ -z "$org" ] && org="$UPSTREAM_ORG"
-  if [ -d "$BASE_DIR/$repo/.git" ]; then
+  # `.git` can be a file (gitlink for a submodule) or a directory
+  # (independent clone). Either means the checkout already exists.
+  if [ -e "$BASE_DIR/$repo/.git" ]; then
     # A checkout can be headless (no commit checked out) even after this
     # branch runs, e.g. from a clone interrupted before this self-healing
     # logic existed. `git pull` on a headless repo doesn't fix that, so
     # detect it and fall through to a fresh clone instead of just skipping.
     if git -C "$BASE_DIR/$repo" rev-parse --verify HEAD >/dev/null 2>&1; then
+      checkout_intended_branch "$repo" "$branch"
       log "Updating $repo"
       git -C "$BASE_DIR/$repo" pull --ff-only \
         || echo "  (skipped: local changes or diverged branch -- update $repo by hand)"
@@ -111,24 +165,78 @@ clone_or_update() {
     echo "  (no usable $FORK_OWNER/$repo fork -- cloning upstream $org/$repo instead)"
     git clone "https://github.com/$org/$repo.git" "$BASE_DIR/$repo"
   fi
+  checkout_intended_branch "$repo" "$branch"
+}
+
+# Init a .gitmodules entry (or re-sync its URL), then checkout the
+# intended branch. Falls back to an independent clone if submodule
+# init fails. Adds an `upstream` remote pointing at $org when origin
+# is a fork.
+ensure_submodule() {
+  local repo="$1"
+  local org="${2:-$UPSTREAM_ORG}"
+  local branch="${3:-${REPO_BRANCH[$repo]:-}}"
+  [ -z "$org" ] && org="$UPSTREAM_ORG"
+  # Legacy independent clone sitting in a path that is now also a
+  # submodule -- leave it alone and just update it in place.
+  if [ -d "$BASE_DIR/$repo/.git" ]; then
+    clone_or_update "$repo" "$org" "$branch"
+    return
+  fi
+  log "Initializing submodule $repo"
+  git -C "$BASE_DIR" submodule sync -- "$repo" || true
+  if ! git -C "$BASE_DIR" submodule update --init -- "$repo"; then
+    echo "  (submodule init failed for $repo -- cloning independently)"
+    clone_or_update "$repo" "$org" "$branch"
+    return
+  fi
+  if ! git -C "$BASE_DIR/$repo" remote get-url upstream >/dev/null 2>&1; then
+    git -C "$BASE_DIR/$repo" remote add upstream "https://github.com/$org/$repo.git" 2>/dev/null || true
+  fi
+  # chemiscope's webpack config runs `git describe --tags`. A submodule
+  # clone of the fork has no tags (they live on lab-cosmo), so webpack
+  # fails with "No names found, cannot describe anything".
+  if [ "$repo" = "chemiscope" ]; then
+    git -C "$BASE_DIR/$repo" fetch --tags upstream 2>/dev/null \
+      || git -C "$BASE_DIR/$repo" fetch --tags origin 2>/dev/null \
+      || echo "  (could not fetch chemiscope tags -- npm build may fail)"
+  fi
+  checkout_intended_branch "$repo" "$branch"
+}
+
+ensure_repo() {
+  local repo="$1"
+  local org="${2:-}"
+  if is_submodule "$repo"; then
+    ensure_submodule "$repo" "$org"
+  else
+    clone_or_update "$repo" "$org"
+  fi
 }
 
 mkdir -p "$BASE_DIR"
 for entry in "${INSTALL_REPOS[@]}"; do
   IFS=':' read -r repo _extras org <<< "$entry"
-  clone_or_update "$repo" "$org"
+  ensure_repo "$repo" "$org"
 done
 for entry in "${CLONE_ONLY_REPOS[@]}"; do
   IFS=':' read -r repo org <<< "$entry"
-  clone_or_update "$repo" "$org"
+  ensure_repo "$repo" "$org"
 done
 
-# iris-infra, lorem-jax, and atomistic-cookbook are tracked git
-# submodules (not INSTALL_REPOS / CLONE_ONLY_REPOS checkouts). The
-# recorded gitlink is the source of truth -- do not git pull them.
+# Remaining .gitmodules entries that are not in INSTALL_REPOS /
+# CLONE_ONLY_REPOS (iris-infra, lorem-jax, atomistic-cookbook). The
+# recorded gitlink is the source of truth -- do not git pull them;
+# just init and land on the intended branch.
 if [ -f "$BASE_DIR/.gitmodules" ]; then
-  log "Initializing git submodules"
+  log "Initializing remaining git submodules"
+  git -C "$BASE_DIR" submodule sync
   git -C "$BASE_DIR" submodule update --init
+  for repo in "${!REPO_BRANCH[@]}"; do
+    if [ -e "$BASE_DIR/$repo/.git" ]; then
+      checkout_intended_branch "$repo" "${REPO_BRANCH[$repo]}"
+    fi
+  done
 fi
 
 # ---- 1b. known upstream build-bug patches -----------------------------------
@@ -424,7 +532,7 @@ done
 # venv too. So upet gets its own venv instead, with its own pinned metatrain
 # -- the shared venv's editable metatrain is left untouched.
 UPET_VENV="$BASE_DIR/.venv-upet"
-clone_or_update "upet" "lab-cosmo"
+clone_or_update "upet" "lab-cosmo" "main"
 
 if [ ! -d "$UPET_VENV" ]; then
   log "Creating separate venv for upet at $UPET_VENV"

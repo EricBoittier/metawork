@@ -10,6 +10,17 @@ export LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH:-}
 bash ~/metawork/etc/setup-metawork.sh
 ```
 
+`setup-metawork.sh` and `.gitmodules` pin each checkout to an intended
+branch (forks preferred when they exist):
+
+| repo | branch |
+| --- | --- |
+| metatensor, metatomic | `metatomic-core` |
+| metatrain | `experimental/lorem` |
+| chemiscope | `main` ([EricBoittier/chemiscope](https://github.com/EricBoittier/chemiscope)) |
+| featomic, i-pi, iris-infra, lorem-jax, upet | `main` |
+| atomistic-cookbook | `metatomic-hourglass` |
+
 
 # Programs
 
@@ -35,12 +46,14 @@ Python, no special native build):
   support is in the official version. See the
   [i-PI integration docs](https://docs.metatensor.org/metatomic/latest/engines/ipi.html)
   and [hpc-docs' i-PI notes](https://github.com/metatensor/hpc-docs/blob/main/CSCS-Alps/molecular-dynamics-with-i-Pi.md).
-- **[chemiscope](https://chemiscope.org/)** ([repo](https://github.com/lab-cosmo/chemiscope)) --
-  interactive structure/property viewer. Its build bundles JS assets via
-  `npm` and needs **node >=20**; `setup-metawork.sh` checks for this and
-  skips chemiscope with a warning instead of failing the whole run if it's
-  missing/too old (this was the case on `cosmopc7`, which ships node/npm
-  too old to build it).
+- **[chemiscope](https://chemiscope.org/)** (fork:
+  [EricBoittier/chemiscope](https://github.com/EricBoittier/chemiscope),
+  upstream [lab-cosmo/chemiscope](https://github.com/lab-cosmo/chemiscope)) --
+  interactive structure/property viewer, tracked as a git submodule on
+  `main`. Its build bundles JS assets via `npm` and needs **node >=20**;
+  `setup-metawork.sh` checks for this and skips chemiscope with a warning
+  instead of failing the whole run if it's missing/too old (this was the
+  case on `cosmopc7`, which ships node/npm too old to build it).
 
 Cloned for reference but *not* auto-built (each has its own large,
 non-Python/CMake+MPI-style build, too machine-specific to script here --
@@ -307,7 +320,11 @@ separate problems, in the order you'll likely see them:
    chemiscope with a warning instead of failing, so the rest of the
    ecosystem still installs. Fix, if you actually need chemiscope: install a
    newer node without root via [nvm](https://github.com/nvm-sh/nvm)
-   (`nvm install 20`), then re-run the script.
+   (`nvm install 20`), then re-run the script. A second chemiscope gotcha:
+   webpack runs `git describe --tags`, and a submodule clone of the
+   [EricBoittier/chemiscope](https://github.com/EricBoittier/chemiscope)
+   fork has no tags (they live on lab-cosmo). The setup script fetches
+   those from `upstream` after init.
 
 6. **`torch.cuda.is_available()` stays `False` even after issue 4's fix,
    or the install becomes unsatisfiable outright.** Two separate bugs, both
