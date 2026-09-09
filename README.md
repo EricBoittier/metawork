@@ -186,7 +186,10 @@ bash etc/open-github-pages.sh --fork   # your own fork's PRs
   The recipe to run is
   [`examples/metatomic-hourglass/`](atomistic-cookbook/examples/metatomic-hourglass/):
   export PET-MAD, MACE, and DPA-3 to metatomic, then run the same ethanol MD
-  in ASE, LAMMPS, GROMACS, i-PI, and TorchSim.
+  in ASE, LAMMPS, GROMACS, i-PI, and TorchSim. LAMMPS and GROMACS conda
+  packages pin incompatible `libtorch` versions, so
+  `bash create-engine-envs.sh` makes sibling prefixes and the recipe
+  subprocesses `lmp` / `gmx` from those.
 
 
 # Datasets
