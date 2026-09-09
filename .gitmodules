@@ -22,3 +22,7 @@
 [submodule "metatrain"]
 	path = metatrain
 	url = git@github.com:EricBoittier/metatrain.git
+[submodule "atomistic-cookbook"]
+	path = atomistic-cookbook
+	url = https://github.com/lab-cosmo/atomistic-cookbook.git
+	branch = metatomic-hourglass

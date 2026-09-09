@@ -123,8 +123,8 @@ for entry in "${CLONE_ONLY_REPOS[@]}"; do
   clone_or_update "$repo" "$org"
 done
 
-# iris-infra and lorem-jax are tracked git submodules (JAX reference
-# implementations), not INSTALL_REPOS / CLONE_ONLY_REPOS checkouts. The
+# iris-infra, lorem-jax, and atomistic-cookbook are tracked git
+# submodules (not INSTALL_REPOS / CLONE_ONLY_REPOS checkouts). The
 # recorded gitlink is the source of truth -- do not git pull them.
 if [ -f "$BASE_DIR/.gitmodules" ]; then
   log "Initializing git submodules"

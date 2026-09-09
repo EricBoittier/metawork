@@ -165,6 +165,15 @@ bash etc/open-github-pages.sh --fork   # your own fork's PRs
   [source](https://github.com/metatensor/metatrain/tree/main/examples/1-advanced):
   transfer learning, LLPR (uncertainty), ZBL, generic targets, FlashMD,
   multi-GPU, DOS training.
+- **atomistic cookbook** -- [hosted recipes](https://atomistic-cookbook.org/) /
+  [fork](https://github.com/EricBoittier/atomistic-cookbook) (upstream
+  [lab-cosmo/atomistic-cookbook](https://github.com/lab-cosmo/atomistic-cookbook)).
+  Git submodule, pinned to upstream
+  [`metatomic-hourglass`](https://github.com/lab-cosmo/atomistic-cookbook/tree/metatomic-hourglass).
+  The recipe to run is
+  [`examples/metatomic-hourglass/`](atomistic-cookbook/examples/metatomic-hourglass/):
+  export PET-MAD, MACE, and DPA-3 to metatomic, then run the same ethanol MD
+  in ASE, LAMMPS, GROMACS, i-PI, and TorchSim.
 
 
 # Datasets
