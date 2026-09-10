@@ -21,6 +21,7 @@ branch (forks preferred when they exist):
 | featomic, i-pi, iris-infra, lorem-jax, upet | `main` |
 | atomistic-cookbook | `metatomic-hourglass` |
 
+https://github.com/lab-cosmo/cosmo-wiki/wiki/Getting-started-at-COSMO
 
 # Programs
 
