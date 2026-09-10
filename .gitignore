@@ -17,6 +17,7 @@
 /gromacs/
 /eOn/
 /plumed2/
+/plumed-metatomic-feedstock/
 
 # venvs created by etc/setup-metawork.sh
 /.venv/
