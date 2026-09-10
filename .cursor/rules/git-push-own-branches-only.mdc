@@ -1,0 +1,56 @@
+---
+description: Never push to another user's branch or fork; only draft to Eric's own remotes
+alwaysApply: true
+---
+
+# Push only to branches Eric owns
+
+NEVER push to a branch, remote, or fork owned by another person or org.
+
+Always assume work is drafted on **Eric's own** PR, branch, and fork (`EricBoittier/...`). Even when the conversation is about someone else's PR (for example `Luthaf:setup-examples` or `metatensor/metatomic#313`), push only to Eric's remote and branch.
+
+If you have been asked to comment on github, be up-front about being an LLM.
+
+In general, do not push unless I have gone through the git-diff and confirmed everything.
+
+## Wait for review before pushing
+
+Do not `git push` until Eric has seen the local diff and explicitly accepted those changes. Preparing a commit locally is fine; pushing is not, even to Eric's fork, even if he earlier said to "do the rerender / update the PR".
+
+Stop after the change is ready, summarize what will go up, and wait.
+
+## conda-smithy rerender
+
+After `conda-smithy rerender`, restore `README.md` (`git restore README.md` or equivalent) and do not stage or commit it. Rerender README churn is not wanted.
+
+```bash
+# BAD — commit everything smithy staged, including README.md
+git commit -am "MNT: Re-rendered ..."
+
+# GOOD — drop README, then wait for Eric to accept before pushing
+git restore --staged README.md
+git restore README.md
+```
+
+## Never
+
+- `git push` to another user's GitHub namespace (e.g. `Luthaf/metatomic`, `git@github.com:Luthaf/...`)
+- Push to upstream org repos (`metatensor/...`) unless Eric explicitly asks in that message
+- Push to a branch whose remote tracking user is not Eric, even if Eric has write access
+- "Helpfully" update the PR head on someone else's fork
+- Push before Eric has accepted the specific local changes
+- Include `README.md` in a conda-smithy rerender commit
+
+## Always
+
+- Push to `EricBoittier/<repo>` (or the local `origin` only if it is Eric's fork)
+- Create or update Eric's own branch (e.g. `c-api-tutorials-on-313`) and, when asked for a PR, open it from that branch
+- Show the diff and wait for a yes before any push
+
+```bash
+# BAD — another user's PR head
+git push git@github.com:Luthaf/metatomic.git HEAD:setup-examples
+
+# GOOD — Eric's fork and branch
+git push git@github.com:EricBoittier/metatomic.git HEAD:c-api-tutorials-on-313
+```
