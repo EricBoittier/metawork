@@ -41,11 +41,31 @@ LOREM_DEFAULTS = dict(
 
 
 def load_model_yaml(path: Path):
+    """Read hypers + elemental baseline for a checkpoint.
+
+    Two ``model.yaml`` shapes exist in the archive, and this accepts either:
+
+    - ``evals/<expt>/<variant>/model.yaml`` (top-level, one per experiment):
+      wrapped as ``{"model": {"lorem.Lorem": {...}}, "baseline": {"elemental":
+      {...}}}``, only the *overrides* on top of ``lorem.Lorem``'s own field
+      defaults.
+    - ``.../run/checkpoints/<ckpt>/model/model.yaml`` (shipped with every
+      checkpoint): flat ``{"lorem.Lorem": {...}}`` with the *resolved* hypers
+      already filled in, no baseline -- that lives in a sibling
+      ``baseline.yaml`` in the same directory instead.
+    """
     with open(path) as f:
         doc = yaml.safe_load(f)
+
     hypers = dict(LOREM_DEFAULTS)
-    hypers.update(doc["model"]["lorem.Lorem"])
-    baseline = doc["baseline"]["elemental"]
+    if "model" in doc:
+        hypers.update(doc["model"]["lorem.Lorem"])
+        baseline = doc["baseline"]["elemental"]
+    else:
+        hypers.update(doc["lorem.Lorem"])
+        baseline_path = path.parent / "baseline.yaml"
+        with open(baseline_path) as f:
+            baseline = yaml.safe_load(f)["elemental"]
     return hypers, baseline
 
 
