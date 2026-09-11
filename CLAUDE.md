@@ -9,3 +9,11 @@
   no review replies. Reading upstream (fetch, PR/issue lookups via `gh`/API)
   is fine; posting anything is not, unless the user explicitly asks in the
   moment.
+
+# Style
+
+Prefer concise, functional code: names that carry the meaning, lambdas and
+comprehensions when they stay readable, and docstrings only when the
+behaviour is not obvious from context. Several modules keep short tests at
+the bottom of the file and run them on import; match that pattern when it
+is already in use.

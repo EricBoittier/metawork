@@ -1,0 +1,379 @@
+    1  cs
+    2  ls
+    3  cd
+    4  ls
+    5  rm hello
+    6  cs
+    7  vi .bashrc
+    8  cs
+    9  source .bashrc 
+   10  sudo apt install unattended-upgrades
+   11  cs
+   12  touch hello
+   13  sudo apt install curl gnupg
+   14  curl -fLO "https://downloads.claude.ai/claude-desktop/apt/stable/$(curl -s "https://downloads.claude.ai/claude-desktop/apt/stable/dists/stable/main/binary-$(dpkg --print-architecture)/Packages" | grep '^Filename: pool/main/c/claude-desktop/claude-desktop_' | sort -V | tail -n 1 | cut -d' ' -f2)"
+   15  cs
+   16  cd Downloads/
+   17  cs
+   18  chmod +x Cursor-3.18.25-x86_64.AppImage 
+   19  cs
+   20  ./Cursor-3.18.25-x86_64.AppImage 
+   21  vd
+   22  cs
+   23  open cursor_3.18.25_amd64.deb 
+   24  chmod +x cursor_3.18.25_amd64.deb 
+   25  cs
+   26  ./cursor_3.18.25_amd64.deb 
+   27  open cursor_3.18.25_amd64.deb 
+   28  cs
+   29  chmod +x alacritty.bash 
+   30  cs
+   31  ./alacritty.bash 
+   32  cs
+   33  source alacritty.bash 
+   34  cs
+   35  vi .bashrc
+   36  cs
+   37  cd
+   38  cs
+   39  vi .bashrc 
+   40  vi ~/.cosmo_bashrc 
+   41  cs
+   42  cd
+   43  cs
+   44  cd
+   45  cs
+   46  pwd
+   47  cs
+   48  htop
+   49  cs
+   50  cd Documents/
+   51  cs
+   52  mkdir metawork
+   53  cs
+   54  cd metawork/
+   55  cs
+   56  git clone https://github.com/EricBoittier/metatomic.git
+   57  git clone https://github.com/EricBoittier/metatensor.git
+   58  git clone https://github.com/EricBoittier/metatrain.git
+   59  cs
+   60  cd metat
+   61  cd metatomic/
+   62  cs
+   63  pip install -e .
+   64  cs
+   65  cd ..
+   66  cs
+   67  which uv
+   68  cs
+   69  venv -h
+   70  pip -h
+   71  conda
+   72  which conda
+   73  curl -LsSf https://astral.sh/uv/install.sh | sh
+   74  cs
+   75  which uv
+   76  cs
+   77  curl -LsSf https://astral.sh/uv/install.sh | sh
+   78  cs
+   79  cd
+   80  cs
+   81  cd .local/bin/
+   82  cs
+   83  pwd
+   84  vi ../../.bashrc
+   85  source ../../.bashrc
+   86  cs
+   87  cd
+   88  which uv
+   89  cs
+   90  cd Documents/
+   91  cs
+   92  cd metawork/
+   93  cs
+   94  uv
+   95  cs
+   96  cd metatomic/
+   97  cs
+   98  uv pip install -e .
+   99  cd ..
+  100  cs
+  101  cd ..
+  102  cs
+  103  cd metawork/
+  104  cs
+  105  uv 
+  106  uv venv -h
+  107  uv venv 
+  108  cs
+  109  uv venv 
+  110  cs
+  111  source .venv/bin/activate
+  112  cs
+  113  cd metatomic/
+  114  cs
+  115  uv pip install -e .
+  116  cd ..
+  117  cs
+  118  cd metatrain/
+  119  cs
+  120  pip install -e .
+  121  uv pip install -e .
+  122  cs
+  123  cd
+  124  cs
+  125  bash -c "$(wget -qO- https://git.io/vQgMr)"
+  126  cs
+  127  bash -c "$(wget -qO- https://git.io/vQgMr)"
+  128  # Clone the repo into "$HOME/src/gogh"
+  129  mkdir -p "$HOME/src"
+  130  cd "$HOME/src"
+  131  git clone https://github.com/Gogh-Co/Gogh.git gogh
+  132  cd gogh
+  133  # necessary in the Gnome terminal on ubuntu
+  134  export TERMINAL=gnome-terminal
+  135  # necessary in the Alacritty terminal
+  136  pip install -r requirements.txt
+  137  export TERMINAL=alacritty
+  138  # Enter theme installs dir
+  139  cd installs
+  140  # install themes
+  141  ./atom.sh
+  142  ./dracula.sh
+  143  which python
+  144  uv pip install tomli
+  145  which python
+  146  ./atom.sh
+  147  uv pip install tomli_w
+  148  ./atom.sh
+  149  uv pip install ruamel
+  150  cs
+  151  bash vaporwave-control-room.sh 
+  152  uv  pip install ruamel_yaml==0.11.14
+  153  uv  pip install ruamel_yaml
+  154  bash vaporwave-control-room.sh 
+  155  cs
+  156  bash wombat.sh
+  157  # necessary in the Gnome terminal on ubuntu
+  158  export TERMINAL=gnome-terminal
+  159  bash wombat.sh
+  160  vi ../apply-colors.sh 
+  161  cs
+  162  bash vaporwave-control-room.sh
+  163  bash -c  "$(wget -qO- https://git.io/vQgMr)" 
+  164  exit
+  165  cs
+  166  bash -c  "$(wget -qO- https://git.io/vQgMr)" 
+  167  cs
+  168  exit
+  169  cs
+  170  exit
+  171  cd
+  172  cs
+  173  vi rust.md
+  174  cs
+  175  exit
+  176  nvidia-detector 
+  177  nvidia-smi
+  178  cs
+  179  cds
+  180  cs
+  181  cd
+  182  cs
+  183  cd Documents/metawork/
+  184  cs
+  185  cd metatensor/
+  186  cs
+  187  uv pip install -e ./python/
+  188  cs
+  189  uv pip install -e .
+  190  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  191  bash -c  "$(wget -qO- https://git.io/vQgMr)" 
+  192  ps -h -o comm -p $PPID
+  193  export TERMINAL=gnome-terminal
+  194  bash -c  "$(wget -qO- https://git.io/vQgMr)" 
+  195  curl -fsSL https://claude.ai/install.sh | bash
+  196  claude
+  197  cs
+  198  vi check_gpus.sh
+  199  bash check_gpus.sh 
+  200  cs
+  201  eval `ssh-agent -s`
+  202  ssh-add ~/.ssh/me.cosmolab 
+  203  ls /home/boittier/.ssh/known_hosts
+  204  cat /home/boittier/.ssh/known_hosts
+  205  cs
+  206  bash check_gpus.sh 
+  207  ssh-keygen -t ed25519 -C "eric.boittier@epfl.ch" -f ~/.ssh/me.cosmolab
+  208  echo $GASPAR_USERNAME
+  209  export GASPAR_USERNAME=boittier
+  210  export GASPAR_USERNAME=eric.boittier
+  211  CS
+  212  cs
+  213  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab eric.boittier@$pc.epfl.ch; done
+  214  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab boittier@$pc.epfl.ch; done
+  215  cs
+  216  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do   ssh boittier@$pc.epfl.ch; done
+  217  cs
+  218  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab eric.boittier@$pc.epfl.ch; done
+  219  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab boittier@$pc.epfl.ch; done
+  220  cs
+  221  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab boittier@$pc.epfl.ch; done
+  222  cp /home/boittier/.ssh/me.cosmolab.pub /home/boittier/.ssh/eric.cosmolab.pub
+  223  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/eric.cosmolab boittier@$pc.epfl.ch; done
+  224  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab boittier@$pc.epfl.ch; done
+  225  curl https://cursor.com/install -fsS | bash
+  226  cs
+  227  cursor
+  228  agent
+  229  agent login
+  230  mkdir '/home/boittier/.config/cursor'
+  231  exit
+  232  cursor
+  233  exit
+  234  cs
+  235  claude
+  236  cs
+  237  cd Documents/metawork/
+  238  cs
+  239  bash etc/setup-metawork.sh 
+  240  claude
+  241  cs
+  242  cd
+  243  cs
+  244  cd Documents/metawork/
+  245  cs
+  246  agent worker start
+  247  agent login
+  248  cs
+  249  ls ~/.ssh/me.cosmolab.pub 
+  250  cat ~/.ssh/me.cosmolab.pub 
+  251  cs
+  252  git status
+  253  git add -A
+  254  git commit -m "asdf"
+  255  cs
+  256  GIT_SSH_COMMAND='ssh -i ~/.ssh/me.cosmolab -o IdentitiesOnly=yes'   git push -u origin experimental/lorem
+  257  gh pr create --draft --repo EricBoittier/metatrain --base main --head experimental/lorem   --title "experimental.lorem: PyTorch LOREM architecture (draft)"   --body "## Summary
+  258  First-cut \`experimental.lorem\` on this fork. Native PyTorch port of LOREM, not lorem-jax.
+  259  ## Plan
+  260  1. Land experimental architecture (CI, mtt train, TorchScript export)
+  261  2. Equivariant long-range charges (the paper mechanism)
+  262  3. Closer short-range to e3x / lorem-jax
+  263  4. Optional LoremBEC, stress, regression checkpoint before any upstream PR
+  264  "
+  265  mkdir -p ~/.gh
+  266  export GH_CONFIG_DIR=$HOME/.gh
+  267  echo 'export GH_CONFIG_DIR=$HOME/.gh' >> ~/.bashrc
+  268  gh auth login -h github.com -p ssh -w
+  269  cs
+  270  GIT_SSH_COMMAND='ssh -i ~/.ssh/me.cosmolab -o IdentitiesOnly=yes'   git push -u origin experimental/lorem
+  271  gh pr create --draft --repo EricBoittier/metatrain --base main --head experimental/lorem   --title "experimental.lorem: PyTorch LOREM architecture (draft)"   --body "## Summary
+  272  First-cut \`experimental.lorem\` on this fork. Native PyTorch port of LOREM, not lorem-jax.
+  273  ## Plan
+  274  1. Land experimental architecture (CI, mtt train, TorchScript export)
+  275  2. Equivariant long-range charges (the paper mechanism)
+  276  3. Closer short-range to e3x / lorem-jax
+  277  4. Optional LoremBEC, stress, regression checkpoint before any upstream PR
+  278  "
+  279  exit
+  280  cs
+  281  claude
+  282  cs
+  283  chmod a+x Cursor-3.19.7-x86_64.AppImage 
+  284  cs
+  285  ./Cursor-3.19.7-x86_64.AppImage 
+  286  ./Cursor-3.19.7-x86_64.AppImage --no-sandbox
+  287  cs
+  288  cs
+  289  echo "# metawork" >> README.md
+  290  git init
+  291  git add README.md
+  292  git commit -m "first commit"
+  293  git branch -M main
+  294  git remote add origin https://github.com/EricBoittier/metawork.git
+  295  git push -u origin main
+  296  git config --global user.email eric.boittier@icloud.com
+  297  git config --global user.name EricBoittier
+  298  git push -u origin main
+  299  git commit -m "first commit"
+  300  cs
+  301  git status
+  302  git add -A
+  303  git commit -m "paper"
+  304  git push
+  305  cs
+  306  cursor
+  307  cs
+  308  cd Documents/metawork/metatomic/
+  309  cs
+  310  git status
+  311  git log --oneline --graph
+  312  git log origin/metatomic-core
+  313  git log metatomic-core
+  314  git log upstream/metatomic-core
+  315  git fetch
+  316  git fetch upstream
+  317  git remote
+  318  git status
+  319  git remote -v
+  320  git remote set-url origin git@github.com:EricBoittier/metatomic.git
+  321  git remote -v
+  322  git remote add upstream git@github.com:metatensor/metatomic.git
+  323  git fetch
+  324  git fetch upstream
+  325  git status 
+  326  git checkout main
+  327  git branch --set-upstream-to upstream/main
+  328  git status
+  329  git reset --hard upstream/main
+  330  git remote -v
+  331  git push origin
+  332  git push origin --force
+  333  git branch
+  334  git checkout metatomic-core
+  335  git checkout upstream/metatomic-core
+  336  git status
+  337  git checkout main 
+  338  git checkout metatomic-core
+  339  git fetch
+  340  git fetch origin
+  341  git fetch origin -v
+  342  git checkout metatomic-core
+  343  git remote -v
+  344  git fetch origin 
+  345  git fetch origin --prune
+  346  git checkout metatomic-core
+  347  git branch /v
+  348  git branch -v
+  349  git branch 
+  350  git checkout repairHistory
+  351  git log 
+  352  git log --graph
+  353  git log --graph --oneline
+  354  git rebase --interactive metatomic-core  
+  355  export EDITOR=vim
+  356  git rebase --interactive metatomic-core  
+  357  git rebase --abort
+  358  git status
+  359  git rebase --interactive metatomic-core  
+  360  git status
+  361  git rebase --skip
+  362  git status
+  363  vi examples/c/1-create-system.c 
+  364  git status
+  365  git add examples/c/1-create-system.c 
+  366  git rebase --continue
+  367  git status
+  368  git rebase --skip
+  369  git status
+  370  git log --graph --oneline
+  371  git remote -v
+  372  git status
+  373  git push 
+  374  git push --force
+  375  git status -v
+  376  git status 
+  377  #git rebase --interactive
+  378  git status
+  379  history > ../git_history

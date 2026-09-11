@@ -1,0 +1,250 @@
+    1  cs
+    2  ls
+    3  cd
+    4  ls
+    5  rm hello
+    6  cs
+    7  vi .bashrc
+    8  cs
+    9  source .bashrc 
+   10  sudo apt install unattended-upgrades
+   11  cs
+   12  touch hello
+   13  sudo apt install curl gnupg
+   14  curl -fLO "https://downloads.claude.ai/claude-desktop/apt/stable/$(curl -s "https://downloads.claude.ai/claude-desktop/apt/stable/dists/stable/main/binary-$(dpkg --print-architecture)/Packages" | grep '^Filename: pool/main/c/claude-desktop/claude-desktop_' | sort -V | tail -n 1 | cut -d' ' -f2)"
+   15  cs
+   16  cd Downloads/
+   17  cs
+   18  chmod +x Cursor-3.18.25-x86_64.AppImage 
+   19  cs
+   20  ./Cursor-3.18.25-x86_64.AppImage 
+   21  vd
+   22  cs
+   23  open cursor_3.18.25_amd64.deb 
+   24  chmod +x cursor_3.18.25_amd64.deb 
+   25  cs
+   26  ./cursor_3.18.25_amd64.deb 
+   27  open cursor_3.18.25_amd64.deb 
+   28  cs
+   29  chmod +x alacritty.bash 
+   30  cs
+   31  ./alacritty.bash 
+   32  cs
+   33  source alacritty.bash 
+   34  cs
+   35  vi .bashrc
+   36  cs
+   37  cd
+   38  cs
+   39  vi .bashrc 
+   40  vi ~/.cosmo_bashrc 
+   41  cs
+   42  cd
+   43  cs
+   44  cd
+   45  cs
+   46  pwd
+   47  cs
+   48  htop
+   49  cs
+   50  cd Documents/
+   51  cs
+   52  mkdir metawork
+   53  cs
+   54  cd metawork/
+   55  cs
+   56  git clone https://github.com/EricBoittier/metatomic.git
+   57  git clone https://github.com/EricBoittier/metatensor.git
+   58  git clone https://github.com/EricBoittier/metatrain.git
+   59  cs
+   60  cd metat
+   61  cd metatomic/
+   62  cs
+   63  pip install -e .
+   64  cs
+   65  cd ..
+   66  cs
+   67  which uv
+   68  cs
+   69  venv -h
+   70  pip -h
+   71  conda
+   72  which conda
+   73  curl -LsSf https://astral.sh/uv/install.sh | sh
+   74  cs
+   75  which uv
+   76  cs
+   77  curl -LsSf https://astral.sh/uv/install.sh | sh
+   78  cs
+   79  cd
+   80  cs
+   81  cd .local/bin/
+   82  cs
+   83  pwd
+   84  vi ../../.bashrc
+   85  source ../../.bashrc
+   86  cs
+   87  cd
+   88  which uv
+   89  cs
+   90  cd Documents/
+   91  cs
+   92  cd metawork/
+   93  cs
+   94  uv
+   95  cs
+   96  cd metatomic/
+   97  cs
+   98  uv pip install -e .
+   99  cd ..
+  100  cs
+  101  cd ..
+  102  cs
+  103  cd metawork/
+  104  cs
+  105  uv 
+  106  uv venv -h
+  107  uv venv 
+  108  cs
+  109  uv venv 
+  110  cs
+  111  source .venv/bin/activate
+  112  cs
+  113  cd metatomic/
+  114  cs
+  115  uv pip install -e .
+  116  cd ..
+  117  cs
+  118  cd metatrain/
+  119  cs
+  120  pip install -e .
+  121  uv pip install -e .
+  122  cs
+  123  cd
+  124  cs
+  125  bash -c "$(wget -qO- https://git.io/vQgMr)"
+  126  cs
+  127  bash -c "$(wget -qO- https://git.io/vQgMr)"
+  128  # Clone the repo into "$HOME/src/gogh"
+  129  mkdir -p "$HOME/src"
+  130  cd "$HOME/src"
+  131  git clone https://github.com/Gogh-Co/Gogh.git gogh
+  132  cd gogh
+  133  # necessary in the Gnome terminal on ubuntu
+  134  export TERMINAL=gnome-terminal
+  135  # necessary in the Alacritty terminal
+  136  pip install -r requirements.txt
+  137  export TERMINAL=alacritty
+  138  # Enter theme installs dir
+  139  cd installs
+  140  # install themes
+  141  ./atom.sh
+  142  ./dracula.sh
+  143  which python
+  144  uv pip install tomli
+  145  which python
+  146  ./atom.sh
+  147  uv pip install tomli_w
+  148  ./atom.sh
+  149  uv pip install ruamel
+  150  cs
+  151  bash vaporwave-control-room.sh 
+  152  uv  pip install ruamel_yaml==0.11.14
+  153  uv  pip install ruamel_yaml
+  154  bash vaporwave-control-room.sh 
+  155  cs
+  156  bash wombat.sh
+  157  # necessary in the Gnome terminal on ubuntu
+  158  export TERMINAL=gnome-terminal
+  159  bash wombat.sh
+  160  vi ../apply-colors.sh 
+  161  cs
+  162  bash vaporwave-control-room.sh
+  163  bash -c  "$(wget -qO- https://git.io/vQgMr)" 
+  164  exit
+  165  cs
+  166  bash -c  "$(wget -qO- https://git.io/vQgMr)" 
+  167  cs
+  168  exit
+  169  cs
+  170  exit
+  171  cd
+  172  cs
+  173  vi rust.md
+  174  cs
+  175  exit
+  176  nvidia-detector 
+  177  nvidia-smi
+  178  cs
+  179  cds
+  180  cs
+  181  cd
+  182  cs
+  183  cd Documents/metawork/
+  184  cs
+  185  cd metatensor/
+  186  cs
+  187  uv pip install -e ./python/
+  188  cs
+  189  uv pip install -e .
+  190  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  191  bash -c  "$(wget -qO- https://git.io/vQgMr)" 
+  192  ps -h -o comm -p $PPID
+  193  export TERMINAL=gnome-terminal
+  194  bash -c  "$(wget -qO- https://git.io/vQgMr)" 
+  195  curl -fsSL https://claude.ai/install.sh | bash
+  196  claude
+  197  cs
+  198  vi check_gpus.sh
+  199  bash check_gpus.sh 
+  200  cs
+  201  eval `ssh-agent -s`
+  202  ssh-add ~/.ssh/me.cosmolab 
+  203  ls /home/boittier/.ssh/known_hosts
+  204  cat /home/boittier/.ssh/known_hosts
+  205  cs
+  206  bash check_gpus.sh 
+  207  ssh-keygen -t ed25519 -C "eric.boittier@epfl.ch" -f ~/.ssh/me.cosmolab
+  208  echo $GASPAR_USERNAME
+  209  export GASPAR_USERNAME=boittier
+  210  export GASPAR_USERNAME=eric.boittier
+  211  CS
+  212  cs
+  213  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab eric.boittier@$pc.epfl.ch; done
+  214  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab boittier@$pc.epfl.ch; done
+  215  cs
+  216  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do   ssh boittier@$pc.epfl.ch; done
+  217  cs
+  218  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab eric.boittier@$pc.epfl.ch; done
+  219  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab boittier@$pc.epfl.ch; done
+  220  cs
+  221  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab boittier@$pc.epfl.ch; done
+  222  cp /home/boittier/.ssh/me.cosmolab.pub /home/boittier/.ssh/eric.cosmolab.pub
+  223  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/eric.cosmolab boittier@$pc.epfl.ch; done
+  224  for pc in cosmopc3 cosmopc16 cosmopc24 cosmopc27;   do     ssh-copy-id -i ~/.ssh/me.cosmolab boittier@$pc.epfl.ch; done
+  225  sudo chown -R boittier:COSMO-unit ~/.config
+  226  cs
+  227  cd metawork
+  228  cd Documents/metawork/
+  229  cs
+  230  agent worker start
+  231  agent worker start --api-key crsr_7fd0ec966b25b02171cccb685a221fabead66de35c882ec735fa49c829d2da57
+  232  cs
+  233  cas
+  234  cs
+  235  cat $USER
+  236  echo $USER
+  237  cs
+  238  ssh $USER@jed.epfl.ch
+  239  ssh $USER@jed.hpc.epfl.ch
+  240  ssh-keygen
+  241  ssh-keygen -t ed25519 -C "${USER}@clusters" -f ${HOME}/.ssh/id_ed25519
+  242  cs
+  243  ssh boittier@jed.epfl.ch
+  244  ssh eric.boittier@jed.epfl.ch
+  245  ssh boittier@kuma.hpc.epfl.ch
+  246  ssh eric.boittier@kuma.hpc.epfl.ch
+  247  ssh boittier@kuma.hpc.epfl.ch
+  248  Nagoya2013!
+  249  history
+  250  history > history; grep user history
