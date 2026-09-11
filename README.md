@@ -77,6 +77,19 @@ follow the linked docs for the actual build):
   official development version. See the
   [PLUMED integration docs](https://docs.metatensor.org/metatomic/latest/engines/plumed.html).
 
+The conda packages for those engines live in separate
+`*-feedstock` repos under [metatensor](https://github.com/metatensor)
+(`lammps-metatomic-feedstock`, `plumed-metatomic-feedstock`, …). Clone them
+**next to** this tree (`~/Documents/lammps-metatomic-feedstock`), not inside
+it. To regenerate CI after a migration/pin change:
+
+```bash
+bash etc/rerender-feedstock.sh ~/Documents/lammps-metatomic-feedstock
+```
+
+Do not run plain `conda-smithy rerender` on the LAMMPS feedstock (it hangs).
+Details, env setup, and pull order: [`etc/feedstock-rerender/`](etc/feedstock-rerender/).
+
 
 # Models
 

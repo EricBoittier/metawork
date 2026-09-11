@@ -23,6 +23,14 @@ Stop after the change is ready, summarize what will go up, and wait.
 
 After `conda-smithy rerender`, restore `README.md` (`git restore README.md` or equivalent) and do not stage or commit it. Rerender README churn is not wanted.
 
+Do **not** run plain `conda-smithy rerender` on lammps-metatomic-feedstock (it hangs). Use:
+
+```bash
+rerender-feedstock ~/Documents/lammps-metatomic-feedstock
+```
+
+That wrapper lives at `~/.local/bin/rerender-feedstock`. It activates the `conda-smithy` env, collapses unused pinning keys, restores README, and does not commit or push. Refuse `~/Documents/metawork/*-feedstock` clones unless `--force` is passed.
+
 ```bash
 # BAD — commit everything smithy staged, including README.md
 git commit -am "MNT: Re-rendered ..."
