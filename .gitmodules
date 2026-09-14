@@ -34,3 +34,7 @@
 	path = atomistic-cookbook
 	url = https://github.com/lab-cosmo/atomistic-cookbook.git
 	branch = metatomic-hourglass
+[submodule "symd"]
+	path = etc/symd
+	url = https://github.com/EricBoittier/symd.git
+	branch = feat/metatomic-c-api
