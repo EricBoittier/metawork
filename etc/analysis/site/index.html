@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LOREM / long-range analysis notebooks</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 920px; margin: 0 auto; padding: 2rem 1.25rem 4rem;
+    line-height: 1.5; background: #fafafa; color: #1a1a1a;
+  }
+  @media (prefers-color-scheme: dark) { body { background: #14171a; color: #e6e6e6; } }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  .subtitle { color: #666; margin-top: 0; margin-bottom: 2rem; }
+  @media (prefers-color-scheme: dark) { .subtitle { color: #9aa0a6; } }
+  h2.section {
+    font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.04em;
+    color: #888; border-bottom: 1px solid #ddd; padding-bottom: 0.3rem;
+    margin-top: 2.5rem;
+  }
+  @media (prefers-color-scheme: dark) { h2.section { color: #9aa0a6; border-color: #333; } }
+  .card {
+    padding: 0.9rem 1.1rem; margin: 0.6rem 0;
+    border: 1px solid #e0e0e0; border-radius: 10px;
+    background: white; transition: box-shadow 0.15s, border-color 0.15s;
+  }
+  @media (prefers-color-scheme: dark) { .card { background: #1d2125; border-color: #333; } }
+  .card:hover { border-color: #999; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+  .card .row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+  .card .name { font-weight: 600; font-size: 0.98rem; }
+  .card .name a { color: inherit; text-decoration: none; }
+  .card .name a:hover { text-decoration: underline; }
+  .card .links { white-space: nowrap; font-size: 0.82rem; }
+  .card .links a { color: #0a5ab5; text-decoration: none; margin-left: 0.6rem; }
+  .card .links a:hover { text-decoration: underline; }
+  @media (prefers-color-scheme: dark) { .card .links a { color: #7cb6e8; } }
+  .card .desc { font-size: 0.87rem; color: #666; margin-top: 0.25rem; }
+  @media (prefers-color-scheme: dark) { .card .desc { color: #a3a9ae; } }
+  .badge {
+    display: inline-block; font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.5rem;
+    border-radius: 999px; margin-left: 0.5rem; vertical-align: middle;
+  }
+  .badge.fixed { background: #d7f5e3; color: #0a6b3a; }
+  .badge.exact { background: #d7e8f5; color: #0a4a8a; }
+  @media (prefers-color-scheme: dark) {
+    .badge.fixed { background: #10331f; color: #6fd99a; }
+    .badge.exact { background: #12283b; color: #7cb6e8; }
+  }
+  code { background: rgba(127,127,127,0.15); padding: 0.1em 0.3em; border-radius: 4px; font-size: 0.9em; }
+</style>
+</head>
+<body>
+
+<h1>LOREM / long-range analysis notebooks</h1>
+<p class="subtitle">Static renders of every notebook in this directory, current as of the AuMgO/bio_dimers <code>exclusion_radius</code> fix. Each has an HTML view (click the title) and a PDF download &mdash; the source <code>.ipynb</code> files are alongside this page if you want to re-execute anything.</p>
+
+<h2 class="section">Setup</h2>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="01_load_models.html">01 &middot; Load models</a></div>
+    <div class="links"><a href="../pdf/01_load_models.pdf">PDF</a></div>
+  </div>
+  <div class="desc">Registry of SN2 long-range-scan models used by notebooks 02&ndash;12.</div>
+</div>
+
+<h2 class="section">SN2 reaction-coordinate scans, per model (torch, trained on this project's data)</h2>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="02_long_range_scan.html">02 &middot; Matched BPNN (baseline)</a></div>
+    <div class="links"><a href="../pdf/02_long_range_scan.pdf">PDF</a></div>
+  </div>
+  <div class="desc">Baseline BPNN model, matched training set.</div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="03_long_range_scan_sn2.html">03 &middot; Original (unmatched) model</a></div>
+    <div class="links"><a href="../pdf/03_long_range_scan_sn2.pdf">PDF</a></div>
+  </div>
+  <div class="desc">The original model from 01, trained before the matched-dataset re-runs.</div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="04_long_range_scan_bpnn_dipole.html">04 &middot; Matched BPNN + dipole</a></div>
+    <div class="links"><a href="../pdf/04_long_range_scan_bpnn_dipole.pdf">PDF</a></div>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="05_long_range_scan_bpnn_dipole_v2.html">05 &middot; Matched BPNN + dipole (v2)</a></div>
+    <div class="links"><a href="../pdf/05_long_range_scan_bpnn_dipole_v2.pdf">PDF</a></div>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="06_long_range_scan_bpnn_dipole_v3.html">06 &middot; Matched BPNN + dipole (v3)</a></div>
+    <div class="links"><a href="../pdf/06_long_range_scan_bpnn_dipole_v3.pdf">PDF</a></div>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="07_long_range_scan_lorem.html">07 &middot; Matched LOREM</a></div>
+    <div class="links"><a href="../pdf/07_long_range_scan_lorem.pdf">PDF</a></div>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="08_long_range_scan_lorem_dipole.html">08 &middot; Matched LOREM + dipole</a></div>
+    <div class="links"><a href="../pdf/08_long_range_scan_lorem_dipole.pdf">PDF</a></div>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="09_long_range_scan_pet.html">09 &middot; Matched PET</a></div>
+    <div class="links"><a href="../pdf/09_long_range_scan_pet.pdf">PDF</a></div>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="10_long_range_scan_pet_dipole.html">10 &middot; Matched PET + dipole</a></div>
+    <div class="links"><a href="../pdf/10_long_range_scan_pet_dipole.pdf">PDF</a></div>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="11_long_range_scan_lorem_eqmp_smoketest.html">11 &middot; LOREM EQMP smoketest</a></div>
+    <div class="links"><a href="../pdf/11_long_range_scan_lorem_eqmp_smoketest.pdf">PDF</a></div>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="12_long_range_summary.html">12 &middot; Cross-model summary</a></div>
+    <div class="links"><a href="../pdf/12_long_range_summary.pdf">PDF</a></div>
+  </div>
+  <div class="desc">Side-by-side comparison of the reaction-coordinate scan across every model above.</div>
+</div>
+
+<h2 class="section">lorem-jax reference (official paper checkpoint, run natively in JAX)</h2>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="13_long_range_scan_lorem_jax_lr.html">13 &middot; lorem-jax, long-range (Ewald)</a></div>
+    <div class="links"><a href="../pdf/13_long_range_scan_lorem_jax_lr.pdf">PDF</a></div>
+  </div>
+  <div class="desc">Official <code>lorem-tmlr-archive</code> checkpoint, full model.</div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="14_long_range_scan_lorem_jax_sr.html">14 &middot; lorem-jax, short-range only</a></div>
+    <div class="links"><a href="../pdf/14_long_range_scan_lorem_jax_sr.pdf">PDF</a></div>
+  </div>
+</div>
+
+<h2 class="section">Torch-port checkpoint parity (the current, validated work)</h2>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="15_long_range_scan_lorem_jax_ported_torch.html">15 &middot; SN2, jax-ported torch <span class="badge exact">~2e-5 eV</span></a></div>
+    <div class="links"><a href="../pdf/15_long_range_scan_lorem_jax_ported_torch.pdf">PDF</a></div>
+  </div>
+  <div class="desc">First torch port of the real lorem-jax SN2 checkpoint (non-PBC, <code>direct_calculator</code>), via <code>JaxParityBackbone</code>/<code>JaxParityLongRange</code>. The clean reference result this series' periodic systems are held to.</div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="16_metawork54_aumgo_cumulene_parity.html">16 &middot; AuMgO / bio_dimers / cumulene <span class="badge fixed">exclusion_radius fixed</span></a></div>
+    <div class="links"><a href="../pdf/16_metawork54_aumgo_cumulene_parity.pdf">PDF</a></div>
+  </div>
+  <div class="desc">Periodic (Ewald) systems from a peer session (<code>metawork-54</code>). Sections 1&ndash;6 are the original investigation of a real, large discrepancy; section 7 onward is the root-cause fix and the now-exact validated results (AuMgO and bio_dimers both at the float32 noise floor vs. JAX, bio_dimers matching the paper's own reported accuracy).</div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="18_cumulene_bio_dimers_restart_results.html">18 &middot; Cumulene / bio_dimers restart results <span class="badge exact">cumulene matches paper</span></a></div>
+    <div class="links"><a href="../pdf/18_cumulene_bio_dimers_restart_results.pdf">PDF</a></div>
+  </div>
+  <div class="desc">Follow-up to notebook 16: after the <code>exclusion_radius</code> fix, restarts training on cumulene and bio_dimers with tuned (lowered) learning rates to see whether ordinary fine-tuning recovers the paper's own reported test-set accuracy. Cumulene fully closes the gap (matches RMSE, beats MAE, on the full test set); bio_dimers improves substantially but stays short. Also documents a real methodology trap: a fixed, non-random 300-frame monitoring slice was misleading in opposite directions for the two systems.</div>
+</div>
+
+<h2 class="section">Other cookbook parity work</h2>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="17_hourglass_nve_lorem_pet.html">17 &middot; NVE engine parity: LOREM &amp; PET</a></div>
+    <div class="links"><a href="../pdf/17_hourglass_nve_lorem_pet.pdf">PDF</a></div>
+  </div>
+  <div class="desc">From the <code>metatomic-hourglass</code> upstream cookbook recipe: checks that a model exported to metatomic runs identically across engines (ASE, i-PI, ...) for LOREM and PET.</div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="name"><a href="19_ethanol_liquid_pet_mad_lammps.html">19 &middot; Liquid ethanol NVT: PET-MAD via LAMMPS</a></div>
+    <div class="links"><a href="../pdf/19_ethanol_liquid_pet_mad_lammps.pdf">PDF</a></div>
+  </div>
+  <div class="desc">From a peer session: a 700-molecule liquid-density ethanol box (6300 atoms), 200 ps NVT with PET-MAD through LAMMPS's <code>pair_style metatomic</code>. Thermostat/energy/pressure traces and O-O/O-H/C-C RDFs confirm a stable, physically sane liquid run &mdash; a real condensed-phase stress test beyond the single-molecule vacuum case in notebook 17. The LOREM half of the original request (no H/C/O checkpoint available) and the full 1&nbsp;ns target were not completed; documented honestly as partial.</div>
+</div>
+
+<p style="margin-top:3rem; font-size:0.8rem; color:#888;">Generated with <code>jupyter nbconvert</code> (HTML + webpdf). Rebuild after editing a notebook: run <code>./build_site.sh</code> from <code>/home/boittier/analysis</code>.</p>
+
+</body>
+</html>

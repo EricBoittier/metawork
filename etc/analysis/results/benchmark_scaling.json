@@ -1,0 +1,146 @@
+[
+  {
+    "key": "sn2-matched-bpnn",
+    "family": "BPNN",
+    "n_copies": 1,
+    "n_atoms": 6,
+    "mean_call_s": 0.008950713439844549,
+    "std_call_s": 8.655006182929662e-05
+  },
+  {
+    "key": "sn2-matched-bpnn",
+    "family": "BPNN",
+    "n_copies": 2,
+    "n_atoms": 12,
+    "mean_call_s": 0.008971359697170556,
+    "std_call_s": 6.0151544356019015e-05
+  },
+  {
+    "key": "sn2-matched-bpnn",
+    "family": "BPNN",
+    "n_copies": 4,
+    "n_atoms": 24,
+    "mean_call_s": 0.008978624711744487,
+    "std_call_s": 5.2790506748799276e-05
+  },
+  {
+    "key": "sn2-matched-bpnn",
+    "family": "BPNN",
+    "n_copies": 8,
+    "n_atoms": 48,
+    "mean_call_s": 0.007943709380924702,
+    "std_call_s": 7.010006947178596e-05
+  },
+  {
+    "key": "sn2-matched-bpnn",
+    "family": "BPNN",
+    "n_copies": 16,
+    "n_atoms": 96,
+    "mean_call_s": 0.008072299649938941,
+    "std_call_s": 0.00014133367690336818
+  },
+  {
+    "key": "sn2-matched-bpnn",
+    "family": "BPNN",
+    "n_copies": 32,
+    "n_atoms": 192,
+    "mean_call_s": 0.009034415823407471,
+    "std_call_s": 6.390144977756962e-05
+  },
+  {
+    "key": "sn2-matched-pet",
+    "family": "PET",
+    "n_copies": 1,
+    "n_atoms": 6,
+    "mean_call_s": 0.007823768770322204,
+    "std_call_s": 0.00015962696056433194
+  },
+  {
+    "key": "sn2-matched-pet",
+    "family": "PET",
+    "n_copies": 2,
+    "n_atoms": 12,
+    "mean_call_s": 0.009036256931722164,
+    "std_call_s": 0.00024453052889415695
+  },
+  {
+    "key": "sn2-matched-pet",
+    "family": "PET",
+    "n_copies": 4,
+    "n_atoms": 24,
+    "mean_call_s": 0.008974602329544723,
+    "std_call_s": 7.511793365597323e-05
+  },
+  {
+    "key": "sn2-matched-pet",
+    "family": "PET",
+    "n_copies": 8,
+    "n_atoms": 48,
+    "mean_call_s": 0.008980391547083855,
+    "std_call_s": 9.575381043982722e-05
+  },
+  {
+    "key": "sn2-matched-pet",
+    "family": "PET",
+    "n_copies": 16,
+    "n_atoms": 96,
+    "mean_call_s": 0.00898061878979206,
+    "std_call_s": 6.532598771860362e-05
+  },
+  {
+    "key": "sn2-matched-pet",
+    "family": "PET",
+    "n_copies": 32,
+    "n_atoms": 192,
+    "mean_call_s": 0.00897071254439652,
+    "std_call_s": 7.659029908474312e-05
+  },
+  {
+    "key": "sn2-matched-lorem",
+    "family": "LOREM",
+    "n_copies": 1,
+    "n_atoms": 6,
+    "mean_call_s": 0.021066788118332624,
+    "std_call_s": 5.766872015006605e-05
+  },
+  {
+    "key": "sn2-matched-lorem",
+    "family": "LOREM",
+    "n_copies": 2,
+    "n_atoms": 12,
+    "mean_call_s": 0.01948609994724393,
+    "std_call_s": 0.0002560952757248918
+  },
+  {
+    "key": "sn2-matched-lorem",
+    "family": "LOREM",
+    "n_copies": 4,
+    "n_atoms": 24,
+    "mean_call_s": 0.02178089926019311,
+    "std_call_s": 0.00017505646865870154
+  },
+  {
+    "key": "sn2-matched-lorem",
+    "family": "LOREM",
+    "n_copies": 8,
+    "n_atoms": 48,
+    "mean_call_s": 0.021951799979433417,
+    "std_call_s": 0.00017598840871037972
+  },
+  {
+    "key": "sn2-matched-lorem",
+    "family": "LOREM",
+    "n_copies": 16,
+    "n_atoms": 96,
+    "mean_call_s": 0.019683067686855793,
+    "std_call_s": 6.88931705103777e-05
+  },
+  {
+    "key": "sn2-matched-lorem",
+    "family": "LOREM",
+    "n_copies": 32,
+    "n_atoms": 192,
+    "mean_call_s": 0.01991593569982797,
+    "std_call_s": 7.10404114435559e-05
+  }
+]

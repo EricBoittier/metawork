@@ -1,0 +1,136 @@
+[
+  {
+    "key": "sn2-matched-bpnn",
+    "family": "BPNN",
+    "dipole": false,
+    "outputs": [
+      "feature",
+      "features",
+      "mtt::aux::energy_last_layer_features",
+      "energy"
+    ],
+    "length_unit": "angstrom",
+    "interaction_range": 5.0
+  },
+  {
+    "key": "sn2",
+    "family": "BPNN",
+    "dipole": false,
+    "outputs": [
+      "feature",
+      "features",
+      "mtt::aux::energy_last_layer_features",
+      "energy",
+      "mtt::aux::dipole_last_layer_features",
+      "mtt::dipole"
+    ],
+    "length_unit": "angstrom",
+    "interaction_range": 5.0
+  },
+  {
+    "key": "sn2-matched-bpnn-dipole",
+    "family": "BPNN",
+    "dipole": true,
+    "outputs": [
+      "feature",
+      "features",
+      "mtt::aux::energy_last_layer_features",
+      "energy",
+      "mtt::aux::dipole_last_layer_features",
+      "mtt::dipole"
+    ],
+    "length_unit": "angstrom",
+    "interaction_range": 5.0
+  },
+  {
+    "key": "sn2-matched-bpnn-dipole-v2",
+    "family": "BPNN",
+    "dipole": true,
+    "outputs": [
+      "feature",
+      "features",
+      "mtt::aux::energy_last_layer_features",
+      "energy",
+      "mtt::aux::dipole_last_layer_features",
+      "mtt::dipole"
+    ],
+    "length_unit": "angstrom",
+    "interaction_range": 5.0
+  },
+  {
+    "key": "sn2-matched-bpnn-dipole-v3",
+    "family": "BPNN",
+    "dipole": true,
+    "outputs": [
+      "feature",
+      "features",
+      "mtt::aux::energy_last_layer_features",
+      "energy",
+      "mtt::aux::dipole_last_layer_features",
+      "mtt::dipole"
+    ],
+    "length_unit": "angstrom",
+    "interaction_range": 5.0
+  },
+  {
+    "key": "sn2-matched-lorem",
+    "family": "LOREM",
+    "dipole": false,
+    "outputs": [
+      "energy"
+    ],
+    "length_unit": "angstrom",
+    "interaction_range": Infinity
+  },
+  {
+    "key": "sn2-matched-lorem-dipole",
+    "family": "LOREM",
+    "dipole": true,
+    "outputs": [
+      "energy",
+      "mtt::dipole"
+    ],
+    "length_unit": "angstrom",
+    "interaction_range": Infinity
+  },
+  {
+    "key": "sn2-matched-pet",
+    "family": "PET",
+    "dipole": false,
+    "outputs": [
+      "feature",
+      "features",
+      "mtt::aux::cutoff_stats",
+      "energy",
+      "mtt::aux::energy_last_layer_features"
+    ],
+    "length_unit": "angstrom",
+    "interaction_range": 5.0
+  },
+  {
+    "key": "sn2-matched-pet-dipole",
+    "family": "PET",
+    "dipole": true,
+    "outputs": [
+      "feature",
+      "features",
+      "mtt::aux::cutoff_stats",
+      "energy",
+      "mtt::aux::energy_last_layer_features",
+      "mtt::dipole",
+      "mtt::aux::dipole_last_layer_features"
+    ],
+    "length_unit": "angstrom",
+    "interaction_range": 5.0
+  },
+  {
+    "key": "lorem-eqmp-smoketest",
+    "family": "LOREM",
+    "dipole": false,
+    "outputs": [
+      "energy"
+    ],
+    "length_unit": "angstrom",
+    "interaction_range": Infinity
+  }
+]

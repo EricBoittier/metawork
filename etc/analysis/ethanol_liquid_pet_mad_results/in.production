@@ -1,0 +1,35 @@
+units metal
+atom_style atomic
+boundary p p p
+
+read_data ethanol_liquid.data
+
+pair_style metatomic pet-mad.pt device cuda
+pair_coeff * * 1 6 8
+
+neighbor 2.0 bin
+neigh_modify every 1 delay 0 check yes one 20000 page 2000000
+
+# relieve the close contacts introduced by isotropically scaling the
+# loosely-packed box down to the true liquid density
+minimize 1.0e-4 1.0e-6 200 1000
+
+reset_timestep 0
+timestep 0.0005
+velocity all create 300.0 12345 mom yes rot yes dist gaussian
+fix 1 all nvt temp 300.0 300.0 0.05
+
+thermo 1000
+thermo_style custom step time temp pe etotal press
+
+fix 2 all print 200 "$(time) $(pe) $(temp) $(press)" file ethanol_pet_production_energy.dat screen no title "time[ps] pe[eV] temp[K] press[bar]"
+
+dump 1 all custom 5000 ethanol_pet_production.lammpstrj id type x y z
+dump_modify 1 sort id
+
+restart 40000 ethanol_pet_production.restart1 ethanol_pet_production.restart2
+
+# 200 ps production
+run 400000
+
+write_data ethanol_pet_production_final.data

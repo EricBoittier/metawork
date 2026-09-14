@@ -1,0 +1,27 @@
+units metal
+atom_style atomic
+boundary p p p
+
+read_data ethanol_liquid.data
+
+pair_style metatomic pet-mad.pt device cuda
+pair_coeff * * 1 6 8
+
+neighbor 2.0 bin
+neigh_modify every 1 delay 0 check yes one 20000 page 2000000
+
+# 1) relieve the close contacts introduced by isotropically scaling the
+#    loosely-packed box down to the true liquid density
+minimize 1.0e-4 1.0e-6 200 1000
+
+# 2) short NVT equilibration at 300 K to check stability and measure
+#    real per-step wall time for this system size / model
+reset_timestep 0
+timestep 0.0005
+velocity all create 300.0 12345 mom yes rot yes dist gaussian
+fix 1 all nvt temp 300.0 300.0 0.05
+
+thermo 20
+thermo_style custom step time temp pe etotal press
+
+run 2000

@@ -1,0 +1,65 @@
+{
+  "box_sizes_angstrom": [
+    20.0,
+    30.0,
+    50.0,
+    75.0,
+    100.0,
+    150.0
+  ],
+  "energy_tolerance_eV": 0.001,
+  "results": {
+    "sn2-matched-lorem": [
+      {
+        "box_size_angstrom": 20.0,
+        "max_abs_delta_U_meV": 974.6627380371091
+      },
+      {
+        "box_size_angstrom": 30.0,
+        "max_abs_delta_U_meV": 693.1705380371103
+      },
+      {
+        "box_size_angstrom": 50.0,
+        "max_abs_delta_U_meV": 459.84263803710945
+      },
+      {
+        "box_size_angstrom": 75.0,
+        "max_abs_delta_U_meV": 343.39713803711015
+      },
+      {
+        "box_size_angstrom": 100.0,
+        "max_abs_delta_U_meV": 285.594938037109
+      },
+      {
+        "box_size_angstrom": 150.0,
+        "max_abs_delta_U_meV": 228.1693936523439
+      }
+    ],
+    "sn2-matched-pet": [
+      {
+        "box_size_angstrom": 20.0,
+        "max_abs_delta_U_meV": 0.007607226562456049
+      },
+      {
+        "box_size_angstrom": 30.0,
+        "max_abs_delta_U_meV": 0.007607226562456049
+      },
+      {
+        "box_size_angstrom": 50.0,
+        "max_abs_delta_U_meV": 0.007607226562456049
+      },
+      {
+        "box_size_angstrom": 75.0,
+        "max_abs_delta_U_meV": 0.007607226562456049
+      },
+      {
+        "box_size_angstrom": 100.0,
+        "max_abs_delta_U_meV": 0.007607226562456049
+      },
+      {
+        "box_size_angstrom": 150.0,
+        "max_abs_delta_U_meV": 0.007607226562456049
+      }
+    ]
+  }
+}

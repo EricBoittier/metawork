@@ -1,0 +1,26 @@
+[
+  {
+    "n_atoms": 6,
+    "with_cell": false,
+    "mean_call_s": 0.007722321664914489,
+    "std_call_s": 0.00010362478867377267
+  },
+  {
+    "n_atoms": 6,
+    "with_cell": true,
+    "mean_call_s": 0.00782008410897106,
+    "std_call_s": 0.00023646394043752466
+  },
+  {
+    "n_atoms": 192,
+    "with_cell": false,
+    "mean_call_s": 0.007846011430956423,
+    "std_call_s": 5.9858303780361165e-05
+  },
+  {
+    "n_atoms": 192,
+    "with_cell": true,
+    "mean_call_s": 0.00913069921080023,
+    "std_call_s": 0.00029996606948648393
+  }
+]

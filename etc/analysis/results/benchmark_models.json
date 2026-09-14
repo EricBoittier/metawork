@@ -1,0 +1,102 @@
+[
+  {
+    "key": "sn2-matched-bpnn",
+    "title": "SN2 -- matched BPNN",
+    "family": "BPNN",
+    "dipole": false,
+    "load_time_s": 0.27354335505515337,
+    "mean_call_ms": 9.519103076308966,
+    "std_call_ms": 0.6456988162203569,
+    "n_timed": 20
+  },
+  {
+    "key": "sn2",
+    "title": "SN2 -- original (unmatched) model",
+    "family": "BPNN",
+    "dipole": false,
+    "load_time_s": 0.6066732117906213,
+    "mean_call_ms": 10.609235800802708,
+    "std_call_ms": 0.5454189486662562,
+    "n_timed": 20
+  },
+  {
+    "key": "sn2-matched-bpnn-dipole",
+    "title": "SN2 -- matched BPNN + dipole",
+    "family": "BPNN",
+    "dipole": true,
+    "load_time_s": 0.20651167444884777,
+    "mean_call_ms": 8.14029024913907,
+    "std_call_ms": 0.32565261604366447,
+    "n_timed": 20
+  },
+  {
+    "key": "sn2-matched-bpnn-dipole-v2",
+    "title": "SN2 -- matched BPNN + dipole (v2)",
+    "family": "BPNN",
+    "dipole": true,
+    "load_time_s": 0.2073660809546709,
+    "mean_call_ms": 8.288653148338199,
+    "std_call_ms": 0.33875541977913826,
+    "n_timed": 20
+  },
+  {
+    "key": "sn2-matched-bpnn-dipole-v3",
+    "title": "SN2 -- matched BPNN + dipole (v3)",
+    "family": "BPNN",
+    "dipole": true,
+    "load_time_s": 0.18511755298823118,
+    "mean_call_ms": 8.37690532207489,
+    "std_call_ms": 0.3730841539464418,
+    "n_timed": 20
+  },
+  {
+    "key": "sn2-matched-lorem",
+    "title": "SN2 -- matched LOREM",
+    "family": "LOREM",
+    "dipole": false,
+    "load_time_s": 0.31107891257852316,
+    "mean_call_ms": 19.119020830839872,
+    "std_call_ms": 0.3423024802665024,
+    "n_timed": 20
+  },
+  {
+    "key": "sn2-matched-lorem-dipole",
+    "title": "SN2 -- matched LOREM + dipole",
+    "family": "LOREM",
+    "dipole": true,
+    "load_time_s": 0.14610383659601212,
+    "mean_call_ms": 19.213853823021054,
+    "std_call_ms": 0.3420402546221694,
+    "n_timed": 20
+  },
+  {
+    "key": "sn2-matched-pet",
+    "title": "SN2 -- matched PET",
+    "family": "PET",
+    "dipole": false,
+    "load_time_s": 0.12848750781267881,
+    "mean_call_ms": 7.85713754594326,
+    "std_call_ms": 0.3173450332006987,
+    "n_timed": 20
+  },
+  {
+    "key": "sn2-matched-pet-dipole",
+    "title": "SN2 -- matched PET + dipole",
+    "family": "PET",
+    "dipole": true,
+    "load_time_s": 0.13375133462250233,
+    "mean_call_ms": 7.991022942587733,
+    "std_call_ms": 0.3662721604410412,
+    "n_timed": 20
+  },
+  {
+    "key": "lorem-eqmp-smoketest",
+    "title": "LOREM EQMP smoketest",
+    "family": "LOREM",
+    "dipole": false,
+    "load_time_s": 0.16430568601936102,
+    "mean_call_ms": 32.86494496278465,
+    "std_call_ms": 0.39250939510046745,
+    "n_timed": 20
+  }
+]

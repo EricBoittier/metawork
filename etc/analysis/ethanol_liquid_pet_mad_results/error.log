@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "/home/boittier/metawork/metatrain/src/metatrain/__main__.py", line 104, in main
+    export_model(**args.__dict__)
+  File "/home/boittier/metawork/metatrain/src/metatrain/cli/export.py", line 228, in export_model
+    model = load_model(path=path, hf_token=hf_token)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/boittier/metawork/metatrain/src/metatrain/utils/io.py", line 187, in load_model
+    return model_from_checkpoint(checkpoint, context="export")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/boittier/metawork/metatrain/src/metatrain/utils/io.py", line 255, in model_from_checkpoint
+    return architecture.__model__.load_checkpoint(checkpoint, context=context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/boittier/metawork/metatrain/src/metatrain/llpr/model.py", line 1193, in load_checkpoint
+    model = model_from_checkpoint(checkpoint["wrapped_model_checkpoint"], context)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/boittier/metawork/metatrain/src/metatrain/utils/io.py", line 255, in model_from_checkpoint
+    return architecture.__model__.load_checkpoint(checkpoint, context=context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/boittier/metawork/metatrain/src/metatrain/pet/model.py", line 1017, in load_checkpoint
+    model.to(dtype).load_state_dict(model_state_dict)
+  File "/home/boittier/metawork/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 2638, in load_state_dict
+    raise RuntimeError(
+RuntimeError: Error(s) in loading state_dict for PET:
+	size mismatch for backend.node_last_layers.non_conservative_forces.0.non_conservative_forces___0.weight: copying a param with shape torch.Size([3, 128]) from checkpoint, the shape in current model is torch.Size([1, 128]).
+	size mismatch for backend.node_last_layers.non_conservative_forces.0.non_conservative_forces___0.bias: copying a param with shape torch.Size([3]) from checkpoint, the shape in current model is torch.Size([1]).
+	size mismatch for backend.edge_last_layers.non_conservative_forces.0.non_conservative_forces___0.weight: copying a param with shape torch.Size([3, 128]) from checkpoint, the shape in current model is torch.Size([1, 128]).
+	size mismatch for backend.edge_last_layers.non_conservative_forces.0.non_conservative_forces___0.bias: copying a param with shape torch.Size([3]) from checkpoint, the shape in current model is torch.Size([1]).
