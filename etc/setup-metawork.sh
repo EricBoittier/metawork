@@ -245,7 +245,15 @@ done
 if [ -f "$BASE_DIR/.gitmodules" ]; then
   log "Initializing remaining git submodules"
   git -C "$BASE_DIR" submodule sync
-  git -C "$BASE_DIR" submodule update --init
+  # `|| true`: this fails (and would otherwise abort the whole script here,
+  # under set -e) whenever featomic carries its usual uncommitted runtime
+  # patches from a previous run (patch_featomic_*, above) -- by design we
+  # never commit those since featomic is cloned straight from upstream, so
+  # every run after the first leaves it "dirty" for this exact check. Other
+  # submodules still update normally; checkout_intended_branch() right below
+  # already tolerates this same failure case per-repo (see its "could not
+  # checkout ... -- leaving as-is" branch).
+  git -C "$BASE_DIR" submodule update --init || true
   for repo in "${!REPO_BRANCH[@]}"; do
     if [ -e "$BASE_DIR/$repo/.git" ]; then
       checkout_intended_branch "$repo" "${REPO_BRANCH[$repo]}"
@@ -543,13 +551,20 @@ if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && ! comm
 fi
 
 # ---- 5. install the ecosystem packages, in dependency order ----------------
-for entry in "${INSTALL_REPOS[@]}"; do
-  IFS=':' read -r repo extras _org <<< "$entry"
-  if [ "$repo" = "chemiscope" ] && [ "$chemiscope_buildable" = 0 ]; then
-    log "Skipping chemiscope (no usable npm/node -- see toolchain check above)"
-    continue
-  fi
-  target="$BASE_DIR/$repo"
+# Each repo's install is independent of the others actually *succeeding*
+# (only its presence on disk, handled by ensure_repo() above, matters --
+# e.g. metatrain[soap-bpnn,pet] does not depend on featomic at all, even
+# though featomic is installed as its own earlier entry here). So a build
+# failure in one repo (tracked in INSTALL_FAILED) is logged and skipped
+# rather than aborting the whole script and leaving every later repo
+# uninstalled -- that would otherwise turn one broken package into a
+# reason the *entire* ecosystem fails to install on a fresh node.
+INSTALL_FAILED=()
+INSTALL_OK=()
+
+install_one_repo() {
+  local repo="$1" extras="$2"
+  local target="$BASE_DIR/$repo"
   [ -n "$extras" ] && target="$target[$extras]"
 
   if [ "$repo" = "metatensor" ]; then
@@ -569,7 +584,7 @@ for entry in "${INSTALL_REPOS[@]}"; do
     # starts, so both of its git-dirty checks see the same (dirty) state.
     log "Pre-building metatensor-core (avoids a git-dirty race with metatensor-torch's parallel build)"
     write_local_pkgs_constraint "$VPY"
-    uv_pip_keep_torch "$VPY" "$BASE_DIR/metatensor/python/metatensor_core"
+    uv_pip_keep_torch "$VPY" "$BASE_DIR/metatensor/python/metatensor_core" || return 1
   fi
 
   if [ "$repo" = "featomic" ]; then
@@ -586,7 +601,7 @@ for entry in "${INSTALL_REPOS[@]}"; do
     # place before featomic-torch's CMake configure step reads it.
     log "Pre-building featomic (avoids a stale featomic-config.cmake race with featomic-torch's parallel build)"
     write_local_pkgs_constraint "$VPY"
-    uv_pip_keep_torch "$VPY" "$BASE_DIR/featomic/python/featomic"
+    uv_pip_keep_torch "$VPY" "$BASE_DIR/featomic/python/featomic" || return 1
   fi
 
   log "Installing $repo${extras:+ [$extras]}"
@@ -595,7 +610,29 @@ for entry in "${INSTALL_REPOS[@]}"; do
   # (e.g. metatomic) -- see write_local_pkgs_constraint in _torch_cuda.sh.
   write_local_pkgs_constraint "$VPY"
   uv_pip_keep_torch "$VPY" -e "$target"
+}
+
+for entry in "${INSTALL_REPOS[@]}"; do
+  IFS=':' read -r repo extras _org <<< "$entry"
+  if [ "$repo" = "chemiscope" ] && [ "$chemiscope_buildable" = 0 ]; then
+    log "Skipping chemiscope (no usable npm/node -- see toolchain check above)"
+    continue
+  fi
+  if install_one_repo "$repo" "$extras"; then
+    INSTALL_OK+=("$repo${extras:+ [$extras]}")
+  else
+    INSTALL_FAILED+=("$repo${extras:+ [$extras]}")
+    echo "  (continuing -- $repo failed to install, see error above; other repos do not depend on it succeeding unless they list it as a real dependency)" >&2
+  fi
 done
+
+log "Ecosystem install summary"
+if [ "${#INSTALL_OK[@]}" -gt 0 ]; then
+  printf '  OK:     %s\n' "${INSTALL_OK[@]}"
+fi
+if [ "${#INSTALL_FAILED[@]}" -gt 0 ]; then
+  printf '  FAILED: %s\n' "${INSTALL_FAILED[@]}" >&2
+fi
 
 # ---- 5b. upet, in its own separate venv -------------------------------------
 # upet (https://github.com/lab-cosmo/upet, universal PET-MAD/PET-OAM
@@ -695,3 +732,12 @@ echo "upet lives in its own venv (separate pinned metatrain, does not touch"
 echo "the editable one above):"
 echo "  Activate with:  source $UPET_VENV/bin/activate"
 echo "  Or run one-off: uv run --python $UPET_VPY <command>"
+
+if [ "${#INSTALL_FAILED[@]}" -gt 0 ]; then
+  echo
+  echo "NOTE: ${#INSTALL_FAILED[@]} repo(s) failed to install (see 'Ecosystem" >&2
+  echo "install summary' above for which, and the build output further up for" >&2
+  echo "why); everything else still installed. Exiting non-zero so this is" >&2
+  echo "visible in CI/automation even though the run otherwise completed." >&2
+  exit 1
+fi
