@@ -1,0 +1,16 @@
+{
+  "model_path": "/home/boittier/data/sn2-matched-lorem-v4/model.pt",
+  "box_size_angstrom": 50.0,
+  "results": {
+    "charged": {
+      "ipi_vs_ase_meV": 409.6364676391602,
+      "lammps_vs_ase_meV": 409.6364974975586,
+      "ipi_vs_lammps_meV": 0.010444702148504348
+    },
+    "neutral": {
+      "ipi_vs_ase_meV": 341.9580747314459,
+      "lammps_vs_ase_meV": 341.9666290283203,
+      "ipi_vs_lammps_meV": 0.010496105957713553
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "model_path": "/home/boittier/data/sn2-matched-lorem-v4/model.pt",
+  "box_sizes_angstrom": [
+    20.0,
+    30.0,
+    50.0,
+    75.0,
+    100.0,
+    150.0
+  ],
+  "results": {
+    "charged": [
+      {
+        "box_size_angstrom": 20.0,
+        "max_abs_delta_U_meV": 846.9657853271482
+      },
+      {
+        "box_size_angstrom": 30.0,
+        "max_abs_delta_U_meV": 606.394785327149
+      },
+      {
+        "box_size_angstrom": 50.0,
+        "max_abs_delta_U_meV": 409.6374213134766
+      },
+      {
+        "box_size_angstrom": 75.0,
+        "max_abs_delta_U_meV": 310.98272131347574
+      },
+      {
+        "box_size_angstrom": 100.0,
+        "max_abs_delta_U_meV": 261.6948810424802
+      },
+      {
+        "box_size_angstrom": 150.0,
+        "max_abs_delta_U_meV": 212.57118104248107
+      }
+    ],
+    "neutral": [
+      {
+        "box_size_angstrom": 20.0,
+        "max_abs_delta_U_meV": 687.8223007080085
+      },
+      {
+        "box_size_angstrom": 30.0,
+        "max_abs_delta_U_meV": 494.4486907226562
+      },
+      {
+        "box_size_angstrom": 50.0,
+        "max_abs_delta_U_meV": 341.9571210571295
+      },
+      {
+        "box_size_angstrom": 75.0,
+        "max_abs_delta_U_meV": 266.3603168823237
+      },
+      {
+        "box_size_angstrom": 100.0,
+        "max_abs_delta_U_meV": 228.68151688232354
+      },
+      {
+        "box_size_angstrom": 150.0,
+        "max_abs_delta_U_meV": 191.1153810791024
+      }
+    ]
+  }
+}

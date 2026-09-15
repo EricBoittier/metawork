@@ -77,12 +77,17 @@ def run_ase(
 
 
 def run_ipi(
-    model_path: str, atoms, ensemble: Literal["nve", "nvt"] = "nve", cell: float = DEFAULT_CELL
+    model_path: str, atoms, ensemble: Literal["nve", "nvt"] = "nve", cell: float = DEFAULT_CELL,
+    template_xyz: str = None,
 ) -> Tuple[List[float], List[float]]:
     """`cell` is the edge length (Å) of the cubic vacuum box i-PI runs in --
     i-PI always treats its cell as periodic, unlike ASE's `run_ase` above, so
     this is exposed as a parameter to study how engine agreement depends on
-    box size for models with a genuine long-range term (see notebook 17)."""
+    box size for models with a genuine long-range term (see notebook 17).
+    `template_xyz` must have the same chemical symbols/ordering as `atoms`;
+    it defaults to `TEMPLATE_XYZ` (the 6-atom SN2 complex) but must be
+    overridden for any other structure, such as notebook 20's 5-atom neutral
+    CH3F fragment."""
     import ase.units
     from ipi.scripting import (
         InteractiveSimulation,
@@ -129,7 +134,7 @@ def run_ipi(
             name="metatomic",
             mode="direct",
             pes="metatomic",
-            parameters=f"{{template:{TEMPLATE_XYZ},model:{model_path},device:cpu}}",
+            parameters=f"{{template:{template_xyz or TEMPLATE_XYZ},model:{model_path},device:cpu}}",
         ),
         motion=motion,
         temperature=temperature,
