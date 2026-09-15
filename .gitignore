@@ -38,6 +38,11 @@
 /extensions/
 /error.log
 
+# per-run output dirs (manifest.yaml, job.sbatch, slurm logs) created by
+# etc/hpc_run.py -- reproducibility info lives in each run's manifest.yaml,
+# not in this repo; keep/archive the runs you care about elsewhere
+/runs/
+
 
 __pycache__/
 *.pyc

@@ -1,0 +1,17 @@
+# Example metatrain training job -- see etc/hpc_run.py for the full spec
+# format and etc/hpc-jobs/README.md for how to use this.
+name: soap-bpnn-smoke-test
+type: train
+cluster: kuma
+qos: debug          # 1hr / up to 2 GPUs -- fine for a smoke test; use normal
+                    # (up to 3 days) or long (up to 7 days) for a real run
+nodes: 1
+gpus: 1
+cpus_per_task: 8
+time: "01:00:00"
+venv: shared
+workdir: etc/lorem-parity
+inputs:
+  - options.yaml
+command: |
+  mtt train options.yaml -o model.pt

@@ -1,0 +1,20 @@
+# Example i-pi MD job driving a metatomic model -- see etc/hpc_run.py for the
+# full spec format and etc/hpc-jobs/README.md for how to use this.
+name: i-pi-nve-test
+type: md
+cluster: kuma
+qos: normal         # up to 3 days -- most MD production runs belong here,
+                    # not debug (1hr) or build (0 gpus)
+nodes: 1
+gpus: 1
+cpus_per_task: 8
+time: "1-00:00:00"
+venv: shared
+workdir: etc/hpc-jobs/examples
+inputs:
+  - input.xml   # not included here -- point this at your actual i-pi input
+command: |
+  i-pi input.xml &
+  sleep 5
+  i-pi-driver -a localhost -p 31415 -m metatomic -o model.pt &
+  wait
