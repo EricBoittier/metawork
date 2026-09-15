@@ -101,6 +101,23 @@ pin_torch() {
 # of what the running driver actually supports).
 ensure_torch_for_driver() {
   local py="$1"
+
+  # Building on a node with no local GPU (e.g. an HPC login node) for a
+  # driver elsewhere (e.g. a GPU compute node) -- there's nothing here for
+  # nvidia-smi/torch.cuda.is_available() to probe, so the channel walk below
+  # can't run. Set TORCH_FORCE_INDEX_URL to skip detection and use that
+  # channel directly, unverified (empty string = PyPI default wheel).
+  if [ -n "${TORCH_FORCE_INDEX_URL+x}" ]; then
+    echo "  TORCH_FORCE_INDEX_URL set -- installing torch from '${TORCH_FORCE_INDEX_URL:-PyPI default}' without driver detection"
+    if ! install_torch_from_index "$py" "$TORCH_FORCE_INDEX_URL"; then
+      echo "  ERROR: forced torch install from '${TORCH_FORCE_INDEX_URL:-PyPI default}' failed -- not pinning, leaving whatever torch was already in the venv untouched" >&2
+      return 1
+    fi
+    TORCH_INDEX_URL="$TORCH_FORCE_INDEX_URL"
+    pin_torch "$py"
+    return 0
+  fi
+
   if ! command -v nvidia-smi >/dev/null 2>&1 || ! nvidia-smi >/dev/null 2>&1; then
     echo "  No working NVIDIA driver -- installing CPU torch"
     uv pip install --python "$py" --reinstall-package torch \
