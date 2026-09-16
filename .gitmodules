@@ -46,3 +46,6 @@
 	path = openmm_meta
 	url = https://github.com/EricBoittier/openmm_meta.git
 	branch = master
+[submodule "openmm-metatomic"]
+	path = openmm-metatomic
+	url = https://github.com/EricBoittier/openmm-metatomic.git
