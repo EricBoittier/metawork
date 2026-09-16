@@ -34,6 +34,10 @@ torch_after=$("$VPY" -c "import torch; print(torch.__version__)")
 
 if [ "$torch_before" != "$torch_after" ]; then
   log "torch changed $torch_before -> $torch_after; rebuilding CUDA extension packages"
+  if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+    log "Checking for a working CUDA toolkit (nvcc + compatible host compiler)"
+    ensure_working_cuda_toolchain || true
+  fi
   for spec in "metatensor:torch" "metatomic:torch" "featomic:torch"; do
     IFS=':' read -r repo extras <<< "$spec"
     [ -d "$BASE_DIR/$repo" ] || continue

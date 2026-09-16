@@ -91,7 +91,18 @@ pin_torch() {
   local py="$1"
   local dest="${TORCH_PIN_FILE:-${VENV_DIR:-.}/.torch-constraint.txt}"
   mkdir -p "$(dirname "$dest")"
-  "$py" -c "import torch; print('torch==' + torch.__version__)" > "$dest"
+  # Pin the *public* version only (e.g. "2.13.0"), not the full local
+  # version PyPI's own CUDA wheels carry (e.g. "2.13.0+cu130"). uv/pip
+  # constraints are resolved against index metadata, and a local version
+  # segment never appears there -- constraining to the exact local version
+  # makes every later `-c`/`-b` install that needs to *resolve* torch (any
+  # editable/local package with a plain `torch` dependency) fail with "there
+  # is no version of torch==X+cuYYY", even though that exact wheel is
+  # already installed. Per PEP 440, a bare "torch==2.13.0" constraint still
+  # matches the installed "2.13.0+cu130" (a public-version-only specifier
+  # matches any local version of it), so this keeps the CUDA build pinned
+  # without breaking resolution.
+  "$py" -c "import torch; print('torch==' + torch.__version__.split('+')[0])" > "$dest"
   echo "  pinned $("$py" -c 'import torch; print(torch.__version__)') -> $dest"
 }
 
@@ -170,9 +181,21 @@ ensure_torch_for_driver() {
 # recent-enough packaging already present in the venv -- `uv venv` doesn't
 # seed those by default. Call this once per venv before the first
 # uv_pip_keep_torch install.
+#
+# setuptools_scm is here for the same reason, one level more subtle:
+# --no-build-isolation means uv never installs a package's own
+# `build-system.requires` at all, it just reuses whatever's already in the
+# venv. A package that's declared `dynamic = ["version"]` via
+# `[tool.setuptools_scm]` (e.g. metatrain) only lists setuptools_scm in
+# build-system.requires, never in its runtime install_requires -- so
+# without it pre-seeded here, its build silently falls back to a
+# 0.0.0/no-op version instead of failing loudly, *and* skips writing the
+# `_version.py` file the package's own `__init__.py` imports, breaking the
+# import outright (`ModuleNotFoundError: No module named
+# 'metatrain._version'`) rather than at build time where it'd be obvious.
 ensure_build_seed_packages() {
   local py="$1"
-  uv pip install --python "$py" -U "packaging>=24.2" setuptools wheel
+  uv pip install --python "$py" -U "packaging>=24.2" setuptools wheel "setuptools_scm>=8"
 }
 
 # When one editable-installed local package (e.g. metatomic-torch) depends
@@ -279,4 +302,144 @@ uv_pip_keep_torch() {
   # cached wheel here surfaces as a confusing version-resolution conflict
   # rather than an obviously-stale-cache symptom.
   uv pip install --python "$py" --no-build-isolation --refresh "${args[@]}" "$@"
+}
+
+# nvcc enforces a maximum supported host-compiler (gcc/g++) version tied to
+# the CUDA toolkit release (e.g. CUDA 12.4 rejects gcc >13). Distros move
+# their default gcc forward far faster than CUDA toolkits add support for
+# it -- this machine ships gcc 15/16 by default -- so "nvcc is on PATH" is
+# not enough: nvcc can be found and still fail every real CUDA build with
+# "error: unsupported GNU version". Detect that with an actual trivial-
+# kernel compile, and if it fails this way, get a compatible g++ from
+# conda (conda-forge ships every gcc major version, unlike most distro
+# repos, which drop old gcc quickly) and point CUDAHOSTCXX -- CMake's own
+# documented env var for CMAKE_CUDA_HOST_COMPILER -- at it. Cheaper and
+# more portable than installing a second system-wide gcc via the package
+# manager, and needs no sudo.
+#
+# Only matters for the main ecosystem venv: metatensor/metatomic/featomic
+# compile real CUDA kernels from source here, while `upet` (a separate
+# venv) only ever pulls prebuilt metatensor-torch/metatomic-torch wheels
+# from PyPI, so it never invokes nvcc at all.
+# Compiles a trivial .cu file with nvcc, optionally via -ccbin (mirroring
+# how CMake's CUDAHOSTCXX-initialized CMAKE_CUDA_HOST_COMPILER actually
+# invokes nvcc -- nvcc itself does not read the CUDAHOSTCXX env var, so a
+# bare `nvcc` probe would silently ignore it and always test the default
+# host compiler).
+_probe_nvcc_compile() {
+  local ccbin="${1:-}" test_dir out status
+  test_dir="$(mktemp -d)"
+  cat > "$test_dir/probe.cu" <<'EOF'
+__global__ void k() {}
+int main() { k<<<1,1>>>(); return 0; }
+EOF
+  if [ -n "$ccbin" ]; then
+    out="$(nvcc -ccbin "$ccbin" -o "$test_dir/probe" "$test_dir/probe.cu" 2>&1)"
+  else
+    out="$(nvcc -o "$test_dir/probe" "$test_dir/probe.cu" 2>&1)"
+  fi
+  status=$?
+  rm -rf "$test_dir"
+  printf '%s' "$out"
+  return "$status"
+}
+
+ensure_cuda_host_compiler() {
+  command -v nvcc >/dev/null 2>&1 || return 0
+  [ -n "${CUDAHOSTCXX:-}" ] && return 0
+
+  local out status
+  out="$(_probe_nvcc_compile)"
+  status=$?
+  [ "$status" = 0 ] && return 0
+
+  local max_gcc
+  max_gcc="$(printf '%s' "$out" | grep -oE 'gcc versions later than [0-9]+' | grep -oE '[0-9]+' | head -1)"
+  if [ -z "$max_gcc" ]; then
+    echo "  WARNING: 'nvcc' ($(command -v nvcc)) failed a trivial compile, and it's not the known gcc-version-ceiling issue -- CUDA kernel builds below may fail:" >&2
+    printf '%s\n' "$out" | tail -5 | sed 's/^/    /' >&2
+    return 1
+  fi
+
+  echo "  nvcc ($(command -v nvcc)) rejects the default host compiler -- needs gcc <=$max_gcc"
+
+  local conda_bin
+  conda_bin="$(command -v conda || true)"
+  [ -z "$conda_bin" ] && [ -x /usr/bin/conda ] && conda_bin=/usr/bin/conda
+  if [ -z "$conda_bin" ]; then
+    echo "  ERROR: no gcc<=$max_gcc found on PATH and no 'conda' available to fetch one." >&2
+    echo "  Install an older gcc yourself and export CUDAHOSTCXX to its g++, or switch to a CUDA toolkit that supports the installed gcc." >&2
+    return 1
+  fi
+
+  # Locate the compiler via `conda run` rather than guessing
+  # "<base>/envs/<name>/bin/..." -- conda's actual env storage location
+  # (envs_dirs, e.g. ~/.conda/envs) does not have to match its base prefix
+  # (e.g. a system-wide /usr base with per-user envs elsewhere).
+  local env_name="cuda-gcc${max_gcc}"
+  local env_gxx
+  env_gxx="$("$conda_bin" run -n "$env_name" command -v x86_64-conda-linux-gnu-g++ 2>/dev/null)"
+  if [ -z "$env_gxx" ]; then
+    echo "  Creating conda env '$env_name' with gcc $max_gcc as a CUDA-compatible host compiler (one-time, ~1min)..."
+    "$conda_bin" create -y -n "$env_name" -c conda-forge "gxx_linux-64=$max_gcc" "gcc_linux-64=$max_gcc" >/dev/null
+    env_gxx="$("$conda_bin" run -n "$env_name" command -v x86_64-conda-linux-gnu-g++ 2>/dev/null)"
+  fi
+  if [ -z "$env_gxx" ] || [ ! -x "$env_gxx" ]; then
+    echo "  ERROR: failed to create/find a conda gcc<=$max_gcc environment ('$env_name')." >&2
+    return 1
+  fi
+
+  export CUDAHOSTCXX="$env_gxx"
+  echo "  CUDAHOSTCXX=$CUDAHOSTCXX"
+
+  out="$(_probe_nvcc_compile "$CUDAHOSTCXX")"
+  status=$?
+  if [ "$status" != 0 ]; then
+    echo "  ERROR: still fails to compile even with CUDAHOSTCXX=$CUDAHOSTCXX:" >&2
+    printf '%s\n' "$out" | tail -5 | sed 's/^/    /' >&2
+    unset CUDAHOSTCXX
+    return 1
+  fi
+}
+
+# Two independent ways a CUDA toolkit can be unusable on one machine (both
+# hit while developing this script, on the same box):
+#   - nvcc missing from PATH entirely (CUDA installed but not wired into the
+#     environment, e.g. no environment-module loaded).
+#   - nvcc found, but unusable: some distro CUDA packages ship a toolkit
+#     missing static libs their own compiler-ID check hard-requires
+#     (surfaces as "cannot find -lcudart_static" from `ld`), and/or the
+#     system's default gcc/g++ is newer than that CUDA release supports
+#     (see ensure_cuda_host_compiler above). Distros move gcc forward far
+#     faster than CUDA toolkits add support for it, so this is common even
+#     on a machine where nvcc itself is perfectly findable.
+# Try every CUDA install we can find, actually test-compiling a trivial .cu
+# with each rather than trusting `command -v nvcc`, applying
+# ensure_cuda_host_compiler's conda fallback along the way. Leaves
+# CUDA_HOME/CUDACXX/PATH/LD_LIBRARY_PATH/CUDAHOSTCXX exported for whichever
+# install (if any) actually works; callers should treat a non-zero return
+# as "proceed anyway, CUDA kernel builds may fail" rather than a hard stop.
+ensure_working_cuda_toolchain() {
+  local cuda_dir cuda_dirs_tried=""
+  for cuda_dir in "${CUDA_HOME:-}" "$(dirname "$(dirname "$(command -v nvcc 2>/dev/null || true)")" 2>/dev/null)" /usr/local/cuda /usr/local/cuda-*; do
+    [ -n "$cuda_dir" ] && [ -x "$cuda_dir/bin/nvcc" ] || continue
+    case " $cuda_dirs_tried " in *" $cuda_dir "*) continue ;; esac
+    cuda_dirs_tried="$cuda_dirs_tried $cuda_dir"
+
+    export CUDA_HOME="$cuda_dir"
+    export CUDACXX="$cuda_dir/bin/nvcc"
+    export PATH="$cuda_dir/bin:$PATH"
+    export LD_LIBRARY_PATH="$cuda_dir/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    unset CUDAHOSTCXX
+
+    echo "  Trying $cuda_dir ($("$CUDACXX" --version | tail -1))"
+    if ensure_cuda_host_compiler; then
+      echo "  -> working"
+      return 0
+    fi
+    echo "  -> not usable, trying the next CUDA install if any"
+  done
+  echo "  WARNING: no working CUDA toolkit found -- CUDA kernel builds may fail." >&2
+  echo "  If one is installed somewhere nonstandard, export CUDA_HOME before running this script." >&2
+  return 1
 }

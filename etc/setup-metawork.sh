@@ -441,6 +441,149 @@ patches = [
         cwd=ROOT,
     )''',
     ),
+    (
+        # scripts/git-version-info.py's dirty-build path shells out to `git
+        # write-tree` against a scratch copy of the *index file*, read
+        # directly off disk as "ROOT/.git/index". That assumes ROOT/.git is
+        # always a real directory -- true for a plain checkout, but featomic
+        # is also cloned as a git submodule of the metawork superproject, in
+        # which case ROOT/.git is a one-line gitlink *file* ("gitdir: ...")
+        # and the real index lives under the superproject's
+        # .git/modules/featomic/ instead. Opening "ROOT/.git/index" then
+        # fails with NotADirectoryError, breaking every dirty (uncommitted-
+        # changes) build -- which this ecosystem's own version-pin patches
+        # above guarantee we always are. Ask git for the real git-dir
+        # instead of assuming the on-disk layout.
+        "scripts/git-version-info.py",
+        '''        with tempfile.NamedTemporaryFile("wb") as tmp:
+            with open(os.path.join(ROOT, ".git", "index"), "rb") as git_index:
+                shutil.copyfileobj(git_index, tmp)
+            tmp.close()''',
+        '''        git_dir = run_subprocess(["git", "rev-parse", "--git-dir"]).stdout.strip()
+        if not os.path.isabs(git_dir):
+            git_dir = os.path.join(ROOT, git_dir)
+
+        with tempfile.NamedTemporaryFile("wb") as tmp:
+            with open(os.path.join(git_dir, "index"), "rb") as git_index:
+                shutil.copyfileobj(git_index, tmp)
+            tmp.close()''',
+    ),
+    (
+        # Our local metatensor checkout (metatomic-core branch) renamed the
+        # "create a TensorMap from a raw, owned mts_tensormap_t* without
+        # checking it" escape hatch: the static `TensorMap::unsafe_from_ptr`
+        # factory (C++) / `TensorMap.unsafe_from_ptr` classmethod (Python)
+        # became a plain `explicit TensorMap(mts_tensormap_t*)` constructor
+        # (C++) / `TensorMap._from_ptr` (Python) instead. featomic's own
+        # C++ header and Python bindings still call the old names, so
+        # linking against our local metatensor breaks with "'unsafe_from_ptr'
+        # is not a member of 'metatensor::TensorMap'". Same semantics, just
+        # renamed -- swap the call sites.
+        "featomic/include/featomic.hpp",
+        "metatensor::TensorMap::unsafe_from_ptr(descriptor)",
+        "metatensor::TensorMap(descriptor)",
+    ),
+    (
+        "python/featomic/featomic/calculator_base.py",
+        "TensorMap.unsafe_from_ptr(tensor_map_ptr)",
+        "TensorMap._from_ptr(tensor_map_ptr)",
+    ),
+]
+
+import os
+for rel_path, old, new in patches:
+    path = os.path.join(root, rel_path)
+    if not os.path.isfile(path):
+        continue
+    text = open(path).read()
+    if old in text:
+        # replace every occurrence (e.g. the unsafe_from_ptr rename above
+        # appears twice in featomic.hpp) -- not just the first.
+        open(path, "w").write(text.replace(old, new))
+        print("  patched", path)
+PYEOF
+}
+patch_featomic_metatensor_version_pins
+
+# ---- 1c. patch metatomic's stale metatensor-core version pins -------------
+# Same problem as patch_featomic_metatensor_version_pins above, one repo
+# over: metatomic-core's own pins were written against the last released
+# metatensor-core (0.2.x); our local editable metatensor checkout has since
+# moved ahead to 0.3.x-dev, which these pins reject outright.
+#   - the Python-level `metatensor-core >=0.2.4,<0.3` pin makes
+#     `uv pip install -e metatomic[torch]` unsatisfiable against the local
+#     0.3.0.dev... build.
+#   - the CMake-level `find_package(metatensor 0.2.4 ...)` call uses
+#     same-minor-version compatibility for 0.x releases, so it rejects the
+#     installed 0.3 config outright at build time (same pattern fixed in
+#     featomic's CMakeLists.txt).
+#   - metatomic-torch's own `metatensor-torch >=0.10.0,<0.11` pin has the
+#     same "dev pre-release sorts below its base version" floor problem
+#     already fixed in featomic-torch: a locally-built
+#     metatensor-torch==0.10.0.devNNN doesn't satisfy a bare ">=0.10.0".
+# No-op for any file/line upstream has already updated, or that we already
+# patched on a previous run.
+patch_metatomic_metatensor_version_pins() {
+  local root="$BASE_DIR/metatomic"
+  [ -d "$root" ] || return 0
+  python3 - "$root" <<'PYEOF'
+import sys
+
+root = sys.argv[1]
+
+# (file relative to metatomic/, old substring, new substring)
+patches = [
+    (
+        "python/metatomic_core/pyproject.toml",
+        "metatensor-core >=0.2.4,<0.3",
+        "metatensor-core >=0.2.4,<0.4",
+    ),
+    (
+        # pyproject.toml's dependencies are static leftovers -- the pin
+        # setup.py's dynamic-metadata hook actually emits (and what uv
+        # resolves against) is this one, in setup.py itself. Same ceiling
+        # bump as above, just a different floor value (0.2.2 vs 0.2.4).
+        "python/metatomic_core/setup.py",
+        "metatensor-core >=0.2.2,<0.3",
+        "metatensor-core >=0.2.2,<0.4",
+    ),
+    (
+        # metatomic/_c_api.py unconditionally does
+        # `from ctypes_dlpack import ...`, but metatomic-core's own
+        # install_requires never lists the `ctypes-dlpack` PyPI package
+        # that module comes from -- an upstream missing-dependency bug.
+        # Surfaces as `ModuleNotFoundError: No module named 'ctypes_dlpack'`
+        # the moment anything imports metatomic (e.g. featomic-torch's
+        # setup.py, which imports metatomic at build time to read its C API).
+        "python/metatomic_core/setup.py",
+        '''    install_requires = [
+        "metatensor-core >=0.2.2,<0.4",
+    ]''',
+        '''    install_requires = [
+        "metatensor-core >=0.2.2,<0.4",
+        "ctypes-dlpack",
+    ]''',
+    ),
+    (
+        "metatomic-core/CMakeLists.txt",
+        'set(REQUIRED_METATENSOR_VERSION "0.2.4")',
+        'set(REQUIRED_METATENSOR_VERSION "0.3")',
+    ),
+    (
+        "python/metatomic_torch/pyproject.toml",
+        "metatensor-torch >=0.10.0,<0.11",
+        "metatensor-torch >=0.10.0.dev0,<0.12",
+    ),
+    (
+        "python/metatomic_torch/setup.py",
+        "metatensor-torch >=0.10.0,<0.11",
+        "metatensor-torch >=0.10.0.dev0,<0.12",
+    ),
+    (
+        "python/metatomic_torch/setup.py",
+        "metatensor-operations >=0.5.0,<0.6",
+        "metatensor-operations >=0.5.0,<0.7",
+    ),
 ]
 
 import os
@@ -454,7 +597,7 @@ for rel_path, old, new in patches:
         print("  patched", path)
 PYEOF
 }
-patch_featomic_metatensor_version_pins
+patch_metatomic_metatensor_version_pins
 
 # ---- 2. build toolchain sanity check ---------------------------------------
 log "Checking build toolchain (these repos compile Rust/C++ extensions)"
@@ -527,27 +670,14 @@ ensure_torch_for_driver "$VPY" || true
 # seed those build-time packages now since `uv venv` doesn't install them.
 ensure_build_seed_packages "$VPY"
 
-# ---- 4b. CUDA toolkit (nvcc) detection --------------------------------------
+# ---- 4b. CUDA toolkit (nvcc) detection, incl. host-compiler compatibility --
 # metatensor-torch / metatomic-torch / featomic compile actual CUDA kernels
-# at build time, which needs `nvcc`, not just a driver. On machines where
-# CUDA is installed but not wired into PATH by default (common when it's not
-# loaded via an environment module), find it and export it here.
-if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && ! command -v nvcc >/dev/null 2>&1; then
-  log "nvidia-smi works but nvcc isn't on PATH -- looking for a CUDA toolkit install"
-  for cuda_dir in "${CUDA_HOME:-}" /usr/local/cuda /usr/local/cuda-*; do
-    if [ -n "$cuda_dir" ] && [ -x "$cuda_dir/bin/nvcc" ]; then
-      echo "  Found CUDA toolkit at $cuda_dir -- exporting PATH/CUDA_HOME/CUDACXX"
-      export CUDA_HOME="$cuda_dir"
-      export CUDACXX="$cuda_dir/bin/nvcc"
-      export PATH="$cuda_dir/bin:$PATH"
-      export LD_LIBRARY_PATH="$cuda_dir/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-      break
-    fi
-  done
-  if ! command -v nvcc >/dev/null 2>&1; then
-    echo "  No CUDA toolkit found in the usual locations -- CUDA kernel builds below may fail." >&2
-    echo "  If it's installed somewhere nonstandard, export CUDA_HOME before running this script." >&2
-  fi
+# at build time, which needs a *working* `nvcc` -- not just one on PATH. See
+# ensure_working_cuda_toolchain() in _torch_cuda.sh for why "nvcc is on
+# PATH" alone is not a sufficient check on this kind of machine.
+if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+  log "Checking for a working CUDA toolkit (nvcc + compatible host compiler)"
+  ensure_working_cuda_toolchain || true
 fi
 
 # ---- 5. install the ecosystem packages, in dependency order ----------------
