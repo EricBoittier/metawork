@@ -363,8 +363,15 @@ ensure_cuda_host_compiler() {
 
   echo "  nvcc ($(command -v nvcc)) rejects the default host compiler -- needs gcc <=$max_gcc"
 
+  # `command -v conda` can resolve to the `conda()` shell function that
+  # `conda init bash` installs in interactive shells rather than the real
+  # binary -- that function shells out via `"$CONDA_EXE" "$@"`, which
+  # silently no-ops ("bash: command not found", no command name in the
+  # error) in a script context where CONDA_EXE was never exported. `type -P`
+  # only returns real executables on PATH, never functions/aliases, so it
+  # can't hit this trap.
   local conda_bin
-  conda_bin="$(command -v conda || true)"
+  conda_bin="$(type -P conda || true)"
   [ -z "$conda_bin" ] && [ -x /usr/bin/conda ] && conda_bin=/usr/bin/conda
   if [ -z "$conda_bin" ]; then
     echo "  ERROR: no gcc<=$max_gcc found on PATH and no 'conda' available to fetch one." >&2

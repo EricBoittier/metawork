@@ -38,3 +38,11 @@
 	path = etc/symd
 	url = https://github.com/EricBoittier/symd.git
 	branch = feat/metatomic-c-api
+[submodule "openmm-ml"]
+	path = openmm-ml
+	url = https://github.com/EricBoittier/openmm-ml.git
+	branch = main
+[submodule "openmm_meta"]
+	path = openmm_meta
+	url = https://github.com/EricBoittier/openmm_meta.git
+	branch = master

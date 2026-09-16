@@ -35,6 +35,8 @@ declare -A REPO_BRANCH=(
   [iris-infra]="main"
   [lorem-jax]="main"
   [upet]="main"
+  [openmm_meta]="master"
+  [openmm-ml]="main"
 )
 
 # Repos that get built + pip-installed (editable) into the venv, in
@@ -90,9 +92,11 @@ CLONE_ONLY_REPOS=(
 #     ecosystem-article
 #   Workshop-spring-2025                       archived tutorial notebooks
 #   metatensor_metatomic_benchmarks            ASV benchmark suite
-#   openmm-ml (+ feedstock)                    another full external
-#                                               simulation code, same
-#                                               reasoning as lammps/gromacs
+#
+# openmm_meta (a fork of openmm/openmm, the C++/CUDA simulation engine) and
+# openmm-ml (the Python layer that lets it evaluate ML potentials, including
+# this ecosystem's own metatomic models, as forces) *are* built by default --
+# see build_openmm() and the install step right after it, further down.
 
 log() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 
@@ -820,6 +824,88 @@ if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 \
   fi
 fi
 
+# ---- 5e. openmm_meta (compiled C++/CUDA engine) + openmm-ml ----------------
+# openmm_meta (a fork of openmm/openmm) is the actual C++/CUDA molecular
+# simulation engine -- a from-source CMake configure+build+install, not a
+# "pip install -e" package like the rest of the ecosystem. openmm *is* on
+# PyPI as a prebuilt wheel, but installing it that way would defeat the
+# point of forking it (this repo exists so patches to the engine itself --
+# e.g. metatomic/metatensor integration -- can be built and iterated on
+# locally). openmm-ml is the thin Python layer on top that lets OpenMM
+# evaluate ML potentials (MACE, ANI, this ecosystem's own metatomic models,
+# ...) as forces; it needs openmm_meta's Python wrapper importable first.
+OPENMM_BUILD_DIR="$BASE_DIR/openmm_meta/build"
+OPENMM_INSTALL_PREFIX="$BASE_DIR/openmm_meta/install"
+
+build_openmm() {
+  [ -d "$BASE_DIR/openmm_meta" ] && [ -n "$(ls -A "$BASE_DIR/openmm_meta" 2>/dev/null)" ] || return 0
+  command -v cmake >/dev/null 2>&1 || { echo "  cmake not found -- skipping openmm_meta build" >&2; return 1; }
+
+  # swig generates the Python wrapper, cython compiles part of it. Pulled
+  # from PyPI into the venv rather than requiring a system package / sudo.
+  uv pip install --python "$VPY" swig cython
+  local swig_bin
+  swig_bin="$("$VPY" -c 'import sysconfig, os; print(os.path.join(sysconfig.get_path("scripts"), "swig"))')"
+
+  log "Configuring openmm_meta (CMake, CUDA platform; OpenCL/HIP off)"
+  mkdir -p "$OPENMM_BUILD_DIR"
+  local cmake_args=(
+    -S "$BASE_DIR/openmm_meta" -B "$OPENMM_BUILD_DIR"
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_INSTALL_PREFIX="$OPENMM_INSTALL_PREFIX"
+    -DPYTHON_EXECUTABLE="$VPY"
+    -DSWIG_EXECUTABLE="$swig_bin"
+    -DOPENMM_BUILD_OPENCL_LIB=OFF
+    -DOPENMM_BUILD_HIP_LIB=OFF
+    -DOPENMM_BUILD_PYTHON_WRAPPERS=ON
+  )
+  # Point at the same CUDA toolkit ensure_working_cuda_toolchain (step 4b,
+  # above) already validated -- e.g. picking /usr/local/cuda-12.4 over a
+  # broken /usr/-packaged CUDA 13 that's missing static libs. Without this,
+  # CMake's own CUDAToolkit search just grabs whatever nvcc is first on
+  # PATH, which can be the broken one.
+  [ -n "${CUDA_HOME:-}" ] && cmake_args+=(-DCUDAToolkit_ROOT="$CUDA_HOME")
+  cmake "${cmake_args[@]}" || return 1
+
+  log "Building + installing openmm_meta (C++/CUDA -- incremental after the first run)"
+  cmake --build "$OPENMM_BUILD_DIR" -j"$(nproc)" --target install || return 1
+
+  log "Building + installing the OpenMM Python wrapper"
+  cmake --build "$OPENMM_BUILD_DIR" --target PythonInstall || return 1
+}
+
+if build_openmm; then
+  INSTALL_OK+=("openmm_meta")
+  log "Installing openmm-ml"
+  # --no-deps: openmm-ml's own install_requires ("openmm >= 8.5") would
+  # otherwise have uv fetch a prebuilt PyPI openmm wheel -- silently
+  # replacing the from-source openmm_meta build just installed above.
+  # numpy (its only other dependency) is already pulled in by torch.
+  if uv_pip_keep_torch "$VPY" --no-deps -e "$BASE_DIR/openmm-ml"; then
+    INSTALL_OK+=("openmm-ml")
+  else
+    INSTALL_FAILED+=("openmm-ml")
+  fi
+else
+  INSTALL_FAILED+=("openmm_meta")
+  echo "  (continuing -- openmm_meta failed to build; openmm-ml needs it, skipping too)" >&2
+fi
+
+# lj-test (metatomic-ecosystem smoke-test model, cloned in step 1 above)
+# needs a regular, non-editable install: its cmake_ext build step copies the
+# compiled extension into the installed package's own lib/ directory, which
+# an editable/`-e` install never populates (editable mode redirects imports
+# straight at the source tree via a .pth file instead of copying build
+# outputs into it).
+if [ -d "$BASE_DIR/lj-test" ] && [ -n "$(ls -A "$BASE_DIR/lj-test" 2>/dev/null)" ]; then
+  log "Installing lj-test (metatomic smoke-test model)"
+  if uv_pip_keep_torch "$VPY" "$BASE_DIR/lj-test"; then
+    INSTALL_OK+=("lj-test")
+  else
+    INSTALL_FAILED+=("lj-test")
+  fi
+fi
+
 # ---- 6. summary --------------------------------------------------------------
 log "Summary"
 "$VPY" - <<'EOF'
@@ -832,12 +918,22 @@ print(f"torch {torch.__version__}  (cuda build: {torch.version.cuda}, "
 for mod in (
     "metatensor", "metatensor.torch", "metatomic", "metatomic.torch",
     "featomic", "metatrain", "ipi", "chemiscope", "h5py",
+    "openmm", "openmmml",
 ):
     try:
         m = importlib.import_module(mod)
         print(f"{mod:20s} ok  ({getattr(m, '__version__', '')})")
     except Exception as e:
         print(f"{mod:20s} FAILED: {e}")
+
+try:
+    import openmm
+    platforms = [openmm.Platform.getPlatform(i).getName()
+                 for i in range(openmm.Platform.getNumPlatforms())]
+    print(f"openmm platforms: {platforms}"
+          + ("  (no CUDA platform!)" if "CUDA" not in platforms else ""))
+except Exception as e:
+    print(f"openmm platforms FAILED: {e}")
 EOF
 
 log "Summary (upet venv)"
