@@ -1,6 +1,6 @@
 # Paths are resolved relative to this file's directory unless absolute.
-metatrain: /home/ericb/metawork/metatrain
-python: /home/ericb/metawork/.venv/bin/python
+metatrain: /home/boittier/metawork/metatrain
+python: /home/boittier/metawork/.venv/bin/python
 worktrees: worktrees
 results: results
 data: data
@@ -24,10 +24,10 @@ variants:
 
 datasets:
   qm9:
-    path: /home/ericb/metawork/metatrain/tests/resources/qm9_reduced_100.xyz
+    path: /home/boittier/metawork/metatrain/tests/resources/qm9_reduced_100.xyz
     key: U0
   carbon:
-    path: /home/ericb/metawork/metatrain/tests/resources/carbon_reduced_100.xyz
+    path: /home/boittier/metawork/metatrain/tests/resources/carbon_reduced_100.xyz
     key: energy
   si216:
     path: data/si_bulk_216.xyz
