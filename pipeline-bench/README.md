@@ -32,6 +32,11 @@ is missing:
 
 The other two datasets are metatrain test resources.
 
+`data/pet_mad_checkpoints/` is fetched on demand (`rule pet_mad_checkpoint`,
+~21MB for the default `pet-mad-xs-v1.6.0`) from `lab-cosmo/upet` on
+HuggingFace the first time `results/pet_mad.md` is built; no manual step
+needed.
+
 ## Local
 
 Smoke (qm9, `everything`, 2 epochs, workers=0). Either flag works;
@@ -102,8 +107,9 @@ Every variant's `benchmark_pipeline.py` also now takes a `--seed` (default
 0) it uses to seed `random`/`numpy`/`torch` before touching the dataset or
 model, and prints `trainer.best_metric` plus epoch-1 train/val loss —
 that's what `results/correctness.md` compares across variants. The same
-branches also each add `benchmarks/benchmark_checkpoint_resume.py`, which
-`results/resume.md` runs. One branch per variant's own real ref, same
+branches also each add `benchmarks/benchmark_checkpoint_resume.py` (runs
+as `results/resume.md`) and `benchmarks/benchmark_pet_mad.py` (runs as
+`results/pet_mad.md`). One branch per variant's own real ref, same
 instrumentation on each:
 
 | variant | ref | fix branch |
@@ -161,6 +167,24 @@ on its next worktree rebuild once `fix/report-best-metric-timed` lands.
   opt-in mode. Ran it for real against the fix branches: **all 12 cells
   completed without error**, including `pinned` — checkpoint resume isn't
   broken by any of the data-loading changes in this stack.
+- `results/pet_mad.md` — does the data-loading stack help or hurt on a real
+  pretrained model, not the small energy-only model trained from scratch
+  everywhere else in this harness? `benchmarks/benchmark_pet_mad.py`
+  fine-tunes a real PET-MAD-1.6 checkpoint (102 atomic types, energy +
+  non-conservative force + stress heads; `lab-cosmo/upet` on HuggingFace,
+  cached under `data/pet_mad_checkpoints/`) via the exact
+  `training.finetune.read_from` path `mtt train` uses. Always runs as part
+  of `rule all` (small: 6 variants x 2 worker counts, `pet-mad-xs` by
+  default to keep it fast). Ran it for real: **all 12 cells completed**,
+  and the pattern changes at this model size — `everything` still wins at
+  workers=0 (+7%) but is flat at workers=1 (0.99x), while `persistent`/
+  `timed` do better here than they did on the small model (+9-10% at
+  workers=1, vs. a 5-15% regression on qm9/carbon in `results/summary.md`).
+  `baseline`'s `best_val_metric` gap vs. the rest also shrinks sharply at
+  this model size (1-5%, vs. 8-27% on the small from-scratch model) — a
+  second, independent data point for the same pattern `results/
+  correctness.md` found on structure size: whatever's behind baseline's
+  divergence matters less as the workload gets bigger.
 - `results/atoms_per_s.png` — optional, needs matplotlib
 
 ## What the correctness check already found

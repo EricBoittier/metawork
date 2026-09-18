@@ -119,6 +119,27 @@ resume_check:
   seed: 0
   timeout_s: 1200
 
+# Always runs as part of `rule all`, same as resume_check above. Fine-tunes
+# a real pretrained PET-MAD checkpoint (lab-cosmo/upet on HuggingFace,
+# downloaded once and cached under data/pet_mad_checkpoints/) instead of
+# training a small model from scratch — a much bigger model (102 atomic
+# types, energy + non-conservative force + stress heads), so this checks
+# whether the same data-loading changes help/hurt at that different point
+# in model size. See results/pet_mad.md and scripts/check_pet_mad.py.
+# Requires benchmarks/benchmark_pet_mad.py on the variant's worktree — same
+# fix branches as resume_check; a variant without it reports
+# status=no_pet_mad_script rather than failing.
+pet_mad:
+  size: xs
+  version: 1.6.0
+  datasets: [qm9]
+  workers: [0, 1]
+  batch_size: 8
+  device: cuda
+  epochs: 4
+  seed: 0
+  timeout_s: 1200
+
 resources:
   cpus: 8
   mem_mb: 16000

@@ -91,6 +91,27 @@ RESUME_CELLS = [
     for workers in RESUME_WORKERS
 ]
 
+PET_MAD_CFG = CFG.get("pet_mad", {})
+PET_MAD_SIZE = str(PET_MAD_CFG.get("size", "xs"))
+PET_MAD_VERSION = str(PET_MAD_CFG.get("version", "1.6.0"))
+PET_MAD_DATASETS = [d for d in PET_MAD_CFG.get("datasets", ["qm9"]) if d in DATASETS]
+PET_MAD_WORKERS = [str(w) for w in PET_MAD_CFG.get("workers", [0, 1])]
+PET_MAD_BATCH = int(PET_MAD_CFG.get("batch_size", 8))
+PET_MAD_DEVICE = str(PET_MAD_CFG.get("device", "cuda"))
+PET_MAD_EPOCHS = int(PET_MAD_CFG.get("epochs", 4))
+PET_MAD_SEED = int(PET_MAD_CFG.get("seed", 0))
+PET_MAD_TIMEOUT = int(PET_MAD_CFG.get("timeout_s", 1200))
+PET_MAD_CHECKPOINT = (
+    DATA / "pet_mad_checkpoints" / f"pet-mad-{PET_MAD_SIZE}-v{PET_MAD_VERSION}.ckpt"
+)
+
+PET_MAD_CELLS = [
+    RESULTS / "pet_mad_cells" / variant / dataset / f"w{workers}.json"
+    for variant in VARIANTS
+    for dataset in PET_MAD_DATASETS
+    for workers in PET_MAD_WORKERS
+]
+
 
 def resolve_dataset(name):
     path = Path(DATASETS[name]["path"])
@@ -131,6 +152,7 @@ rule all:
         RESULTS / "drift.md",
         RESULTS / "correctness.md",
         RESULTS / "resume.md",
+        RESULTS / "pet_mad.md",
 
 
 rule si_bulk:
@@ -309,3 +331,72 @@ rule check_resume:
         python=SNAKEMAKE_PY,
     shell:
         "{params.python} {SCRIPTS}/check_resume.py {input} --out {output}"
+
+
+rule pet_mad_checkpoint:
+    output:
+        PET_MAD_CHECKPOINT,
+    params:
+        size=PET_MAD_SIZE,
+        version=PET_MAD_VERSION,
+        python=SNAKEMAKE_PY,
+    shell:
+        "{params.python} {SCRIPTS}/fetch_pet_mad.py "
+        "--size {params.size} --version {params.version} --out {output}"
+
+
+rule pet_mad_cell:
+    input:
+        marker=WORKTREES / "{variant}" / ".variant-shas",
+        dataset=dataset_input,
+        checkpoint=PET_MAD_CHECKPOINT,
+    output:
+        json=RESULTS / "pet_mad_cells" / "{variant}" / "{dataset}" / "w{workers}.json",
+        log=RESULTS / "pet_mad_cells" / "{variant}" / "{dataset}" / "w{workers}.log",
+    params:
+        worktree=lambda wildcards: WORKTREES / wildcards.variant,
+        key=lambda wildcards: DATASETS[wildcards.dataset]["key"],
+        batch=PET_MAD_BATCH,
+        device=PET_MAD_DEVICE,
+        epochs=PET_MAD_EPOCHS,
+        seed=PET_MAD_SEED,
+        size=PET_MAD_SIZE,
+        version=PET_MAD_VERSION,
+        timeout=PET_MAD_TIMEOUT,
+        python=SNAKEMAKE_PY,
+    resources:
+        gpu=RESOURCES.get("gpus", 1),
+        mem_mb=RESOURCES.get("mem_mb", 16000),
+        runtime=RESOURCES.get("runtime_min", 90),
+    shell:
+        "{params.python} {SCRIPTS}/run_pet_mad_cell.py "
+        "--worktree {params.worktree} "
+        "--python {PYTHON} "
+        "--checkpoint {input.checkpoint} "
+        "--dataset {input.dataset} "
+        "--key {params.key} "
+        "--num-workers {wildcards.workers} "
+        "--batch-size {params.batch} "
+        "--device {params.device} "
+        "--epochs {params.epochs} "
+        "--seed {params.seed} "
+        "--pet-mad-size {params.size} "
+        "--pet-mad-version {params.version} "
+        "--timeout-s {params.timeout} "
+        "--variant {wildcards.variant} "
+        "--dataset-name {wildcards.dataset} "
+        "--out {output.json} "
+        "--log {output.log}"
+
+
+rule check_pet_mad:
+    input:
+        PET_MAD_CELLS,
+    output:
+        RESULTS / "pet_mad.md",
+    params:
+        python=SNAKEMAKE_PY,
+        baseline=CFG.get("baseline_variant", "baseline"),
+    shell:
+        "{params.python} {SCRIPTS}/check_pet_mad.py {input} "
+        "--out {output} --baseline {params.baseline}"
