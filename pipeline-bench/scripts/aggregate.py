@@ -37,6 +37,8 @@ CELL_FIELDS = [
     "serialize_ms",
     "group_and_join_ms",
     "transforms_ms",
+    "started",
+    "finished",
 ]
 
 
@@ -75,6 +77,8 @@ def flatten(cell: Dict[str, Any]) -> Dict[str, Any]:
         "serialize_ms": stage_ms(cell, "serialize"),
         "group_and_join_ms": stage_ms(cell, "group_and_join"),
         "transforms_ms": stage_ms(cell, "transforms"),
+        "started": cell.get("started"),
+        "finished": cell.get("finished"),
     }
 
 
@@ -112,6 +116,20 @@ def median(values: Iterable[Optional[float]]) -> Optional[float]:
     return None if not nums else statistics.median(nums)
 
 
+def spread_pct(values: Iterable[Optional[float]]) -> Optional[float]:
+    """(max - min) / median, as a percentage, over non-null repeats.
+
+    A point estimate (the median) hides how much a handful of repeats
+    actually varied. This is the cheapest signal for "is this difference
+    real or within run-to-run noise" without assuming a distribution.
+    """
+    nums = [v for v in values if v is not None]
+    if len(nums) < 2:
+        return None
+    mid = statistics.median(nums)
+    return None if not mid else (max(nums) - min(nums)) / mid * 100
+
+
 def fmt(value: Optional[float], digits: int = 1) -> str:
     return "—" if value is None else f"{value:.{digits}f}"
 
@@ -140,6 +158,7 @@ def summary_markdown(rows: List[Dict[str, Any]], baseline: str) -> str:
                 "variant": variant,
                 "n": len(members),
                 "atoms_per_s": median(m["atoms_per_s"] for m in members),
+                "atoms_per_s_spread": spread_pct(m["atoms_per_s"] for m in members),
                 "loader_ms": median(m["loader_ms"] for m in members),
                 "step_ms": median(m["step_ms"] for m in members),
                 "unpack_ms": median(m["unpack_ms"] for m in members),
@@ -155,15 +174,45 @@ def summary_markdown(rows: List[Dict[str, Any]], baseline: str) -> str:
         if m["variant"] == baseline
     }
 
+    epochs_seen = sorted({r["epochs"] for r in rows if r.get("epochs") is not None})
+    batches_seen = sorted({r["batch_size"] for r in rows if r.get("batch_size") is not None})
+    min_n = min((m["n"] for m in medians), default=0)
+
     lines = [
         "# Pipeline benchmark summary",
         "",
         f"Median over repeats. Speedup is vs `{baseline}` on the same "
         "dataset / workers / batch / device.",
         "",
-        "| dataset | workers | variant | n | atoms/s | vs baseline | "
+        "**Read the spread column before trusting a single-digit-percent "
+        "difference.** It's `(max - min) / median` over the repeats in that "
+        "cell — a cell with 2 repeats and a wide spread cannot distinguish "
+        "a real effect from run-to-run noise.",
+        "",
+        "Known limitations of this harness (not fixed by more repeats):",
+        f"- **n={min_n} repeats minimum** in this run" + (
+            " — below 3, spread is a weak signal; treat anything under "
+            "~10% difference as unproven." if min_n < 3 else "."
+        ),
+        "- **Warm-up is not excluded.** The first epoch of each cell "
+        "(cuDNN autotune, CUDA context init, allocator/page-lock warmup) "
+        "is timed like any other; on short runs this can look like a "
+        "per-batch regression that a longer run would amortize away.",
+        f"- **Single point in batch-size space**: only batch_size="
+        f"{', '.join(map(str, batches_seen))} tested. `pin_memory`'s "
+        "benefit scales with transfer size — a variant that loses here "
+        "might win at a batch size this sweep never tried.",
+        f"- **{epochs_seen[0] if epochs_seen else '?'} epochs per cell** — "
+        "mechanisms that amortize a one-time cost across epochs "
+        "(e.g. `persistent_workers` avoiding worker respawn) get a "
+        "shorter horizon to pay off than a real training run would give them.",
+        "- See `results/equivalence.md` for whether variants in the same "
+        "dataset actually trained on the same data, and `results/drift.md` "
+        "for whether run order correlates with the measured speed.",
+        "",
+        "| dataset | workers | variant | n | atoms/s | spread | vs baseline | "
         "loader ms | step ms | unpack ms | h2d ms | serialize ms | peak GB |",
-        "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     order = sorted(
         medians,
@@ -183,13 +232,17 @@ def summary_markdown(rows: List[Dict[str, Any]], baseline: str) -> str:
             else row["atoms_per_s"] / base
         )
         lines.append(
-            "| {dataset} | {workers} | {variant} | {n} | {atoms} | {vs} | "
+            "| {dataset} | {workers} | {variant} | {n} | {atoms} | {spread} | {vs} | "
             "{loader} | {step} | {unpack} | {h2d} | {serialize} | {peak} |".format(
                 dataset=row["dataset"],
                 workers=row["num_workers"],
                 variant=row["variant"],
                 n=row["n"],
                 atoms=fmt(row["atoms_per_s"], 0),
+                spread=(
+                    "—" if row["atoms_per_s_spread"] is None
+                    else f"{row['atoms_per_s_spread']:.0f}%"
+                ),
                 vs=fmt(speedup, 2),
                 loader=fmt(row["loader_ms"], 2),
                 step=fmt(row["step_ms"], 1),

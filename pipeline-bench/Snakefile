@@ -89,6 +89,8 @@ rule all:
         RESULTS / "summary.md",
         RESULTS / "cells.csv",
         RESULTS / "stages.csv",
+        RESULTS / "equivalence.md",
+        RESULTS / "drift.md",
 
 
 rule si_bulk:
@@ -179,3 +181,27 @@ rule aggregate:
         "--cells-csv {output.cells} "
         "--stages-csv {output.stages} "
         "--summary {output.summary}"
+
+
+rule check_equivalence:
+    input:
+        RESULTS / "cells.csv",
+    output:
+        RESULTS / "equivalence.md",
+    params:
+        python=SNAKEMAKE_PY,
+    shell:
+        "{params.python} {SCRIPTS}/check_equivalence.py "
+        "--cells-csv {input} --out {output}"
+
+
+rule check_drift:
+    input:
+        RESULTS / "cells.csv",
+    output:
+        RESULTS / "drift.md",
+    params:
+        python=SNAKEMAKE_PY,
+    shell:
+        "{params.python} {SCRIPTS}/check_drift.py "
+        "--cells-csv {input} --out {output}"

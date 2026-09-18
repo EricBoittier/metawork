@@ -85,9 +85,23 @@ sold as an unconditional win — on molecular-scale structures with
 
 ## Caveats
 
-- `baseline`'s `benchmark_pipeline.py` (the oldest branch in the stack)
-  doesn't print `n_train`/`n_val`/peak-GPU-memory the way the later
-  branches do, so `results/summary.md` shows `—` for baseline's peak GB —
-  that's a report-format gap between branches, not zero memory use.
+- `baseline`'s `benchmark_pipeline.py` (the oldest branch in the stack) is
+  not an equivalent workload to the others, not just a reporting gap: its
+  validation set was the first 8 structures *of the training set itself*
+  (no disjoint split), while every later branch trains on a proper 80/20
+  split. That's why `results/summary.md` also showed `—` for baseline's
+  `n_train`/`n_val`/peak-GPU-memory — its header line didn't match the
+  format the parser expects from the later branches, so those fields never
+  even got extracted. Doesn't bias the throughput numbers here (validation
+  sits outside every timed region), but it means baseline was never a
+  clean, isolated control. Fixed on metatrain's
+  `fix/pipeline-benchmark-val-split` (branched off
+  `perf/1-pipeline-benchmark`); results above predate that fix.
+- No correctness/equivalence check exists between variants anywhere in this
+  harness — every number here is wall-clock speed. A branch that's faster
+  but silently wrong (drops a structure, corrupts a batch) would look
+  identical to a real win in this data. `results/equivalence.md` (added
+  after this run) catches a workload-shape mismatch like the one above; it
+  does not check model correctness.
 - 2 repeats per cell; treat the percentages above as directional, not
   noise-free.

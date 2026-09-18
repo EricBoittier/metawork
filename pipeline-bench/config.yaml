@@ -40,12 +40,27 @@ datasets:
     path: data/si_bulk_1000_128.xyz
     key: energy
 
+# Methodology notes (see results/equivalence.md, results/drift.md, and the
+# caveats block at the top of results/summary.md for what these do and don't
+# cover):
+# - batch_size sweeps 3 points instead of pinning one: pin_memory's payoff
+#   scales with transfer size, so a single batch size can't tell a variant
+#   that loses at small batches from one that would win at larger ones.
+# - repeats went 2 -> 5: with n=2 there's no way to tell a real difference
+#   from run-to-run noise, only a range with no shape to it.
+# - epochs went 6 -> 12: mechanisms that amortize a one-time cost across
+#   epochs (persistent_workers not respawning workers) get a longer horizon
+#   to pay off; 6 was likely too short to detect that mechanism either way.
+# None of this excludes warm-up (the first epoch's CUDA/allocator setup is
+# still timed like any other) — that needs re-instrumenting
+# benchmark_pipeline.py per branch to report per-epoch splits, not just a
+# config change here.
 sweep:
   workers: [0, 1, 4]
-  batch_size: [8]
+  batch_size: [4, 8, 16]
   device: cuda
-  epochs: 6
-  repeats: 2
+  epochs: 12
+  repeats: 5
   timeout_s: 3600
 
 # Used when --config smoke=true or --config run=smoke
