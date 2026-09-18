@@ -21,7 +21,11 @@
 [submodule "metatensor"]
 	path = metatensor
 	url = https://github.com/EricBoittier/metatensor.git
-	branch = metatomic-core
+	# "metatomic-core" is a stale feature branch: it is exactly the merge-base
+	# of main (main is 70+ commits ahead with nothing dropped), and it never
+	# picked up the metatensor-torch >=0.10.0 bump that metatomic's own
+	# metatomic-core branch now requires. Track main instead.
+	branch = main
 [submodule "metatomic"]
 	path = metatomic
 	url = git@github.com:EricBoittier/metatomic.git
