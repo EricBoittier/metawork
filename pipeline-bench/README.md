@@ -139,13 +139,17 @@ file -- interleaving N ranks into one pipe would garble it). `batch_size` in
 `MaxAtomDistributedBatchSampler` (`training.max_atoms_per_batch` hyper) --
 no new sampler code, just exposing an existing hyper as a CLI flag.
 
-Measured on `omol_proxy`, 2xL40S, `max_atoms_per_batch=512`: 2-GPU DDP gave
-~1.3x throughput per GPU-pair, not 2x -- `backward` time roughly doubled
-(17.7ms to 35.7ms/call) from NCCL gradient all-reduce, not amortized at this
-dataset's scale (~20 steps/epoch/rank). For a real OMol-scale run, per-GPU
-batch (in atoms, not structures) needs to be large enough that compute time
-dominates communication time, or most of the wall-clock goes to
-synchronizing gradients rather than training.
+Measured on `omol_proxy`, 2xL40S, `max_atoms_per_batch=512`, median over
+`repeats: 3` (kuma is shared and single runs were noisy -- one early
+`repeats: 1` sample showed ~1.3x speedup, another ~2.6x): single-GPU
+**11567 atoms/s**, 2-GPU DDP **5985 atoms/s per rank** -- i.e. ~1.03x
+aggregate throughput (2 x 5985 / 11567) for 2 GPUs. Essentially no net
+speedup: the DDP gradient all-reduce overhead ate the entire parallelism
+gain, at this dataset's scale (200 structures, ~20 steps/epoch/rank). This
+is the actual finding for OMol: per-GPU batch (in atoms, not structures)
+needs to be large enough that compute time actually dominates
+communication time, or DDP buys nothing -- don't assume N GPUs means N x
+throughput without checking at your real batch/dataset scale.
 
 Outputs mirror the main matrix: `results/distributed/<variant>/g<world_size>_r<repeat>.json`,
 `results/distributed_cells.csv`, `results/distributed_stages.csv`,

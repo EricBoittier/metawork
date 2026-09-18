@@ -102,6 +102,14 @@ def run_benchmark(
         with log_path.open("a") as log:
             log.write(text)
     else:
+        # A single non-srun process still inherits SLURM_NTASKS from an
+        # enclosing multi-task allocation (e.g. the outer sbatch job for a
+        # world_size>1 sibling cell), which makes metatrain's
+        # resolve_distributed() wrongly try to join a multi-rank process
+        # group that nothing else is launching -- it then hangs until
+        # torch.distributed's rendezvous times out. Force it to 1 so a
+        # single-GPU cell is never accidentally "distributed".
+        env["SLURM_NTASKS"] = "1"
         with log_path.open("w") as log:
             log.write("# " + " ".join(cmd) + "\n")
             log.flush()

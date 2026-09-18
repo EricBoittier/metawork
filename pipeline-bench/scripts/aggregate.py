@@ -127,12 +127,13 @@ def summary_markdown(rows: List[Dict[str, Any]], baseline: str) -> str:
             row["batch_size"],
             row["device"],
             row["variant"],
+            row.get("world_size", 1),
         )
         groups[key].append(row)
 
     medians = []
     for key, members in groups.items():
-        dataset, workers, batch, device, variant = key
+        dataset, workers, batch, device, variant, world_size = key
         medians.append(
             {
                 "dataset": dataset,
@@ -140,6 +141,7 @@ def summary_markdown(rows: List[Dict[str, Any]], baseline: str) -> str:
                 "batch_size": batch,
                 "device": device,
                 "variant": variant,
+                "world_size": world_size,
                 "n": len(members),
                 "atoms_per_s": median(m["atoms_per_s"] for m in members),
                 "loader_ms": median(m["loader_ms"] for m in members),
@@ -152,43 +154,66 @@ def summary_markdown(rows: List[Dict[str, Any]], baseline: str) -> str:
         )
 
     baselines = {
-        (m["dataset"], m["num_workers"], m["batch_size"], m["device"]): m["atoms_per_s"]
+        (m["dataset"], m["num_workers"], m["batch_size"], m["device"], m["world_size"]): m[
+            "atoms_per_s"
+        ]
         for m in medians
         if m["variant"] == baseline
     }
+    # world_size only varies for the distributed sweep; every main-matrix row
+    # has world_size 1, so show the column only when something is >1.
+    show_world_size = any(m["world_size"] != 1 for m in medians)
 
     lines = [
         "# Pipeline benchmark summary",
         "",
         f"Median over repeats. Speedup is vs `{baseline}` on the same "
-        "dataset / workers / batch / device.",
+        "dataset / workers / batch / device"
+        + (" / world_size" if show_world_size else "") + ".",
         "",
-        "| dataset | workers | variant | n | atoms/s | vs baseline | "
+        "| dataset | workers | "
+        + ("world_size | " if show_world_size else "")
+        + "variant | n | atoms/s | vs baseline | "
         "loader ms | step ms | unpack ms | h2d ms | serialize ms | peak GB |",
-        "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| --- | ---: | "
+        + ("---: | " if show_world_size else "")
+        + "--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     order = sorted(
         medians,
         key=lambda m: (
             m["dataset"],
             m["num_workers"],
+            m["world_size"],
             m["variant"] != baseline,
             m["variant"],
         ),
     )
     for row in order:
-        key = (row["dataset"], row["num_workers"], row["batch_size"], row["device"])
+        key = (
+            row["dataset"],
+            row["num_workers"],
+            row["batch_size"],
+            row["device"],
+            row["world_size"],
+        )
         base = baselines.get(key)
         speedup = (
             None
             if row["atoms_per_s"] is None or not base
             else row["atoms_per_s"] / base
         )
+        row_template = (
+            "| {dataset} | {workers} | "
+            + ("{world_size} | " if show_world_size else "")
+            + "{variant} | {n} | {atoms} | {vs} | "
+            "{loader} | {step} | {unpack} | {h2d} | {serialize} | {peak} |"
+        )
         lines.append(
-            "| {dataset} | {workers} | {variant} | {n} | {atoms} | {vs} | "
-            "{loader} | {step} | {unpack} | {h2d} | {serialize} | {peak} |".format(
+            row_template.format(
                 dataset=row["dataset"],
                 workers=row["num_workers"],
+                world_size=row["world_size"],
                 variant=row["variant"],
                 n=row["n"],
                 atoms=fmt(row["atoms_per_s"], 0),
