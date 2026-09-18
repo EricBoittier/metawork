@@ -16,6 +16,10 @@ MEMORY = re.compile(
     r"memory (?P<peak_gb>[\d.]+) GB peak, (?P<added_gb>[\d.]+) GB added "
     r"over a (?P<baseline_gb>[\d.]+) GB baseline"
 )
+BEST_METRIC = re.compile(
+    r"best_val_metric (?P<best_val_metric>[\d.eE+-]+) "
+    r"\((?P<best_model_metric>\S+)\) at epoch (?P<best_epoch>\d+)"
+)
 STAGE = re.compile(
     r"^(?P<stage>\S+)\s+(?P<calls>\d+)\s+(?P<ms_per_call>[\d.]+)\s+"
     r"(?P<pct>[\d.]+)%\s*$"
@@ -44,6 +48,12 @@ def parse_report(text: str) -> Dict[str, Any]:
     memory = MEMORY.search(text)
     if memory:
         header.update({k: float(memory[k]) for k in memory.groupdict()})
+
+    best = BEST_METRIC.search(text)
+    if best:
+        header["best_val_metric"] = float(best["best_val_metric"])
+        header["best_model_metric"] = best["best_model_metric"]
+        header["best_epoch"] = int(best["best_epoch"])
 
     stages = {}
     throughput = {}
@@ -91,6 +101,8 @@ def stage_ms(parsed: Dict[str, Any], name: str) -> Optional[float]:
 _SAMPLE = """
 PET, 51 train + 13 validation structures, batch_size=8, num_workers=0, device=cpu, epochs=2, 12.3 s wall (incl. validation), memory 1.54 GB peak, 0.42 GB added over a 1.12 GB baseline
 
+best_val_metric 0.001200 (mae_prod) at epoch 1
+
 stage               calls   ms/call  % of step
 loader                 14     30.10      17.2%
 step                   14    145.00      82.8%
@@ -118,6 +130,9 @@ if __name__ == "__main__":
     parsed = parse_report(_SAMPLE)
     assert parsed["header"]["n_train"] == 51
     assert parsed["header"]["peak_gb"] == 1.54
+    assert parsed["header"]["best_val_metric"] == 0.0012
+    assert parsed["header"]["best_model_metric"] == "mae_prod"
+    assert parsed["header"]["best_epoch"] == 1
     assert parsed["stages"]["unpack"]["ms_per_call"] == 8.11
     assert parsed["stages"]["transforms/neighbor_lists"]["ms_per_call"] == 5.90
     assert parsed["throughput"]["atoms/s"] == 11781.0

@@ -24,6 +24,9 @@ CELL_FIELDS = [
     "torch",
     "n_train",
     "n_val",
+    "best_val_metric",
+    "best_model_metric",
+    "best_epoch",
     "wall_s",
     "peak_gb",
     "added_gb",
@@ -64,6 +67,9 @@ def flatten(cell: Dict[str, Any]) -> Dict[str, Any]:
         "torch": env.get("torch"),
         "n_train": header.get("n_train"),
         "n_val": header.get("n_val"),
+        "best_val_metric": header.get("best_val_metric"),
+        "best_model_metric": header.get("best_model_metric"),
+        "best_epoch": header.get("best_epoch"),
         "wall_s": header.get("wall_s"),
         "peak_gb": header.get("peak_gb"),
         "added_gb": header.get("added_gb"),
@@ -207,8 +213,10 @@ def summary_markdown(rows: List[Dict[str, Any]], baseline: str) -> str:
         "(e.g. `persistent_workers` avoiding worker respawn) get a "
         "shorter horizon to pay off than a real training run would give them.",
         "- See `results/equivalence.md` for whether variants in the same "
-        "dataset actually trained on the same data, and `results/drift.md` "
-        "for whether run order correlates with the measured speed.",
+        "dataset actually trained on the same data, `results/correctness.md` "
+        "for whether they trained to the same best_val_metric, and "
+        "`results/drift.md` for whether run order correlates with the "
+        "measured speed.",
         "",
         "| dataset | workers | variant | n | atoms/s | spread | vs baseline | "
         "loader ms | step ms | unpack ms | h2d ms | serialize ms | peak GB |",

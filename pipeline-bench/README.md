@@ -91,12 +91,23 @@ is generated at install time and is not in git, so the worktree copies it from
 the live checkout.
 
 `baseline`'s `benchmark_pipeline.py` validated on the first 8 structures of
-the training set itself — not a disjoint split, and its header line didn't
-match the `"{n} train + {m} validation structures"` format the later
-branches use, so `results/cells.csv` silently had no `n_train`/`n_val` for
-it. Fixed on `fix/pipeline-benchmark-val-split` (branched off
+the training set itself — not a disjoint split, and used a fixed 8-structure
+val set instead of the `val_fraction=0.2` every later branch defaults to, so
+its `n_train`/`n_val` didn't match the others' even once disjoint. Both
+fixed on `fix/pipeline-benchmark-val-split` (branched off
 `perf/1-pipeline-benchmark`) — merge that into `baseline`'s ref before
 trusting this harness's `results/equivalence.md` for it.
+
+Every variant's `benchmark_pipeline.py` also now seeds `random`/`numpy`/
+`torch` with the same fixed `SEED = 0` before touching the dataset or model,
+and prints `trainer.best_metric` (the best validation metric `Trainer.train`
+tracks internally, independent of `log_interval`) as a `best_val_metric`
+line. That's what `results/correctness.md` compares across variants — see
+below. Branched as `fix/report-best-metric` off each variant's own real ref
+(`perf/4-persistent-workers`, `pr/collate-transform-timing`,
+`pr/system-tensor-transport`, `perf/5-batch-transport`); `pinned` needs no
+separate fix since it's built from `timed`'s ref (`pr/collate-transform-timing`)
+plus `pr/pin-batches`, and will pick this up on its next worktree rebuild.
 
 ## Outputs
 
@@ -106,10 +117,18 @@ trusting this harness's `results/equivalence.md` for it.
   spread column and the methodology caveats below
 - `results/equivalence.md` — do variants sharing a dataset agree on
   `n_train`/`n_val`? Catches a workload that silently isn't the same across
-  branches (e.g. a non-disjoint validation split). Does **not** check model
-  correctness — no loss/gradient/output comparison exists between variants
-  anywhere in this harness; that's open follow-up work, not something this
-  script does.
+  branches (e.g. a non-disjoint validation split). Checks workload *shape*
+  only, not model correctness — see `results/correctness.md` for that.
+- `results/correctness.md` — do variants agree on `best_val_metric` (the
+  best validation metric seen during training) for the same config, and
+  does each variant reproduce its own value across repeats? This is the one
+  check in the harness that looks at whether variants compute the same
+  thing rather than how fast they do it. WARN at >=5% relative difference
+  from `baseline`, FAIL (and gate `rule all`) at >=50%. Still just one
+  scalar from one fixed seed over a handful of epochs on tiny data — real
+  signal for "this variant is training on the wrong data" or "this isn't
+  deterministic when it should be," not a proof of numerical equivalence at
+  the loss/gradient level.
 - `results/drift.md` — does measured speed correlate with chronological run
   order, globally or within a variant's own block? Snakemake doesn't
   randomize job order against variant identity, so a multi-minute run's
@@ -121,15 +140,18 @@ trusting this harness's `results/equivalence.md` for it.
 ## Methodology gaps this harness cannot close by itself
 
 Fixed here: single-batch-size testing, low repeat count, no order/thermal
-check, no cross-variant workload-shape check. Still open, and out of scope
-for a pipeline-bench-only change:
+check, no cross-variant workload-shape check, no correctness check at all.
+Still open:
 
-- **No correctness check on model outputs.** Every variant is compared on
-  wall-clock speed alone. A change that's faster but silently wrong (drops
-  a structure, corrupts a batch, races on a shared buffer) would look
-  identical to a real win here. Closing this needs each branch's
-  `benchmark_pipeline.py` to report something like a final loss value that
-  can be compared across variants, not a pipeline-bench change.
 - **Warm-up isn't excluded from the timed region.** More epochs (see
   `config.yaml`) dilutes it but doesn't remove it; excluding it needs
   per-epoch timing in `benchmark_pipeline.py`, which doesn't exist yet.
+- **The correctness check is one scalar, one seed, a few epochs, tiny
+  data.** It caught a real, disclosed discrepancy immediately: `baseline`
+  reproducibly disagrees with `persistent`/`timed`/`transport`/`everything`
+  (which agree bit-for-bit with each other) by ~8% on `best_val_metric` for
+  qm9 at workers=0 even after the val-split fix — below the 50% FAIL
+  threshold, so it doesn't block `rule all`, but it's a WARN worth
+  understanding rather than a green light. A real loss/gradient-level
+  equivalence test, and tightening the WARN/FAIL thresholds once there's
+  enough data to know what noise actually looks like here, are both open.

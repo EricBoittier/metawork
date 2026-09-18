@@ -91,6 +91,7 @@ rule all:
         RESULTS / "stages.csv",
         RESULTS / "equivalence.md",
         RESULTS / "drift.md",
+        RESULTS / "correctness.md",
 
 
 rule si_bulk:
@@ -205,3 +206,16 @@ rule check_drift:
     shell:
         "{params.python} {SCRIPTS}/check_drift.py "
         "--cells-csv {input} --out {output}"
+
+
+rule check_correctness:
+    input:
+        RESULTS / "cells.csv",
+    output:
+        RESULTS / "correctness.md",
+    params:
+        python=SNAKEMAKE_PY,
+        baseline=CFG.get("baseline_variant", "baseline"),
+    shell:
+        "{params.python} {SCRIPTS}/check_correctness.py "
+        "--cells-csv {input} --out {output} --baseline {params.baseline}"
