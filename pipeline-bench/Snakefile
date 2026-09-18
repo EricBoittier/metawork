@@ -2,19 +2,33 @@ from pathlib import Path
 import re
 import sys
 
+import yaml
+
 configfile: "config.yaml"
 
 HERE = Path(workflow.basedir)
 SCRIPTS = HERE / "scripts"
 SNAKEMAKE_PY = sys.executable
+FILE_CFG = yaml.safe_load((HERE / "config.yaml").read_text())
 
 
 def active_config():
-    """Apply the `smoke:` block when `--config run=smoke`."""
+    """Apply the `smoke:` block when `--config smoke=true` or `run=smoke`.
+
+    `--config smoke=true` overwrites the YAML mapping, so the block is read
+    from the file rather than from `config`.
+    """
     cfg = dict(config)
-    if str(cfg.get("run", "")).lower() != "smoke":
+    flag = cfg.get("smoke")
+    run = str(cfg.get("run", "")).lower()
+    want_smoke = run == "smoke" or flag is True or str(flag).lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+    if not want_smoke:
         return cfg
-    block = cfg.get("smoke") or {}
+    block = FILE_CFG.get("smoke") or {}
     cfg["variants"] = {name: cfg["variants"][name] for name in block["variants"]}
     cfg["datasets"] = {name: cfg["datasets"][name] for name in block["datasets"]}
     sweep = dict(cfg["sweep"])

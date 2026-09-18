@@ -1,14 +1,35 @@
-# Review notes for metatensor/metatrain#1267
+# #1267 — four setup/wrapper bugs, and where they live now
 
-Paste-ready. Not posted. The PR is
-https://github.com/metatensor/metatrain/pull/1267.
+Pol’s PR: https://github.com/metatensor/metatrain/pull/1267
+Fixes: [`EricBoittier/metatrain:fix/1267-wrapper-setup`](https://github.com/EricBoittier/metatrain/tree/fix/1267-wrapper-setup)
+(`ba4cb63d`, one commit on top of `pfebrer:mtt_wrapper`). Local checkout:
+`/tmp/metatrain-1267`. Pushed. Not a PR. Compare:
+https://github.com/pfebrer/metatrain/compare/mtt_wrapper...EricBoittier:metatrain:fix/1267-wrapper-setup
 
-`Trainer.setup()` is the right seam. These four are the cleanup I'd want
-before building preprocessing on top of it.
+`Trainer.setup()` is still the right seam. These four were the cleanup
+before building preprocessing on it. All four are done on the fix
+branch; `test_setup_with_zbl` passed; ruff is clean.
 
-## 1. `self.atomic_types` in ZBL setup is an AttributeError
+| # | bug on `mtt_wrapper` | fix |
+| --- | --- | --- |
+| 1 | ZBL reads `self.atomic_types`; Trainer never sets it | `dataset_info.atomic_types` |
+| 2 | export computes a device intersection, then ignores it | capabilities use that intersection, cuda-then-cpu |
+| 3 | eval-time atomic-basis sparsify is commented out | wrapper sparsifies from `self.dataset_info` |
+| 4 | `WrapperHypers` claims dicts; `setup()` passes modules | typed as live `ModelInterface` / list / `Scaler` |
 
-In `Trainer.setup()`, composition is wired correctly:
+The manual sparse add in the wrapper is still hand-rolled:
+`metatensor.torch.add` still cannot sum missing keys. Left as a TODO,
+not one of the four.
+
+`Trainer.setup()` should keep declaring the training representation, not
+grow into neighbor lists, caching, workers, or device movement. Those
+stay in the data utilities. The wrapper stays the inference composition.
+
+## Original notes (what was wrong on the PR)
+
+### 1. `self.atomic_types` in ZBL setup is an AttributeError
+
+Composition is wired correctly:
 
 ```python
 composition_model = CompositionModel.from_valid_targets(
@@ -16,85 +37,22 @@ composition_model = CompositionModel.from_valid_targets(
 )
 ```
 
-Two lines later the ZBL branch does:
+Two lines later the ZBL branch did `atomic_types=self.atomic_types`.
+That attribute lived on `PET` and was copied with the block. Any PET
+run with `zbl: true` raised at setup.
 
-```python
-if model_hypers["zbl"]:
-    ...
-    ZBL(
-        {},
-        dataset_info=DatasetInfo(
-            length_unit=model_dataset_info.length_unit,
-            atomic_types=self.atomic_types,  # Trainer never sets this
-            targets=zbl_targets,
-        ),
-    )
-```
+### 2. Device intersection computed and discarded
 
-`Trainer` has `self.dataset_info` after this method starts, and never
-`self.atomic_types`. That attribute lived on `PET`, and this was moved
-without rewriting the receiver. Any PET run with `zbl: true` raises
-`AttributeError` at setup, before a step runs.
+`export()` built `supported_devices` as the intersection of component
+capabilities, then passed `self.model.__supported_devices__` into
+`ModelCapabilities`.
 
-Fix: `atomic_types=dataset_info.atomic_types` (or
-`model_dataset_info.atomic_types`; they are the same list). A one-line
-ZBL training test would have caught it; that path is untested in this PR.
+### 3. Atomic-basis sparsification commented out
 
-## 2. Device intersection is computed and discarded
+The eval-time `forward` had the sparsify loop commented, so either
+atomic-basis eval was wrong or it was still inside the architecture.
 
-`MetatrainWrapper.export()`:
+### 4. `WrapperHypers` did not describe what `setup()` passes
 
-```python
-supported_devices = set(all_supported_devices[0])
-for devices in all_supported_devices[1:]:
-    supported_devices.intersection_update(devices)
-
-capabilities = ModelCapabilities(
-    ...
-    supported_devices=self.model.__supported_devices__,
-)
-```
-
-The intersection of the exported components is the number that belongs
-on the wrapper. `self.model.__supported_devices__` is the inner
-architecture's class attribute, so a CPU-only additive (or scaler) would
-still advertise CUDA. Use `sorted(supported_devices)`.
-
-## 3. Atomic-basis sparsification is commented out
-
-The wrapper's eval-time `forward` has the sparsify block commented, plus
-a second commented `metatensor.torch.add` with a hand-rolled sparse sum
-under it. This wrapper is supposed to be the inference composition;
-leaving the basis path as comments means PET atomic-basis eval is either
-wrong or still inside the architecture, which is the thing this PR is
-trying to stop.
-
-## 4. `WrapperHypers` does not describe what `setup()` passes
-
-```python
-class WrapperHypers(TypedDict):
-    model: NotRequired[dict]
-    additive_models: NotRequired[list[dict]]
-    scaler: NotRequired[dict]
-```
-
-`Trainer.setup()` (and `export()`) pass live modules:
-
-```python
-hypers=dict(
-    model=model,
-    additive_models=additive_models,
-    scaler=scaler,
-)
-```
-
-The TypedDict is the public construction contract. Either it should say
-`ModelInterface` / `ModuleList` / `Scaler`, or setup should not pretend
-these are hypers dictionaries. As written it is prototype-level.
-
----
-
-`Trainer.setup()` should keep declaring the training representation, not
-grow into the place that also runs neighbor lists, caching, workers, and
-device movement. Those stay in the data utilities. The wrapper should
-stay the inference composition, not pick up training-pipeline mechanics.
+The TypedDict said `dict` / `list[dict]`; `setup()` and `export()`
+pass live modules.

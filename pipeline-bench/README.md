@@ -25,9 +25,12 @@ two datasets are metatrain test resources.
 
 ## Local
 
-Smoke (qm9, `everything`, 2 epochs, workers=0):
+Smoke (qm9, `everything`, 2 epochs, workers=0). Either flag works;
+`--config smoke=true` overwrites the YAML mapping, so the Snakefile
+re-reads the `smoke:` block from `config.yaml`.
 
 ```bash
+.venv/bin/snakemake --profile profiles/local --config smoke=true
 .venv/bin/snakemake --profile profiles/local --config run=smoke
 ```
 

@@ -45,7 +45,9 @@ sweep:
   repeats: 2
   timeout_s: 3600
 
-# Used when --config run=smoke
+# Used when --config smoke=true or --config run=smoke
+# (`smoke=true` overwrites this mapping in snakemake's config; the
+# Snakefile re-reads the block from this file.)
 smoke:
   variants: [everything]
   datasets: [qm9]
