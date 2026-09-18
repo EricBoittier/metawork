@@ -103,11 +103,19 @@ Every variant's `benchmark_pipeline.py` also now seeds `random`/`numpy`/
 and prints `trainer.best_metric` (the best validation metric `Trainer.train`
 tracks internally, independent of `log_interval`) as a `best_val_metric`
 line. That's what `results/correctness.md` compares across variants — see
-below. Branched as `fix/report-best-metric` off each variant's own real ref
-(`perf/4-persistent-workers`, `pr/collate-transform-timing`,
-`pr/system-tensor-transport`, `perf/5-batch-transport`); `pinned` needs no
-separate fix since it's built from `timed`'s ref (`pr/collate-transform-timing`)
-plus `pr/pin-batches`, and will pick this up on its next worktree rebuild.
+below. One branch per variant's own real ref, same instrumentation on each:
+
+| variant | ref | fix branch |
+| --- | --- | --- |
+| `persistent` | `perf/4-persistent-workers` | `fix/report-best-metric` |
+| `timed` | `pr/collate-transform-timing` | `fix/report-best-metric-timed` |
+| `transport` | `pr/system-tensor-transport` | `fix/report-best-metric-transport` |
+| `everything` | `perf/5-batch-transport` | `fix/report-best-metric-everything` |
+
+(Distinct names because each is branched off a different, divergent ref —
+a shared name would collide on push.) `pinned` needs no separate fix since
+it's built from `timed`'s ref plus `pr/pin-batches`, and will pick this up
+on its next worktree rebuild once `fix/report-best-metric-timed` lands.
 
 ## Outputs
 
