@@ -112,6 +112,20 @@ PET_MAD_CELLS = [
     for workers in PET_MAD_WORKERS
 ]
 
+FLASHMD_CFG = CFG.get("flashmd", {})
+FLASHMD_WORKERS = [str(w) for w in FLASHMD_CFG.get("workers", [0, 1])]
+FLASHMD_BATCH = int(FLASHMD_CFG.get("batch_size", 4))
+FLASHMD_DEVICE = str(FLASHMD_CFG.get("device", "cuda"))
+FLASHMD_EPOCHS = int(FLASHMD_CFG.get("epochs", 20))
+FLASHMD_SEED = int(FLASHMD_CFG.get("seed", 0))
+FLASHMD_TIMEOUT = int(FLASHMD_CFG.get("timeout_s", 1200))
+
+FLASHMD_CELLS = [
+    RESULTS / "flashmd_cells" / variant / f"w{workers}.json"
+    for variant in VARIANTS
+    for workers in FLASHMD_WORKERS
+]
+
 
 def resolve_dataset(name):
     path = Path(DATASETS[name]["path"])
@@ -153,6 +167,7 @@ rule all:
         RESULTS / "correctness.md",
         RESULTS / "resume.md",
         RESULTS / "pet_mad.md",
+        RESULTS / "flashmd.md",
 
 
 rule si_bulk:
@@ -399,4 +414,50 @@ rule check_pet_mad:
         baseline=CFG.get("baseline_variant", "baseline"),
     shell:
         "{params.python} {SCRIPTS}/check_pet_mad.py {input} "
+        "--out {output} --baseline {params.baseline}"
+
+
+rule flashmd_cell:
+    input:
+        marker=WORKTREES / "{variant}" / ".variant-shas",
+    output:
+        json=RESULTS / "flashmd_cells" / "{variant}" / "w{workers}.json",
+        log=RESULTS / "flashmd_cells" / "{variant}" / "w{workers}.log",
+    params:
+        worktree=lambda wildcards: WORKTREES / wildcards.variant,
+        batch=FLASHMD_BATCH,
+        device=FLASHMD_DEVICE,
+        epochs=FLASHMD_EPOCHS,
+        seed=FLASHMD_SEED,
+        timeout=FLASHMD_TIMEOUT,
+        python=SNAKEMAKE_PY,
+    resources:
+        gpu=RESOURCES.get("gpus", 1),
+        mem_mb=RESOURCES.get("mem_mb", 16000),
+        runtime=RESOURCES.get("runtime_min", 90),
+    shell:
+        "{params.python} {SCRIPTS}/run_flashmd_cell.py "
+        "--worktree {params.worktree} "
+        "--python {PYTHON} "
+        "--num-workers {wildcards.workers} "
+        "--batch-size {params.batch} "
+        "--device {params.device} "
+        "--epochs {params.epochs} "
+        "--seed {params.seed} "
+        "--timeout-s {params.timeout} "
+        "--variant {wildcards.variant} "
+        "--out {output.json} "
+        "--log {output.log}"
+
+
+rule check_flashmd:
+    input:
+        FLASHMD_CELLS,
+    output:
+        RESULTS / "flashmd.md",
+    params:
+        python=SNAKEMAKE_PY,
+        baseline=CFG.get("baseline_variant", "baseline"),
+    shell:
+        "{params.python} {SCRIPTS}/check_flashmd.py {input} "
         "--out {output} --baseline {params.baseline}"

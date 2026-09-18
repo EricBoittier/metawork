@@ -108,8 +108,9 @@ Every variant's `benchmark_pipeline.py` also now takes a `--seed` (default
 model, and prints `trainer.best_metric` plus epoch-1 train/val loss —
 that's what `results/correctness.md` compares across variants. The same
 branches also each add `benchmarks/benchmark_checkpoint_resume.py` (runs
-as `results/resume.md`) and `benchmarks/benchmark_pet_mad.py` (runs as
-`results/pet_mad.md`). One branch per variant's own real ref, same
+as `results/resume.md`), `benchmarks/benchmark_pet_mad.py` (runs as
+`results/pet_mad.md`), and `benchmarks/benchmark_flashmd.py` (runs as
+`results/flashmd.md`). One branch per variant's own real ref, same
 instrumentation on each:
 
 | variant | ref | fix branch |
@@ -185,6 +186,25 @@ on its next worktree rebuild once `fix/report-best-metric-timed` lands.
   second, independent data point for the same pattern `results/
   correctness.md` found on structure size: whatever's behind baseline's
   divergence matters less as the workload gets bigger.
+- `results/flashmd.md` — a baseline/regression snapshot for FlashMD
+  (`experimental.flashmd`, a different architecture from PET), not a
+  perf-branch comparison: none of the six variants touch FlashMD's trainer
+  at all (confirmed by diff), and FlashMD's trainer has zero
+  `metatrain.utils.timing` instrumentation of its own, so there's no
+  loader/step breakdown or `atoms/s` here — only wall-clock time and loss
+  metrics, plus a coarse derived `structures/s`. Trains on metatrain's own
+  tiny FlashMD test fixture (10 32-atom frames; there's no larger
+  FlashMD-labeled dataset in this repo). Always runs as part of `rule all`.
+  Ran it for real: **all 12 cells completed**, and because FlashMD's code
+  is byte-identical across all six variants, this is the cleanest version
+  yet of the pattern the other two checks kept finding — `baseline`
+  differs from `persistent`/`timed`/`transport`/`everything`/`pinned`
+  (which still agree bit-for-bit with each other) by ~2%, on code where
+  the data-loading changes literally cannot be the cause. Whatever's
+  behind `baseline`'s recurring divergence is something about that
+  branch or its build environment, not the pipeline optimizations
+  themselves — worth tracing before trusting `baseline` as a clean
+  control in any of these checks.
 - `results/atoms_per_s.png` — optional, needs matplotlib
 
 ## What the correctness check already found
@@ -210,14 +230,20 @@ molecular datasets — the same structure-size axis that decided the
 throughput story in `notes/medium-hardware-run.md`, but here it's about
 whether the numbers agree at all, not how fast they're computed. One cell
 (`qm9`, seed 0, `epoch1_val_loss`) crossed the 50% FAIL line outright (57%).
-Plausible mechanism: with only ~10 atoms/structure, a batch carries very
-little signal, so whatever incidental difference exists between baseline's
-DataLoader construction and the newer branches' (different code, matched
-seed, but not necessarily the same sequence of random draws once workers or
-collate differ) gets amplified in the loss; with 1000 atoms/structure, each
-batch carries enough signal that the same incidental difference washes out.
-Not confirmed — a real explanation needs tracing where baseline's RNG
-consumption actually diverges, which is open.
+
+**Update, from `results/flashmd.md`:** the original hypothesis here — that
+this comes from an incidental difference in baseline's DataLoader
+construction that a larger per-batch signal washes out — doesn't survive
+the FlashMD cross-check. FlashMD's trainer code is byte-identical across
+all six variants (the perf branches never touch it), so there is no
+DataLoader-construction difference to amplify or wash out, and yet
+`baseline` still diverges from the other five by ~2% there too. That rules
+out the data-loading changes as the mechanism entirely: whatever's behind
+`baseline`'s recurring divergence is something about that branch or its
+build/dependency environment (it's the oldest branch in the stack, likely
+diverged furthest from a common ancestor commit), not anything these perf
+branches touch. Tracing the actual source is still open, but it's no
+longer a data-loading question.
 
 ## Methodology gaps this harness cannot close by itself
 

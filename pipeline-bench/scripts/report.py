@@ -7,8 +7,9 @@ from typing import Any, Dict, Optional
 
 
 HEADER = re.compile(
-    r"PET, (?P<n_train>\d+) train \+ (?P<n_val>\d+) validation structures, "
-    r"batch_size=(?P<batch_size>\d+), num_workers=(?P<num_workers>\d+), "
+    r"(?P<architecture>\S+), (?P<n_train>\d+) train \+ (?P<n_val>\d+) validation "
+    r"structures, batch_size=(?P<batch_size>\d+), "
+    r"num_workers=(?P<num_workers>\d+), "
     r"device=(?P<device>\S+), epochs=(?P<epochs>\d+), "
     r"(?P<wall_s>[\d.]+) s wall"
 )
@@ -41,6 +42,7 @@ def parse_report(text: str) -> Dict[str, Any]:
     match = HEADER.search(text)
     if match:
         header = {
+            "architecture": match["architecture"],
             "n_train": int(match["n_train"]),
             "n_val": int(match["n_val"]),
             "batch_size": int(match["batch_size"]),

@@ -140,6 +140,26 @@ pet_mad:
   seed: 0
   timeout_s: 1200
 
+# Always runs as part of `rule all`. FlashMD (experimental.flashmd) is a
+# different architecture from PET, built on the same shared data-loading
+# code this harness benchmarks, but the perf/data-loading branches don't
+# touch its trainer at all — so this is a baseline/regression snapshot for
+# FlashMD's own performance, not a "does the optimization help" comparison.
+# Uses metatrain's own tiny FlashMD test fixture (10 32-atom frames,
+# src/metatrain/experimental/flashmd/tests/data/flashmd.xyz) since there's
+# no larger FlashMD-labeled dataset in this repo; epochs is the knob for
+# getting a meaningful number of steps out of it. See results/flashmd.md
+# and scripts/check_flashmd.py. Requires benchmarks/benchmark_flashmd.py on
+# the variant's worktree — same fix branches as resume_check/pet_mad; a
+# variant without it reports status=no_flashmd_script rather than failing.
+flashmd:
+  workers: [0, 1]
+  batch_size: 4
+  device: cuda
+  epochs: 20
+  seed: 0
+  timeout_s: 1200
+
 resources:
   cpus: 8
   mem_mb: 16000
