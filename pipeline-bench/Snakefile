@@ -74,6 +74,23 @@ SEEDS = [str(s) for s in SWEEP.get("seeds", [0])]
 TIMEOUT = int(SWEEP.get("timeout_s", 3600))
 RESOURCES = CFG.get("resources", {})
 
+RESUME_CFG = CFG.get("resume_check", {})
+RESUME_DATASETS = [d for d in RESUME_CFG.get("datasets", ["qm9"]) if d in DATASETS]
+RESUME_WORKERS = [str(w) for w in RESUME_CFG.get("workers", [0, 1])]
+RESUME_BATCH = int(RESUME_CFG.get("batch_size", 8))
+RESUME_DEVICE = str(RESUME_CFG.get("device", "cuda"))
+RESUME_EPOCHS = int(RESUME_CFG.get("epochs", 6))
+RESUME_SPLIT = int(RESUME_CFG.get("split_epoch", 3))
+RESUME_SEED = int(RESUME_CFG.get("seed", 0))
+RESUME_TIMEOUT = int(RESUME_CFG.get("timeout_s", 1200))
+
+RESUME_CELLS = [
+    RESULTS / "resume_cells" / variant / dataset / f"w{workers}.json"
+    for variant in VARIANTS
+    for dataset in RESUME_DATASETS
+    for workers in RESUME_WORKERS
+]
+
 
 def resolve_dataset(name):
     path = Path(DATASETS[name]["path"])
@@ -113,6 +130,7 @@ rule all:
         RESULTS / "equivalence.md",
         RESULTS / "drift.md",
         RESULTS / "correctness.md",
+        RESULTS / "resume.md",
 
 
 rule si_bulk:
@@ -240,3 +258,54 @@ rule check_correctness:
     shell:
         "{params.python} {SCRIPTS}/check_correctness.py "
         "--cells-csv {input} --out {output} --baseline {params.baseline}"
+
+
+rule resume_cell:
+    input:
+        marker=WORKTREES / "{variant}" / ".variant-shas",
+        dataset=dataset_input,
+    output:
+        json=RESULTS / "resume_cells" / "{variant}" / "{dataset}" / "w{workers}.json",
+        log=RESULTS / "resume_cells" / "{variant}" / "{dataset}" / "w{workers}.log",
+    params:
+        worktree=lambda wildcards: WORKTREES / wildcards.variant,
+        key=lambda wildcards: DATASETS[wildcards.dataset]["key"],
+        batch=RESUME_BATCH,
+        device=RESUME_DEVICE,
+        epochs=RESUME_EPOCHS,
+        split=RESUME_SPLIT,
+        seed=RESUME_SEED,
+        timeout=RESUME_TIMEOUT,
+        python=SNAKEMAKE_PY,
+    resources:
+        gpu=RESOURCES.get("gpus", 1),
+        mem_mb=RESOURCES.get("mem_mb", 16000),
+        runtime=RESOURCES.get("runtime_min", 90),
+    shell:
+        "{params.python} {SCRIPTS}/run_resume_check.py "
+        "--worktree {params.worktree} "
+        "--python {PYTHON} "
+        "--dataset {input.dataset} "
+        "--key {params.key} "
+        "--num-workers {wildcards.workers} "
+        "--batch-size {params.batch} "
+        "--device {params.device} "
+        "--epochs {params.epochs} "
+        "--split-epoch {params.split} "
+        "--seed {params.seed} "
+        "--timeout-s {params.timeout} "
+        "--variant {wildcards.variant} "
+        "--dataset-name {wildcards.dataset} "
+        "--out {output.json} "
+        "--log {output.log}"
+
+
+rule check_resume:
+    input:
+        RESUME_CELLS,
+    output:
+        RESULTS / "resume.md",
+    params:
+        python=SNAKEMAKE_PY,
+    shell:
+        "{params.python} {SCRIPTS}/check_resume.py {input} --out {output}"

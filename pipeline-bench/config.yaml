@@ -98,6 +98,27 @@ correctness:
   seeds: [0, 1, 2]
   timeout_s: 1200
 
+# Always runs as part of `rule all` (not a --config mode like smoke/
+# correctness above) — small and cheap enough (12 cells by default: 6
+# variants x 2 worker counts) not to need opting into. Each cell trains
+# once straight through and once through a real checkpoint save + restart
+# (scripts/run_resume_check.py -> benchmarks/benchmark_checkpoint_resume.py),
+# via the same code path `mtt train --restart` uses. See results/resume.md
+# and scripts/check_resume.py. Requires every variant's worktree to have
+# benchmarks/benchmark_checkpoint_resume.py — not yet true for the upstream
+# refs in `variants:` above until the fix/report-best-metric* /
+# fix/pipeline-benchmark-val-split branches land; until then a variant
+# without the script reports status=no_resume_script rather than failing.
+resume_check:
+  datasets: [qm9]
+  workers: [0, 1]
+  batch_size: 8
+  device: cuda
+  epochs: 6
+  split_epoch: 3
+  seed: 0
+  timeout_s: 1200
+
 resources:
   cpus: 8
   mem_mb: 16000

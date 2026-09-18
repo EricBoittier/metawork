@@ -98,12 +98,13 @@ fixed on `fix/pipeline-benchmark-val-split` (branched off
 `perf/1-pipeline-benchmark`) — merge that into `baseline`'s ref before
 trusting this harness's `results/equivalence.md` for it.
 
-Every variant's `benchmark_pipeline.py` also now seeds `random`/`numpy`/
-`torch` with the same fixed `SEED = 0` before touching the dataset or model,
-and prints `trainer.best_metric` (the best validation metric `Trainer.train`
-tracks internally, independent of `log_interval`) as a `best_val_metric`
-line. That's what `results/correctness.md` compares across variants — see
-below. One branch per variant's own real ref, same instrumentation on each:
+Every variant's `benchmark_pipeline.py` also now takes a `--seed` (default
+0) it uses to seed `random`/`numpy`/`torch` before touching the dataset or
+model, and prints `trainer.best_metric` plus epoch-1 train/val loss —
+that's what `results/correctness.md` compares across variants. The same
+branches also each add `benchmarks/benchmark_checkpoint_resume.py`, which
+`results/resume.md` runs. One branch per variant's own real ref, same
+instrumentation on each:
 
 | variant | ref | fix branch |
 | --- | --- | --- |
@@ -145,6 +146,21 @@ on its next worktree rebuild once `fix/report-best-metric-timed` lands.
   thermal/load drift would otherwise be silently confounded with whichever
   variant happened to run early or late. A flagged rho is a smell test, not
   a diagnosis — see the script's own caveat in its output.
+- `results/resume.md` — does checkpoint save/restart still work for each
+  variant? `benchmarks/benchmark_checkpoint_resume.py` trains once straight
+  through and once split into two phases with a real checkpoint save +
+  restart in between, via the exact path `mtt train --restart` uses in
+  production. A CRASH here is the regression this check exists to catch
+  (does persistent_workers survive being torn down and rebuilt across the
+  restart, does the batch-transport format round-trip through a checkpoint
+  correctly); a `best_val_metric` drift between the two runs on a completed
+  cell is expected background noise, not a failure — the checkpoint doesn't
+  carry RNG state, so the resumed run's data order after the split isn't
+  the one the continuous run would have drawn. Always runs as part of
+  `rule all` (small: 6 variants x 2 worker counts by default), not an
+  opt-in mode. Ran it for real against the fix branches: **all 12 cells
+  completed without error**, including `pinned` — checkpoint resume isn't
+  broken by any of the data-loading changes in this stack.
 - `results/atoms_per_s.png` — optional, needs matplotlib
 
 ## What the correctness check already found
