@@ -78,11 +78,22 @@ def merge(path: Path, sha: str) -> None:
 
 
 def _copy_version(repo: Path, path: Path) -> None:
-    """Editable installs generate `_version.py`; worktrees do not have it."""
+    """Supply the `_version.py` that only an install generates.
+
+    `metatrain/__init__.py` imports `__version__` from it, so a worktree
+    without it cannot be imported at all. Prefer the one an editable install
+    left in the live checkout; failing that, describe the commit. The string
+    is only ever logged, never parsed.
+    """
     src = repo / "src" / "metatrain" / "_version.py"
     dst = path / "src" / "metatrain" / "_version.py"
-    if src.is_file() and not dst.is_file():
+    if dst.is_file():
+        return
+    if src.is_file():
         dst.write_text(src.read_text())
+        return
+    described = git(path, "describe", "--tags", "--always", check=False).stdout.strip()
+    dst.write_text(f'__version__ = version = "{described or "0.0.0+unknown"}"\n')
 
 
 def materialize(repo: Path, path: Path, refs: list[str]) -> None:

@@ -59,19 +59,15 @@ Three things, and they are separate on purpose:
    repository, not an export. The submodule lands detached at whatever
    commit metawork happens to record, which does not matter: the variants
    are built as worktrees of refs fetched from `origin`, and the checkout
-   itself only supplies the datasets under `tests/resources`. It must be
-   **installed editable**
-   into the run environment (see below) because `setuptools_scm` only writes
-   `src/metatrain/_version.py` into the source tree that way, and
-   `metatrain/__init__.py` imports `__version__` from it. Without that file
-   every cell dies at import.
+   itself only supplies the datasets under `tests/resources`.
 2. **A run environment** with metatrain's dependencies: torch (matching the
    cluster's CUDA), metatensor, metatomic, ase, and `psutil` (optional — the
    benchmark degrades to empty memory columns without it). This is
-   `config.yaml: python`. The *installed* metatrain in it is shadowed at run
-   time: `run_cell.py` puts `<worktree>/src` on `PYTHONPATH`, so each cell
-   imports the variant's code, not the env's. The install exists for the
-   dependencies and for `_version.py`.
+   `config.yaml: python`. Whether metatrain itself is installed in it barely
+   matters, because it is shadowed at run time: `run_cell.py` puts
+   `<worktree>/src` on `PYTHONPATH`, so each cell imports the variant's
+   code. Installing it editable is simply the easiest way to get the
+   dependency set right.
 3. **A snakemake environment**, deliberately separate, holding only
    `snakemake>=8`, `pyyaml`, `pandas`, `matplotlib` (`requirements.txt`).
    Keeping it out of the run environment means snakemake's dependency
@@ -100,7 +96,6 @@ git -C metatrain fetch origin                     # brings the variant branches
 python -m venv .venv
 .venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cu124
 .venv/bin/pip install -e metatrain psutil
-ls metatrain/src/metatrain/_version.py    # must exist now
 
 # 3. snakemake environment
 cd pipeline-bench
@@ -246,9 +241,12 @@ The whole `results/` tree is a few MB at most; `rsync` it back and re-run
 
 ## Gotchas worth knowing before they bite
 
-- **`_version.py`** — the single most likely failure. `make_worktree.py`
-  copies it from the live checkout into each worktree, so if the clone was
-  not installed editable, every cell fails at import. Check for the file.
+- **`src/metatrain/_version.py`** is not in git; only an install generates
+  it, and `metatrain/__init__.py` imports `__version__` from it, so a
+  worktree without it cannot be imported at all. `make_worktree.py` copies
+  the live checkout's or, if there is none, writes one from `git describe`.
+  Nothing parses that string, but it does mean a cell's logged version can
+  be a bare commit sha rather than a release number.
 - **The `pinned` variant merges two branches.** `pr/pin-batches` and
   `pr/collate-transform-timing` both add kwargs at the same `DataLoader`
   sites, so the merge conflicts by construction; `make_worktree.py` resolves
