@@ -46,20 +46,21 @@ variant: `pr/zbl-training-coverage` is
 [#1276](https://github.com/metatensor/metatrain/pull/1276), and
 `zbl-setup-on-1267` is parked locally until #1267 merges.
 
-**The harness itself is not pushed yet.** The two commits that add
-`pipeline-bench/` and the kuma job spec are local on `metawork@main`, which
-is ahead of `origin/main` by exactly those two. Either push them first, or
-`rsync -a pipeline-bench/ <cluster>:.../pipeline-bench/ --exclude .venv
---exclude worktrees --exclude results` — a clone alone will not bring the
-harness.
+The harness lives in `EricBoittier/metawork` on `main`, and a clone of that
+plus the `metatrain` submodule is everything you need.
 
 ## What the cluster needs
 
 Three things, and they are separate on purpose:
 
 1. **A metatrain clone**, writable, with `EricBoittier/metatrain` as a remote
-   named `origin`. The harness runs `git worktree add` inside it, so it needs
-   the actual repository, not an export. It must be **installed editable**
+   named `origin` — the `metatrain` submodule of metawork already is one. The
+   harness runs `git worktree add` inside it, so it needs the actual
+   repository, not an export. The submodule lands detached at whatever
+   commit metawork happens to record, which does not matter: the variants
+   are built as worktrees of refs fetched from `origin`, and the checkout
+   itself only supplies the datasets under `tests/resources`. It must be
+   **installed editable**
    into the run environment (see below) because `setuptools_scm` only writes
    `src/metatrain/_version.py` into the source tree that way, and
    `metatrain/__init__.py` imports `__version__` from it. Without that file
@@ -85,12 +86,15 @@ to pick.
 ## Porting it, step by step
 
 ```bash
-# 1. the harness and the repo under test
-git clone https://github.com/EricBoittier/metawork.git   # needs the 2 unpushed
-cd metawork                                              # commits; see above
-
-git clone git@github.com:EricBoittier/metatrain.git   # origin = the fork
-git -C metatrain fetch origin
+# 1. the harness and the repo under test. metatrain is a submodule of
+#    metawork pointing at the fork, so init it rather than cloning it
+#    separately -- but only it: there are 13 submodules and you want one.
+git clone https://github.com/EricBoittier/metawork.git
+cd metawork
+git config submodule.metatrain.url \
+  https://github.com/EricBoittier/metatrain.git   # skip if you have an SSH key
+git submodule update --init metatrain
+git -C metatrain fetch origin                     # brings the variant branches
 
 # 2. run environment (adjust the torch index for the cluster's CUDA)
 python -m venv .venv
