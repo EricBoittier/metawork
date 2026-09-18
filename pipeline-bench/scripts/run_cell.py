@@ -44,6 +44,9 @@ def run_benchmark(
     epochs: int,
     timeout_s: int,
     log_path: Path,
+    model_hypers_json: str | None = None,
+    max_atoms_per_batch: int | None = None,
+    world_size: int = 1,
 ) -> str:
     script = worktree / "benchmarks" / "benchmark_pipeline.py"
     if not script.is_file():
@@ -67,19 +70,51 @@ def run_benchmark(
         "--epochs",
         str(epochs),
     ]
+    if model_hypers_json:
+        cmd += ["--model-hypers-json", model_hypers_json]
+    if max_atoms_per_batch:
+        cmd += ["--max-atoms-per-batch", str(max_atoms_per_batch)]
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    with log_path.open("w") as log:
-        log.write("# " + " ".join(cmd) + "\n")
-        log.flush()
+
+    if world_size > 1:
+        # metatrain's Trainer.train() auto-enables DistributedDataParallel
+        # whenever SLURM_NTASKS > 1 (see
+        # metatrain.utils.distributed.slurm.resolve_distributed) and does its
+        # own process-group setup from the SLURM_* env -- no extra flags
+        # needed here beyond launching one task per rank. Each rank's stdout
+        # goes to its own file (srun's %t), since interleaving N ranks'
+        # output into one pipe would garble it; rank 0's becomes the log
+        # that parse_report() reads, matching the single-GPU cell's output.
+        rank_stem = log_path.with_suffix("")
+        full_cmd = [
+            "srun",
+            "--ntasks",
+            str(world_size),
+            "--output",
+            f"{rank_stem}.rank%t.log",
+        ] + cmd
+        log_path.write_text("# " + " ".join(full_cmd) + "\n")
         proc = subprocess.run(
-            cmd,
-            env=env,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            timeout=timeout_s,
-            check=False,
+            full_cmd, env=env, timeout=timeout_s, check=False
         )
-    text = log_path.read_text()
+        rank0_log = Path(f"{rank_stem}.rank0.log")
+        text = rank0_log.read_text() if rank0_log.is_file() else ""
+        with log_path.open("a") as log:
+            log.write(text)
+    else:
+        with log_path.open("w") as log:
+            log.write("# " + " ".join(cmd) + "\n")
+            log.flush()
+            proc = subprocess.run(
+                cmd,
+                env=env,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                timeout=timeout_s,
+                check=False,
+            )
+        text = log_path.read_text()
+
     if proc.returncode != 0:
         raise SystemExit(
             f"benchmark exited {proc.returncode}; see {log_path}\n{text[-2000:]}"
@@ -103,6 +138,27 @@ def main() -> None:
     parser.add_argument("--repeat", type=int, default=0)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--log", type=Path, required=True)
+    parser.add_argument(
+        "--model-hypers-json",
+        default=None,
+        help="JSON dict merged into the default PET model hypers, e.g. to "
+        "test a larger model size",
+    )
+    parser.add_argument(
+        "--max-atoms-per-batch",
+        type=int,
+        default=None,
+        help="pack batches under this total atom count instead of a fixed "
+        "--batch-size structure count",
+    )
+    parser.add_argument(
+        "--world-size",
+        type=int,
+        default=1,
+        help="number of ranks/GPUs; >1 launches via `srun --ntasks` for "
+        "real DistributedDataParallel (metatrain auto-enables it from "
+        "SLURM_NTASKS)",
+    )
     args = parser.parse_args()
 
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -117,6 +173,9 @@ def main() -> None:
         args.epochs,
         args.timeout_s,
         args.log,
+        args.model_hypers_json,
+        args.max_atoms_per_batch,
+        args.world_size,
     )
     parsed = parse_report(stdout)
     sha_file = args.worktree / ".variant-shas"
@@ -128,6 +187,7 @@ def main() -> None:
         "batch_size": args.batch_size,
         "device": args.device,
         "epochs": args.epochs,
+        "world_size": args.world_size,
         "host": socket.gethostname(),
         "platform": platform.platform(),
         "slurm_job": os.environ.get("SLURM_JOB_ID"),

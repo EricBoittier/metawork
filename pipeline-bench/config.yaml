@@ -1,6 +1,6 @@
 # Paths are resolved relative to this file's directory unless absolute.
-metatrain: /home/ericb/metawork/metatrain
-python: /home/ericb/metawork/.venv/bin/python
+metatrain: /home/boittier/metawork/metatrain
+python: /home/boittier/metawork/.venv/bin/python
 worktrees: worktrees
 results: results
 data: data
@@ -24,10 +24,10 @@ variants:
 
 datasets:
   qm9:
-    path: /home/ericb/metawork/metatrain/tests/resources/qm9_reduced_100.xyz
+    path: /home/boittier/metawork/metatrain/tests/resources/qm9_reduced_100.xyz
     key: U0
   carbon:
-    path: /home/ericb/metawork/metatrain/tests/resources/carbon_reduced_100.xyz
+    path: /home/boittier/metawork/metatrain/tests/resources/carbon_reduced_100.xyz
     key: energy
   si216:
     path: data/si_bulk_216.xyz
@@ -35,6 +35,13 @@ datasets:
     generate:
       n_cells: 3
       n_structures: 64
+      seed: 0
+  omol_proxy:
+    path: data/omol_proxy.xyz
+    key: energy
+    generate:
+      n_structures: 200
+      max_cells: 4
       seed: 0
 
 sweep:
@@ -65,3 +72,23 @@ resources:
   gpus: 1
 
 baseline_variant: baseline
+
+# Real multi-GPU DDP + atoms-per-batch sweep, separate from the main matrix
+# since it needs a different Slurm allocation (world_size GPUs on one node,
+# via `srun --ntasks`, not the single-GPU-per-cell model above). Build with
+# `snakemake distributed --resources gpu=<max world_size>`, from a job that
+# actually requested that many GPUs+tasks (see smoke-slurm/multigpu-smoke.sbatch).
+# `omol_proxy` stands in for a large size-diverse dataset like OMol25 (not
+# available here); size spread is what exercises max_atoms_per_batch.
+distributed:
+  variants: [everything]
+  dataset: omol_proxy
+  world_sizes: [1, 2]
+  batch_size: 8
+  max_atoms_per_batch: 512
+  epochs: 2
+  repeats: 1
+  timeout_s: 1500
+  cpus_per_task: 8
+  mem_mb: 32000
+  runtime_min: 30

@@ -56,9 +56,19 @@ EPOCHS = int(SWEEP["epochs"])
 TIMEOUT = int(SWEEP.get("timeout_s", 3600))
 RESOURCES = CFG.get("resources", {})
 
+DIST = CFG.get("distributed", {})
+DIST_VARIANTS = list(DIST.get("variants", []))
+DIST_DATASET = DIST.get("dataset")
+DIST_WORLD_SIZES = [str(w) for w in DIST.get("world_sizes", [1])]
+DIST_REPEATS = [str(r) for r in range(int(DIST.get("repeats", 1)))]
+# `datasets:` is trimmed down by active_config() when smoke=true, but the
+# `distributed:` sweep is independent of smoke -- resolve its dataset from
+# the untrimmed file config instead of the (possibly smoke-filtered) DATASETS.
+ALL_DATASETS = FILE_CFG.get("datasets", {})
 
-def resolve_dataset(name):
-    path = Path(DATASETS[name]["path"])
+
+def resolve_dataset(name, datasets=None):
+    path = Path((datasets or DATASETS)[name]["path"])
     return path if path.is_absolute() else HERE / path
 
 
@@ -75,6 +85,13 @@ CELLS = [
     for repeat in REPEATS
 ]
 
+DIST_CELLS = [
+    RESULTS / "distributed" / variant / f"g{world_size}_r{repeat}.json"
+    for variant in DIST_VARIANTS
+    for world_size in DIST_WORLD_SIZES
+    for repeat in DIST_REPEATS
+]
+
 wildcard_constraints:
     variant="|".join(map(re.escape, VARIANTS)),
     dataset="|".join(map(re.escape, DATASETS)),
@@ -82,6 +99,7 @@ wildcard_constraints:
     batch="[0-9]+",
     repeat="[0-9]+",
     device="cpu|cuda",
+    world_size="[0-9]+",
 
 
 rule all:
@@ -101,6 +119,19 @@ rule si_bulk:
     shell:
         "{PYTHON} {SCRIPTS}/make_si_bulk.py --out {output} "
         "--n-cells {params.n_cells} --n-structures {params.n_structures} "
+        "--seed {params.seed}"
+
+
+rule omol_proxy:
+    output:
+        DATA / "omol_proxy.xyz",
+    params:
+        n_structures=DATASETS.get("omol_proxy", {}).get("generate", {}).get("n_structures", 200),
+        max_cells=DATASETS.get("omol_proxy", {}).get("generate", {}).get("max_cells", 4),
+        seed=DATASETS.get("omol_proxy", {}).get("generate", {}).get("seed", 0),
+    shell:
+        "{PYTHON} {SCRIPTS}/make_omol_proxy.py --out {output} "
+        "--n-structures {params.n_structures} --max-cells {params.max_cells} "
         "--seed {params.seed}"
 
 
@@ -161,6 +192,70 @@ rule cell:
         "--repeat {wildcards.repeat} "
         "--out {output.json} "
         "--log {output.log}"
+
+
+rule distributed_cell:
+    input:
+        marker=WORKTREES / "{variant}" / ".variant-shas",
+        dataset=resolve_dataset(DIST_DATASET, ALL_DATASETS) if DIST_DATASET else [],
+    output:
+        json=RESULTS / "distributed" / "{variant}" / "g{world_size}_r{repeat}.json",
+        log=RESULTS / "distributed" / "{variant}" / "g{world_size}_r{repeat}.log",
+    params:
+        worktree=lambda wildcards: WORKTREES / wildcards.variant,
+        key=ALL_DATASETS.get(DIST_DATASET, {}).get("key", "energy"),
+        epochs=DIST.get("epochs", 2),
+        timeout=DIST.get("timeout_s", 1500),
+        batch_size=DIST.get("batch_size", 8),
+        max_atoms=DIST.get("max_atoms_per_batch", 512),
+        python=SNAKEMAKE_PY,
+    resources:
+        gpu=lambda wildcards: int(wildcards.world_size),
+        mem_mb=DIST.get("mem_mb", 32000),
+        runtime=DIST.get("runtime_min", 30),
+    shell:
+        "{params.python} {SCRIPTS}/run_cell.py "
+        "--worktree {params.worktree} "
+        "--python {PYTHON} "
+        "--dataset {input.dataset} "
+        "--key {params.key} "
+        "--num-workers 0 "
+        "--batch-size {params.batch_size} "
+        "--device cuda "
+        "--epochs {params.epochs} "
+        "--timeout-s {params.timeout} "
+        "--variant {wildcards.variant} "
+        "--dataset-name {DIST_DATASET} "
+        "--repeat {wildcards.repeat} "
+        "--world-size {wildcards.world_size} "
+        "--max-atoms-per-batch {params.max_atoms} "
+        "--out {output.json} "
+        "--log {output.log}"
+
+
+rule distributed_aggregate:
+    input:
+        DIST_CELLS,
+    output:
+        summary=RESULTS / "distributed_summary.md",
+        cells=RESULTS / "distributed_cells.csv",
+        stages=RESULTS / "distributed_stages.csv",
+    params:
+        baseline=CFG.get("baseline_variant", "baseline"),
+        python=SNAKEMAKE_PY,
+    shell:
+        "{params.python} {SCRIPTS}/aggregate.py {input} "
+        "--baseline {params.baseline} "
+        "--cells-csv {output.cells} "
+        "--stages-csv {output.stages} "
+        "--summary {output.summary}"
+
+
+rule distributed:
+    input:
+        RESULTS / "distributed_summary.md",
+        RESULTS / "distributed_cells.csv",
+        RESULTS / "distributed_stages.csv",
 
 
 rule aggregate:
