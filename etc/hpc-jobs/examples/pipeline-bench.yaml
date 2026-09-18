@@ -4,7 +4,7 @@ name: pipeline-bench
 type: bench
 cluster: kuma
 qos: normal
-nodes: 1
+partition: l40s  # or h100; kuma has no default partition, this is required
 gpus: 1
 cpus_per_task: 8
 time: "12:00:00"

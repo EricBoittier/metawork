@@ -22,6 +22,9 @@ Job spec fields (see etc/hpc-jobs/examples/*.yaml):
     type            free-form label for the manifest, e.g. "train" or "md"
     cluster         key into CLUSTERS below (default: "kuma")
     qos             QOS name for that cluster, e.g. "normal" / "debug"
+    partition       SLURM partition, e.g. kuma's "l40s" / "h100" / "mig24gb"
+                    (no default partition is configured, so this is required
+                    on kuma)
     nodes, gpus, cpus_per_task, time, mem   SLURM resource requests
     venv            "shared" (.venv) or "upet" (.venv-upet)
     workdir         cwd for `command`, relative to the metawork repo root
@@ -182,12 +185,19 @@ def render_sbatch(job, run_dir, manifest_path):
     ]
     if "qos" in job:
         lines.append(f"#SBATCH --qos={job['qos']}")
+    if "partition" in job:
+        lines.append(f"#SBATCH --partition={job['partition']}")
     if "time" in job:
         lines.append(f"#SBATCH --time={job['time']}")
-    if "nodes" in job:
+    if "nodes" in job and not job.get("gpus"):
+        # kuma's job_submit plugin rejects the --nodes=N + --gpus=N
+        # combination outright ("CPU count per node can not be satisfied"),
+        # even for N=1. Omit --nodes for GPU jobs; it is implicitly 1.
         lines.append(f"#SBATCH --nodes={job['nodes']}")
     if job.get("gpus"):
-        lines.append(f"#SBATCH --gres=gpu:{job['gpus']}")
+        # kuma's job_submit plugin rejects --gres=gpu:N ("CPU count per node
+        # can not be satisfied"); --gpus=N is what it actually wants.
+        lines.append(f"#SBATCH --gpus={job['gpus']}")
     if "cpus_per_task" in job:
         lines.append(f"#SBATCH --cpus-per-task={job['cpus_per_task']}")
     if "mem" in job:
@@ -245,6 +255,7 @@ def main():
         "slurm": {
             "cluster": job["cluster"],
             "qos": job.get("qos"),
+            "partition": job.get("partition"),
             "nodes": job.get("nodes"),
             "gpus": job.get("gpus"),
             "cpus_per_task": job.get("cpus_per_task"),
