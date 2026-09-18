@@ -1,0 +1,167 @@
+from pathlib import Path
+import re
+import sys
+
+configfile: "config.yaml"
+
+HERE = Path(workflow.basedir)
+SCRIPTS = HERE / "scripts"
+SNAKEMAKE_PY = sys.executable
+
+
+def active_config():
+    """Apply the `smoke:` block when `--config run=smoke`."""
+    cfg = dict(config)
+    if str(cfg.get("run", "")).lower() != "smoke":
+        return cfg
+    block = cfg.get("smoke") or {}
+    cfg["variants"] = {name: cfg["variants"][name] for name in block["variants"]}
+    cfg["datasets"] = {name: cfg["datasets"][name] for name in block["datasets"]}
+    sweep = dict(cfg["sweep"])
+    for key in ("workers", "batch_size", "device", "epochs", "repeats", "timeout_s"):
+        if key in block:
+            sweep[key] = block[key]
+    cfg["sweep"] = sweep
+    return cfg
+
+
+CFG = active_config()
+RESULTS = HERE / CFG.get("results", "results")
+WORKTREES = HERE / CFG.get("worktrees", "worktrees")
+DATA = HERE / CFG.get("data", "data")
+PYTHON = CFG["python"]
+REPO = Path(CFG["metatrain"])
+VARIANTS = CFG["variants"]
+DATASETS = CFG["datasets"]
+SWEEP = CFG["sweep"]
+WORKERS = [str(w) for w in SWEEP["workers"]]
+BATCHES = [str(b) for b in SWEEP["batch_size"]]
+REPEATS = [str(r) for r in range(int(SWEEP["repeats"]))]
+DEVICE = str(SWEEP["device"])
+EPOCHS = int(SWEEP["epochs"])
+TIMEOUT = int(SWEEP.get("timeout_s", 3600))
+RESOURCES = CFG.get("resources", {})
+
+
+def resolve_dataset(name):
+    path = Path(DATASETS[name]["path"])
+    return path if path.is_absolute() else HERE / path
+
+
+CELLS = [
+    RESULTS
+    / "cells"
+    / variant
+    / dataset
+    / f"w{workers}_b{batch}_{DEVICE}_r{repeat}.json"
+    for variant in VARIANTS
+    for dataset in DATASETS
+    for workers in WORKERS
+    for batch in BATCHES
+    for repeat in REPEATS
+]
+
+wildcard_constraints:
+    variant="|".join(map(re.escape, VARIANTS)),
+    dataset="|".join(map(re.escape, DATASETS)),
+    workers="[0-9]+",
+    batch="[0-9]+",
+    repeat="[0-9]+",
+    device="cpu|cuda",
+
+
+rule all:
+    input:
+        RESULTS / "summary.md",
+        RESULTS / "cells.csv",
+        RESULTS / "stages.csv",
+
+
+rule si_bulk:
+    output:
+        DATA / "si_bulk_216.xyz",
+    params:
+        n_cells=DATASETS.get("si216", {}).get("generate", {}).get("n_cells", 3),
+        n_structures=DATASETS.get("si216", {}).get("generate", {}).get("n_structures", 64),
+        seed=DATASETS.get("si216", {}).get("generate", {}).get("seed", 0),
+    shell:
+        "{PYTHON} {SCRIPTS}/make_si_bulk.py --out {output} "
+        "--n-cells {params.n_cells} --n-structures {params.n_structures} "
+        "--seed {params.seed}"
+
+
+def dataset_input(wildcards):
+    return resolve_dataset(wildcards.dataset)
+
+
+rule worktree:
+    output:
+        marker=WORKTREES / "{variant}" / ".variant-shas",
+    params:
+        refs=lambda wildcards: VARIANTS[wildcards.variant]["refs"],
+        path=lambda wildcards: WORKTREES / wildcards.variant,
+        python=SNAKEMAKE_PY,
+    shell:
+        "{params.python} {SCRIPTS}/make_worktree.py "
+        "--repo {REPO} --path {params.path} --refs {params.refs}"
+
+
+rule cell:
+    input:
+        marker=WORKTREES / "{variant}" / ".variant-shas",
+        dataset=dataset_input,
+    output:
+        json=RESULTS
+        / "cells"
+        / "{variant}"
+        / "{dataset}"
+        / "w{workers}_b{batch}_{device}_r{repeat}.json",
+        log=RESULTS
+        / "cells"
+        / "{variant}"
+        / "{dataset}"
+        / "w{workers}_b{batch}_{device}_r{repeat}.log",
+    params:
+        worktree=lambda wildcards: WORKTREES / wildcards.variant,
+        key=lambda wildcards: DATASETS[wildcards.dataset]["key"],
+        epochs=EPOCHS,
+        timeout=TIMEOUT,
+        python=SNAKEMAKE_PY,
+    resources:
+        gpu=RESOURCES.get("gpus", 1),
+        mem_mb=RESOURCES.get("mem_mb", 16000),
+        runtime=RESOURCES.get("runtime_min", 90),
+    shell:
+        "{params.python} {SCRIPTS}/run_cell.py "
+        "--worktree {params.worktree} "
+        "--python {PYTHON} "
+        "--dataset {input.dataset} "
+        "--key {params.key} "
+        "--num-workers {wildcards.workers} "
+        "--batch-size {wildcards.batch} "
+        "--device {wildcards.device} "
+        "--epochs {params.epochs} "
+        "--timeout-s {params.timeout} "
+        "--variant {wildcards.variant} "
+        "--dataset-name {wildcards.dataset} "
+        "--repeat {wildcards.repeat} "
+        "--out {output.json} "
+        "--log {output.log}"
+
+
+rule aggregate:
+    input:
+        CELLS,
+    output:
+        summary=RESULTS / "summary.md",
+        cells=RESULTS / "cells.csv",
+        stages=RESULTS / "stages.csv",
+    params:
+        baseline=CFG.get("baseline_variant", "baseline"),
+        python=SNAKEMAKE_PY,
+    shell:
+        "{params.python} {SCRIPTS}/aggregate.py {input} "
+        "--baseline {params.baseline} "
+        "--cells-csv {output.cells} "
+        "--stages-csv {output.stages} "
+        "--summary {output.summary}"

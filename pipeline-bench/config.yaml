@@ -1,0 +1,65 @@
+# Paths are resolved relative to this file's directory unless absolute.
+metatrain: /home/ericb/metawork/metatrain
+python: /home/ericb/metawork/.venv/bin/python
+worktrees: worktrees
+results: results
+data: data
+
+# First ref is the worktree HEAD; any further refs are merged into it.
+variants:
+  baseline:
+    refs: [origin/perf/1-pipeline-benchmark]
+  persistent:
+    refs: [origin/perf/4-persistent-workers]
+  timed:
+    refs: [origin/pr/collate-transform-timing]
+  pinned:
+    refs:
+      - origin/pr/collate-transform-timing
+      - origin/pr/pin-batches
+  transport:
+    refs: [origin/pr/system-tensor-transport]
+  everything:
+    refs: [origin/perf/5-batch-transport]
+
+datasets:
+  qm9:
+    path: /home/ericb/metawork/metatrain/tests/resources/qm9_reduced_100.xyz
+    key: U0
+  carbon:
+    path: /home/ericb/metawork/metatrain/tests/resources/carbon_reduced_100.xyz
+    key: energy
+  si216:
+    path: data/si_bulk_216.xyz
+    key: energy
+    generate:
+      n_cells: 3
+      n_structures: 64
+      seed: 0
+
+sweep:
+  workers: [0, 1, 4]
+  batch_size: [8]
+  device: cuda
+  epochs: 6
+  repeats: 2
+  timeout_s: 3600
+
+# Used when --config run=smoke
+smoke:
+  variants: [everything]
+  datasets: [qm9]
+  workers: [0]
+  batch_size: [8]
+  device: cpu
+  epochs: 2
+  repeats: 1
+  timeout_s: 1200
+
+resources:
+  cpus: 8
+  mem_mb: 16000
+  runtime_min: 90
+  gpus: 1
+
+baseline_variant: baseline

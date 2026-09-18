@@ -1,0 +1,7 @@
+.venv/
+worktrees/
+results/
+data/
+.snakemake/
+__pycache__/
+*.pyc

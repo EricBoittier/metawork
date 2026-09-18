@@ -1,0 +1,4 @@
+snakemake>=8
+pyyaml
+pandas
+matplotlib

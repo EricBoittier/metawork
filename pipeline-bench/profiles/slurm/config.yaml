@@ -1,0 +1,12 @@
+# One sbatch per cell. Fair GPU numbers usually want the local profile
+# instead, running the DAG sequentially on a single allocated GPU.
+executor: slurm
+jobs: 4
+latency-wait: 60
+rerun-incomplete: true
+default-resources:
+  - slurm_partition=gpu
+  - runtime=90
+  - mem_mb=16000
+  - cpus_per_task=8
+  - slurm_extra='--gres=gpu:1 --qos=debug'

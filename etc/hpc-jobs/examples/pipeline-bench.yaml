@@ -1,0 +1,15 @@
+# One GPU job that runs the pipeline-bench DAG sequentially on the
+# allocated node. Fair numbers: one cell at a time on one card.
+name: pipeline-bench
+type: bench
+cluster: kuma
+qos: normal
+nodes: 1
+gpus: 1
+cpus_per_task: 8
+time: "12:00:00"
+mem: "32G"
+venv: shared
+workdir: pipeline-bench
+command: |
+  .venv/bin/snakemake --profile profiles/local --cores 1 --resources gpu=1
