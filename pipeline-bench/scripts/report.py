@@ -20,6 +20,10 @@ BEST_METRIC = re.compile(
     r"best_val_metric (?P<best_val_metric>[\d.eE+-]+) "
     r"\((?P<best_model_metric>\S+)\) at epoch (?P<best_epoch>\d+)"
 )
+EPOCH1_METRICS = re.compile(
+    r"epoch1_metrics train_loss=(?P<epoch1_train_loss>[\d.eE+-]+) "
+    r"val_loss=(?P<epoch1_val_loss>[\d.eE+-]+)"
+)
 STAGE = re.compile(
     r"^(?P<stage>\S+)\s+(?P<calls>\d+)\s+(?P<ms_per_call>[\d.]+)\s+"
     r"(?P<pct>[\d.]+)%\s*$"
@@ -54,6 +58,11 @@ def parse_report(text: str) -> Dict[str, Any]:
         header["best_val_metric"] = float(best["best_val_metric"])
         header["best_model_metric"] = best["best_model_metric"]
         header["best_epoch"] = int(best["best_epoch"])
+
+    epoch1 = EPOCH1_METRICS.search(text)
+    if epoch1:
+        header["epoch1_train_loss"] = float(epoch1["epoch1_train_loss"])
+        header["epoch1_val_loss"] = float(epoch1["epoch1_val_loss"])
 
     stages = {}
     throughput = {}
@@ -102,6 +111,7 @@ _SAMPLE = """
 PET, 51 train + 13 validation structures, batch_size=8, num_workers=0, device=cpu, epochs=2, 12.3 s wall (incl. validation), memory 1.54 GB peak, 0.42 GB added over a 1.12 GB baseline
 
 best_val_metric 0.001200 (mae_prod) at epoch 1
+epoch1_metrics train_loss=9.691435 val_loss=2.348874
 
 stage               calls   ms/call  % of step
 loader                 14     30.10      17.2%
@@ -133,6 +143,8 @@ if __name__ == "__main__":
     assert parsed["header"]["best_val_metric"] == 0.0012
     assert parsed["header"]["best_model_metric"] == "mae_prod"
     assert parsed["header"]["best_epoch"] == 1
+    assert parsed["header"]["epoch1_train_loss"] == 9.691435
+    assert parsed["header"]["epoch1_val_loss"] == 2.348874
     assert parsed["stages"]["unpack"]["ms_per_call"] == 8.11
     assert parsed["stages"]["transforms/neighbor_lists"]["ms_per_call"] == 5.90
     assert parsed["throughput"]["atoms/s"] == 11781.0

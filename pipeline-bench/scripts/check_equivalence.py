@@ -1,18 +1,14 @@
 """Sanity-check that variants sharing a dataset actually trained on the same data.
 
 This is *not* a correctness check on model outputs — nothing here compares
-loss, gradients, or predictions across variants. Each branch's
-``benchmarks/benchmark_pipeline.py`` is a separate script, so a change that
-silently drops structures, double-counts a batch, or otherwise changes the
-workload would still need a real loss/gradient comparison to catch. What
-this script *can* catch cheaply, from data pipeline-bench already collects,
-is the coarser bug: a variant whose ``n_train``/``n_val`` for a given
+loss or predictions across variants (that's `check_correctness.py`, which
+compares `best_val_metric` and epoch-1 train/val loss). What this script
+checks, from data pipeline-bench already collects, is the coarser,
+cheaper-to-catch bug: a variant whose ``n_train``/``n_val`` for a given
 dataset don't match its siblings, which either means the workload isn't
 actually equivalent (e.g. the non-disjoint validation split fixed in
 metatrain's `fix/pipeline-benchmark-val-split`) or means the branch's report
 format doesn't match `report.py`'s parser closely enough to tell.
-
-Exits non-zero if any dataset has disagreeing sizes, so it can gate `rule all`.
 """
 
 from __future__ import annotations
@@ -75,9 +71,9 @@ def check(rows: List[Dict[str, str]]) -> List[str]:
 
     lines.append("")
     lines.append(
-        "This checks workload *shape* only (dataset sizes), never model "
-        "correctness. No loss, gradient, or output comparison exists between "
-        "variants in this harness — that remains open follow-up work."
+        "This checks workload *shape* only (dataset sizes) — see "
+        "results/correctness.md for whether variants also train to the same "
+        "place."
     )
     return lines, problems
 
@@ -94,11 +90,13 @@ def main() -> None:
     args.out.write_text("\n".join(lines) + "\n")
 
     if problems:
+        # Deliberately exit 0 — see check_correctness.py's comment at the
+        # same spot: Snakemake deletes a rule's output on a non-zero exit,
+        # which would delete this report exactly when it found something.
         sys.stderr.write(
             f"check_equivalence: {problems} dataset(s) with disagreeing split "
             f"sizes — see {args.out}\n"
         )
-        sys.exit(1)
 
 
 if __name__ == "__main__":

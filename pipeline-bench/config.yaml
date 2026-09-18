@@ -61,6 +61,11 @@ sweep:
   device: cuda
   epochs: 12
   repeats: 5
+  # One seed for the throughput sweep — cross-variant agreement on speed
+  # isn't seed-sensitive the way training behavior is, and multiplying the
+  # already-large sweep by several seeds buys little. Multi-seed testing
+  # lives in the `correctness:` block below, scoped down to stay fast.
+  seeds: [0]
   timeout_s: 3600
 
 # Used when --config smoke=true or --config run=smoke
@@ -74,6 +79,23 @@ smoke:
   device: cpu
   epochs: 2
   repeats: 1
+  timeout_s: 1200
+
+# Used when --config correctness=true or --config run=correctness. Small and
+# multi-seed on purpose: this isn't measuring throughput (workers/batch_size
+# are pinned to one point each to keep it fast), it's checking whether every
+# variant trains to the same place across a few different fixed seeds, so an
+# agreement (or a disagreement, like baseline vs. the rest) isn't a
+# coincidence of one particular seed. See results/correctness.md and
+# scripts/check_correctness.py.
+correctness:
+  variants: [baseline, persistent, timed, pinned, transport, everything]
+  datasets: [qm9, carbon, si216, si_large]
+  workers: [0]
+  batch_size: [8]
+  epochs: 6
+  repeats: 1
+  seeds: [0, 1, 2]
   timeout_s: 1200
 
 resources:

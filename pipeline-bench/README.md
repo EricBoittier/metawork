@@ -127,16 +127,18 @@ on its next worktree rebuild once `fix/report-best-metric-timed` lands.
   `n_train`/`n_val`? Catches a workload that silently isn't the same across
   branches (e.g. a non-disjoint validation split). Checks workload *shape*
   only, not model correctness — see `results/correctness.md` for that.
-- `results/correctness.md` — do variants agree on `best_val_metric` (the
-  best validation metric seen during training) for the same config, and
-  does each variant reproduce its own value across repeats? This is the one
-  check in the harness that looks at whether variants compute the same
-  thing rather than how fast they do it. WARN at >=5% relative difference
-  from `baseline`, FAIL (and gate `rule all`) at >=50%. Still just one
-  scalar from one fixed seed over a handful of epochs on tiny data — real
-  signal for "this variant is training on the wrong data" or "this isn't
-  deterministic when it should be," not a proof of numerical equivalence at
-  the loss/gradient level.
+- `results/correctness.md` — do variants agree on `best_val_metric`,
+  epoch-1 training loss, and epoch-1 validation loss for the same config
+  and seed, and does each variant reproduce itself across repeats? This is
+  the one check in the harness that looks at whether variants compute the
+  same thing rather than how fast they do it. `--config correctness=true`
+  runs it across a few fixed seeds (see `config.yaml`'s `correctness:`
+  block) so a WARN/FAIL isn't a coincidence of one seed. WARN at >=5%
+  relative difference from `baseline`, FAIL at >=50% — **not** gated on
+  `rule all` (see caveat below on why). Three scalars from a handful of
+  seeds over a few epochs on tiny data, not a proof of numerical
+  equivalence at the loss/gradient level, but a real signal — and a real
+  one found immediately: see below.
 - `results/drift.md` — does measured speed correlate with chronological run
   order, globally or within a variant's own block? Snakemake doesn't
   randomize job order against variant identity, so a multi-minute run's
@@ -145,21 +147,62 @@ on its next worktree rebuild once `fix/report-best-metric-timed` lands.
   a diagnosis — see the script's own caveat in its output.
 - `results/atoms_per_s.png` — optional, needs matplotlib
 
+## What the correctness check already found
+
+Ran `--config correctness=true` for real (72 cells: 6 variants x 4 datasets
+x 3 seeds, workers=0, batch=8, epochs=6) against the fix branches above.
+`persistent`/`timed`/`pinned`/`transport`/`everything` agree with each other
+bit-for-bit at every seed and every dataset — no disagreement among the five
+newer branches, anywhere. `baseline` is a different story, and the size
+pattern is stark (`results/correctness.md`'s seed-stability rollup, relative
+difference on `best_val_metric` vs. the other five, min-max across 3 seeds):
+
+| dataset | atoms/structure | baseline's gap across seeds |
+| --- | ---: | --- |
+| `si_large` | 1000 | 0%-0% |
+| `si216` | 216 | 0%-1% |
+| `carbon` | 4 | 6%-21% |
+| `qm9` | ~10 | 8%-27% |
+
+Baseline matches the rest of the stack almost exactly on the two bulk
+datasets and diverges substantially and consistently on the two tiny
+molecular datasets — the same structure-size axis that decided the
+throughput story in `notes/medium-hardware-run.md`, but here it's about
+whether the numbers agree at all, not how fast they're computed. One cell
+(`qm9`, seed 0, `epoch1_val_loss`) crossed the 50% FAIL line outright (57%).
+Plausible mechanism: with only ~10 atoms/structure, a batch carries very
+little signal, so whatever incidental difference exists between baseline's
+DataLoader construction and the newer branches' (different code, matched
+seed, but not necessarily the same sequence of random draws once workers or
+collate differ) gets amplified in the loss; with 1000 atoms/structure, each
+batch carries enough signal that the same incidental difference washes out.
+Not confirmed — a real explanation needs tracing where baseline's RNG
+consumption actually diverges, which is open.
+
 ## Methodology gaps this harness cannot close by itself
 
 Fixed here: single-batch-size testing, low repeat count, no order/thermal
-check, no cross-variant workload-shape check, no correctness check at all.
-Still open:
+check, no cross-variant workload-shape check, no correctness check at all,
+single-seed correctness testing, correctness check limited to a derived
+best-epoch metric. Still open:
 
 - **Warm-up isn't excluded from the timed region.** More epochs (see
   `config.yaml`) dilutes it but doesn't remove it; excluding it needs
   per-epoch timing in `benchmark_pipeline.py`, which doesn't exist yet.
-- **The correctness check is one scalar, one seed, a few epochs, tiny
-  data.** It caught a real, disclosed discrepancy immediately: `baseline`
-  reproducibly disagrees with `persistent`/`timed`/`transport`/`everything`
-  (which agree bit-for-bit with each other) by ~8% on `best_val_metric` for
-  qm9 at workers=0 even after the val-split fix — below the 50% FAIL
-  threshold, so it doesn't block `rule all`, but it's a WARN worth
-  understanding rather than a green light. A real loss/gradient-level
-  equivalence test, and tightening the WARN/FAIL thresholds once there's
-  enough data to know what noise actually looks like here, are both open.
+- **Still not a gradient-level equivalence test.** `best_val_metric` and
+  epoch-1 train/val loss are real signals — reading `Trainer.train`'s own
+  internal state, not reimplemented — but they're still scalars a few steps
+  into training, not a tensor-level comparison of gradients or model
+  outputs. Two variants could plausibly agree on all three and still differ
+  somewhere those scalars don't reach.
+- **`check_correctness.py`/`check_equivalence.py` don't gate `rule all`
+  anymore.** They did originally (`sys.exit(1)` on a FAIL), until that was
+  caught failing exactly when it mattered: Snakemake deletes a rule's
+  output the moment its shell command exits non-zero, so the first real
+  FAIL this harness hit deleted its own diagnostic report. Both scripts now
+  always exit 0 and print the FAIL count to stderr — read the `.md` file,
+  don't rely on the exit code.
+- **Only `qm9`/`carbon` have baseline's root cause outstanding.** The
+  finding above is disclosed, not diagnosed — nobody has traced *why*
+  baseline's RNG consumption or batch composition differs on small
+  structures yet.

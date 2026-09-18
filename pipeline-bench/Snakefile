@@ -12,30 +12,47 @@ SNAKEMAKE_PY = sys.executable
 FILE_CFG = yaml.safe_load((HERE / "config.yaml").read_text())
 
 
-def active_config():
-    """Apply the `smoke:` block when `--config smoke=true` or `run=smoke`.
-
-    `--config smoke=true` overwrites the YAML mapping, so the block is read
-    from the file rather than from `config`.
-    """
-    cfg = dict(config)
-    flag = cfg.get("smoke")
-    run = str(cfg.get("run", "")).lower()
-    want_smoke = run == "smoke" or flag is True or str(flag).lower() in (
-        "true",
-        "1",
-        "yes",
-    )
-    if not want_smoke:
-        return cfg
-    block = FILE_CFG.get("smoke") or {}
+def apply_override(cfg, block):
     cfg["variants"] = {name: cfg["variants"][name] for name in block["variants"]}
     cfg["datasets"] = {name: cfg["datasets"][name] for name in block["datasets"]}
     sweep = dict(cfg["sweep"])
-    for key in ("workers", "batch_size", "device", "epochs", "repeats", "timeout_s"):
+    for key in (
+        "workers",
+        "batch_size",
+        "device",
+        "epochs",
+        "repeats",
+        "seeds",
+        "timeout_s",
+    ):
         if key in block:
             sweep[key] = block[key]
     cfg["sweep"] = sweep
+    return cfg
+
+
+def active_config():
+    """Apply the `smoke:` or `correctness:` block by name.
+
+    `--config smoke=true` / `--config correctness=true` (or `run=smoke` /
+    `run=correctness`) overwrite the YAML mapping, so the block is read from
+    the file rather than from `config`. `correctness` is small and
+    multi-seed on purpose — see the block's own comment in config.yaml.
+    """
+    cfg = dict(config)
+    run = str(cfg.get("run", "")).lower()
+
+    def wants(name):
+        flag = cfg.get(name)
+        return run == name or flag is True or str(flag).lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+
+    for name in ("smoke", "correctness"):
+        if wants(name):
+            return apply_override(cfg, FILE_CFG.get(name) or {})
     return cfg
 
 
@@ -52,7 +69,8 @@ WORKERS = [str(w) for w in SWEEP["workers"]]
 BATCHES = [str(b) for b in SWEEP["batch_size"]]
 REPEATS = [str(r) for r in range(int(SWEEP["repeats"]))]
 DEVICE = str(SWEEP["device"])
-EPOCHS = int(SWEEP["epochs"])
+EPOCHS = str(SWEEP["epochs"])
+SEEDS = [str(s) for s in SWEEP.get("seeds", [0])]
 TIMEOUT = int(SWEEP.get("timeout_s", 3600))
 RESOURCES = CFG.get("resources", {})
 
@@ -67,12 +85,13 @@ CELLS = [
     / "cells"
     / variant
     / dataset
-    / f"w{workers}_b{batch}_{DEVICE}_r{repeat}.json"
+    / f"w{workers}_b{batch}_{DEVICE}_r{repeat}_s{seed}_e{EPOCHS}.json"
     for variant in VARIANTS
     for dataset in DATASETS
     for workers in WORKERS
     for batch in BATCHES
     for repeat in REPEATS
+    for seed in SEEDS
 ]
 
 wildcard_constraints:
@@ -81,6 +100,8 @@ wildcard_constraints:
     workers="[0-9]+",
     batch="[0-9]+",
     repeat="[0-9]+",
+    seed="[0-9]+",
+    epochs="[0-9]+",
     device="cpu|cuda",
 
 
@@ -132,16 +153,15 @@ rule cell:
         / "cells"
         / "{variant}"
         / "{dataset}"
-        / "w{workers}_b{batch}_{device}_r{repeat}.json",
+        / "w{workers}_b{batch}_{device}_r{repeat}_s{seed}_e{epochs}.json",
         log=RESULTS
         / "cells"
         / "{variant}"
         / "{dataset}"
-        / "w{workers}_b{batch}_{device}_r{repeat}.log",
+        / "w{workers}_b{batch}_{device}_r{repeat}_s{seed}_e{epochs}.log",
     params:
         worktree=lambda wildcards: WORKTREES / wildcards.variant,
         key=lambda wildcards: DATASETS[wildcards.dataset]["key"],
-        epochs=EPOCHS,
         timeout=TIMEOUT,
         python=SNAKEMAKE_PY,
     resources:
@@ -157,7 +177,8 @@ rule cell:
         "--num-workers {wildcards.workers} "
         "--batch-size {wildcards.batch} "
         "--device {wildcards.device} "
-        "--epochs {params.epochs} "
+        "--epochs {wildcards.epochs} "
+        "--seed {wildcards.seed} "
         "--timeout-s {params.timeout} "
         "--variant {wildcards.variant} "
         "--dataset-name {wildcards.dataset} "

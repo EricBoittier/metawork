@@ -42,6 +42,7 @@ def run_benchmark(
     batch_size: int,
     device: str,
     epochs: int,
+    seed: int,
     timeout_s: int,
     log_path: Path,
 ) -> str:
@@ -66,6 +67,8 @@ def run_benchmark(
         device,
         "--epochs",
         str(epochs),
+        "--seed",
+        str(seed),
     ]
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("w") as log:
@@ -97,6 +100,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, required=True)
     parser.add_argument("--device", required=True)
     parser.add_argument("--epochs", type=int, required=True)
+    parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--timeout-s", type=int, default=3600)
     parser.add_argument("--variant", default="")
     parser.add_argument("--dataset-name", default="")
@@ -115,6 +119,7 @@ def main() -> None:
         args.batch_size,
         args.device,
         args.epochs,
+        args.seed,
         args.timeout_s,
         args.log,
     )
@@ -128,6 +133,7 @@ def main() -> None:
         "batch_size": args.batch_size,
         "device": args.device,
         "epochs": args.epochs,
+        "seed": args.seed,
         "host": socket.gethostname(),
         "platform": platform.platform(),
         "slurm_job": os.environ.get("SLURM_JOB_ID"),
