@@ -39,17 +39,49 @@ baseline on qm9/carbon, roughly flat on si216. `workers=4` narrows the gap
 but never closes it for qm9/carbon; si216 is the one dataset where
 `everything` edges back past baseline (+7%).
 
+## Larger dataset: the win holds at every worker count
+
+The matrix above tops out at si216 (64 structures x 216 atoms) — still
+tiny. Added `si_large`: 128 structures x 1000 atoms (`make_si_bulk.py
+--n-cells 5 --n-structures 128`, ~4.6x the atoms/structure and 2x the
+structures of si216), same sweep. Once structures are actually large,
+`everything`/`transport` win outright, at every `num_workers`:
+
+| workers | baseline atoms/s | everything | vs baseline | transport | vs baseline |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 21788 | 25195 | +16% | 25819 | +19% |
+| 1 | 26708 | 29774 | +11% | 29041 | +9% |
+| 4 | 26800 | 29747 | +11% | 29159 | +9% |
+
+The mechanism is `unpack` (a substage of `step`, not `loader`): baseline
+spends 33-37 ms/call unpacking the batch back into structures regardless
+of worker count, since that's fixed per-batch tensor work, not something
+extra workers can overlap away. `everything`/`transport` cut it to
+6-8 ms/call — a real ~5x reduction that shows up as lower `step` time at
+every worker count, not just `workers=0`. `serialize` at `workers=0`
+drops even harder, ~38-44 ms to ~2-4 ms.
+
+`persistent`, `pinned`, and `timed` are flat against baseline here too
+(0.95-1.00x at every worker count) — they target loader/worker-lifecycle
+overhead, which was never the bottleneck once atoms/structure gets large;
+the unpack/serialize path only the transport branches touch is what
+actually costs on bigger structures.
+
 ## Read for the PR stack
 
-These branches look tuned for a regime where the loader is the actual
-bottleneck: many workers, large structures, likely multi-GPU contention.
-On one modest GPU with `num_workers=0` and the largest per-structure
-dataset, the win shows up exactly as advertised. Everywhere else in this
-matrix — which is most of it, since `num_workers>=1` is the realistic
-setting — the added machinery currently costs more than it saves. Worth
-raising on #1275 before merging the whole stack: the benefit is real but
-narrower than "everything" implies, and it doesn't hold on the class of
-hardware a lot of users actually train on.
+The two behaviors together sharpen the picture: `everything`/`transport`'s
+win tracks per-structure payload size, not worker count. On tiny molecules
+(qm9/carbon, ~20-40 atoms) the added bookkeeping is pure overhead and
+costs 3-26% once a worker is added; on 1000-atom structures the same code
+path saves a fixed ~25-30 ms/batch of unpack/serialize work that no amount
+of worker overlap removes, and it wins by 9-19% everywhere. So the
+regression isn't really a "medium hardware" problem — it's a "this
+benchmark's default structures are too small" problem. Worth raising on
+#1275: the perf claim holds for the workloads metatrain users training on
+bulk/large-cell systems will actually see, but the stack should not be
+sold as an unconditional win — on molecular-scale structures with
+`num_workers>=1`, it's currently a regression, and `persistent`/`pinned`/
+`timed` don't clearly pay for their own complexity in this matrix at all.
 
 ## Caveats
 

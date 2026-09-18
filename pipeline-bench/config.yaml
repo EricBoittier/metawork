@@ -36,6 +36,9 @@ datasets:
       n_cells: 3
       n_structures: 64
       seed: 0
+  si_large:
+    path: data/si_bulk_1000_128.xyz
+    key: energy
 
 sweep:
   workers: [0, 1, 4]
