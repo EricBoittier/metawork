@@ -1,12 +1,32 @@
-# One sbatch per cell. Fair GPU numbers usually want the local profile
-# instead, running the DAG sequentially on a single allocated GPU.
+# One sbatch per cell. Fair GPU numbers still hold per-cell: each cell gets
+# its own dedicated GPU, this just runs many cells across many GPUs/nodes at
+# once instead of serializing them on a single card.
+#
+# GPU allocation and qos must NOT be set via slurm_extra -- the plugin
+# manages both itself and errors out if slurm_extra tries to set them too.
+# It reads the Snakefile's own `resources: gpu=1` (declared on the `cell`/
+# `distributed_cell` rules only) and emits `--gpus=N` on its own; this also
+# means the non-GPU rules (worktree/si_bulk/aggregate) correctly get no
+# --gpus flag at all, instead of wastefully grabbing a GPU node for a git
+# checkout. `--gpus=N` (not `--gres=gpu:N`) is what kuma's job_submit plugin
+# accepts anyway (see etc/hpc_run.py's render_sbatch() for the same
+# workaround on the single-job path) -- the plugin already does this.
 executor: slurm
-jobs: 4
+jobs: 32
 latency-wait: 60
 rerun-incomplete: true
 default-resources:
-  - slurm_partition=gpu
-  - runtime=90
+  - slurm_partition=l40s
+  - runtime=30
   - mem_mb=16000
   - cpus_per_task=8
-  - slurm_extra='--gres=gpu:1 --qos=debug'
+  # normal, not debug: the `cell` rule's own runtime=90 (config.yaml's
+  # resources.runtime_min) overrides this default, and debug qos caps
+  # MaxWall at 60 min (sacctmgr show qos) -- rejected at submit time.
+  - qos=normal
+  # l40s under qos=normal enforces QOSMinGRES: a job submitted to this
+  # partition must request at least one GPU, even the lightweight
+  # worktree/si_bulk/aggregate rules that don't use one. The cell/
+  # distributed_cell rules already set their own `gpu=` in the Snakefile,
+  # which overrides this default -- this only backfills the other rules.
+  - gpu=1

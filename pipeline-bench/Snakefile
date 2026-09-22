@@ -47,6 +47,12 @@ PYTHON = CFG["python"]
 REPO = Path(CFG["metatrain"])
 VARIANTS = CFG["variants"]
 DATASETS = CFG["datasets"]
+# A dataset with `matrix: false` (e.g. a distributed-only large proxy) is
+# resolvable by name for the `distributed` sweep but excluded from the main
+# variant x dataset x workers cross product -- without this, adding one
+# large-scale dataset for a distributed-only sweep would silently also
+# multiply out 6 variants x 3 worker counts x repeats of it in `rule all`.
+MATRIX_DATASETS = {k: v for k, v in DATASETS.items() if v.get("matrix", True)}
 SWEEP = CFG["sweep"]
 WORKERS = [str(w) for w in SWEEP["workers"]]
 BATCHES = [str(b) for b in SWEEP["batch_size"]]
@@ -79,7 +85,7 @@ CELLS = [
     / dataset
     / f"w{workers}_b{batch}_{DEVICE}_r{repeat}.json"
     for variant in VARIANTS
-    for dataset in DATASETS
+    for dataset in MATRIX_DATASETS
     for workers in WORKERS
     for batch in BATCHES
     for repeat in REPEATS
@@ -94,7 +100,7 @@ DIST_CELLS = [
 
 wildcard_constraints:
     variant="|".join(map(re.escape, VARIANTS)),
-    dataset="|".join(map(re.escape, DATASETS)),
+    dataset="|".join(map(re.escape, MATRIX_DATASETS)),
     workers="[0-9]+",
     batch="[0-9]+",
     repeat="[0-9]+",
@@ -129,6 +135,32 @@ rule omol_proxy:
         n_structures=DATASETS.get("omol_proxy", {}).get("generate", {}).get("n_structures", 200),
         max_cells=DATASETS.get("omol_proxy", {}).get("generate", {}).get("max_cells", 4),
         seed=DATASETS.get("omol_proxy", {}).get("generate", {}).get("seed", 0),
+    shell:
+        "{PYTHON} {SCRIPTS}/make_omol_proxy.py --out {output} "
+        "--n-structures {params.n_structures} --max-cells {params.max_cells} "
+        "--seed {params.seed}"
+
+
+rule omol_large:
+    output:
+        DATA / "omol_large.xyz",
+    params:
+        n_structures=DATASETS.get("omol_large", {}).get("generate", {}).get("n_structures", 400),
+        max_cells=DATASETS.get("omol_large", {}).get("generate", {}).get("max_cells", 6),
+        seed=DATASETS.get("omol_large", {}).get("generate", {}).get("seed", 1),
+    shell:
+        "{PYTHON} {SCRIPTS}/make_omol_proxy.py --out {output} "
+        "--n-structures {params.n_structures} --max-cells {params.max_cells} "
+        "--seed {params.seed}"
+
+
+rule omol_billion_proxy:
+    output:
+        DATA / "omol_billion_proxy.xyz",
+    params:
+        n_structures=ALL_DATASETS.get("omol_billion_proxy", {}).get("generate", {}).get("n_structures", 3000),
+        max_cells=ALL_DATASETS.get("omol_billion_proxy", {}).get("generate", {}).get("max_cells", 8),
+        seed=ALL_DATASETS.get("omol_billion_proxy", {}).get("generate", {}).get("seed", 2),
     shell:
         "{PYTHON} {SCRIPTS}/make_omol_proxy.py --out {output} "
         "--n-structures {params.n_structures} --max-cells {params.max_cells} "
@@ -207,7 +239,18 @@ rule distributed_cell:
         epochs=DIST.get("epochs", 2),
         timeout=DIST.get("timeout_s", 1500),
         batch_size=DIST.get("batch_size", 8),
-        max_atoms=DIST.get("max_atoms_per_batch", 512),
+        # baseline (origin/perf/1-pipeline-benchmark, the earliest branch in
+        # the stack) predates the --max-atoms-per-batch CLI flag entirely --
+        # atom-count batching is one of the later perf/pr additions, not
+        # just a benchmark-harness convenience. Passing it unconditionally
+        # would break baseline outright, so it's opt-in per config and
+        # dropped (fixed batch_size for every variant) for a fair
+        # cross-variant DDP scaling comparison.
+        max_atoms_flag=(
+            f"--max-atoms-per-batch {DIST['max_atoms_per_batch']}"
+            if DIST.get("max_atoms_per_batch")
+            else ""
+        ),
         python=SNAKEMAKE_PY,
     resources:
         gpu=lambda wildcards: int(wildcards.world_size),
@@ -228,7 +271,7 @@ rule distributed_cell:
         "--dataset-name {DIST_DATASET} "
         "--repeat {wildcards.repeat} "
         "--world-size {wildcards.world_size} "
-        "--max-atoms-per-batch {params.max_atoms} "
+        "{params.max_atoms_flag} "
         "--out {output.json} "
         "--log {output.log}"
 

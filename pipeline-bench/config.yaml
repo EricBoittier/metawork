@@ -43,6 +43,33 @@ datasets:
       n_structures: 200
       max_cells: 4
       seed: 0
+  # Same size-diverse proxy as omol_proxy, scaled up: 2x the structures and
+  # max_cells 4->6 (max unit-cell repeat 4^3=64 -> 6^3=216, so max structure
+  # size roughly 4x, up to ~1700 atoms for Si/NaCl). Heavier per-item
+  # neighbor-list/collate cost is what would let num_workers>=1 overlap
+  # loading with compute enough to matter -- omol_proxy's small structures
+  # (max ~512 atoms) keep collate cheap enough that workers>=1 barely helps.
+  omol_large:
+    path: data/omol_large.xyz
+    key: energy
+    generate:
+      n_structures: 400
+      max_cells: 6
+      seed: 1
+  # For the `distributed:` sweep only (matrix: false keeps it out of the
+  # variant x dataset x workers cross product below -- see MATRIX_DATASETS
+  # in the Snakefile). Bigger and more size-diverse than omol_large: 3000
+  # structures, max_cells 8 (up to ~4096 atoms for Si/NaCl), meant to stand
+  # in for a slice of a billion-structure-scale, OMol-like training set for
+  # DDP scaling measurements, not to be trained on to convergence.
+  omol_billion_proxy:
+    path: data/omol_billion_proxy.xyz
+    key: energy
+    matrix: false
+    generate:
+      n_structures: 3000
+      max_cells: 8
+      seed: 2
 
 sweep:
   workers: [0, 1, 4]
@@ -74,21 +101,35 @@ resources:
 baseline_variant: baseline
 
 # Real multi-GPU DDP + atoms-per-batch sweep, separate from the main matrix
-# since it needs a different Slurm allocation (world_size GPUs on one node,
-# via `srun --ntasks`, not the single-GPU-per-cell model above). Build with
+# since it needs a different Slurm allocation (world_size GPUs, via `srun
+# --ntasks`, not the single-GPU-per-cell model above). Build with
 # `snakemake distributed --resources gpu=<max world_size>`, from a job that
 # actually requested that many GPUs+tasks (see smoke-slurm/multigpu-smoke.sbatch).
-# `omol_proxy` stands in for a large size-diverse dataset like OMol25 (not
-# available here); size spread is what exercises max_atoms_per_batch.
+#
+# Sized for the NVIDIA compute-grant proposal ("Scaling interatomic
+# potential with universal billion-structure dataset", target resource
+# 8xH100): world_sizes up to 8. kuma's H100 nodes are 4 GPUs each
+# (CfgTRES gres/gpu=4, checked via `scontrol show node`), so world_size=8
+# here means 2 nodes over InfiniBand (ConnectX-7), not one 8-GPU box --
+# the 1/2/4 points are single-node (NVLink/PCIe-domain), 8 is cross-node.
+# Report that distinction alongside the numbers; it is a real difference
+# from a single DGX-H100-class node.
 distributed:
-  variants: [everything]
-  dataset: omol_proxy
-  world_sizes: [1, 2]
-  batch_size: 8
-  max_atoms_per_batch: 512
+  variants: [baseline, everything]
+  dataset: omol_billion_proxy
+  world_sizes: [1, 2, 4, 8]
+  # 8 hit 71.75GB reserved (of an H100's 80GB) on a batch that happened to
+  # draw several of the largest (~4096-atom) structures at once -- baseline
+  # can't use max_atoms_per_batch to bound that, so batch_size=4 instead,
+  # for headroom across the full sweep.
+  batch_size: 4
+  # baseline predates --max-atoms-per-batch entirely (see the Snakefile's
+  # distributed_cell rule) -- null keeps this a fair fixed-batch_size DDP
+  # scaling comparison across both variants, not a batching-strategy mix.
+  max_atoms_per_batch: null
   epochs: 2
-  repeats: 3
-  timeout_s: 1500
+  repeats: 2
+  timeout_s: 2400
   cpus_per_task: 8
-  mem_mb: 32000
-  runtime_min: 30
+  mem_mb: 65536
+  runtime_min: 45
