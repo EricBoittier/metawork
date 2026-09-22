@@ -70,6 +70,18 @@ datasets:
       n_structures: 3000
       max_cells: 8
       seed: 2
+  # Scaled-up version for the `distributed_best` sweep: same max structure
+  # size (max_cells=8, same memory profile already validated) but ~7x the
+  # structures, for a larger, more statistically robust throughput
+  # measurement closer to a real training regime's step count.
+  omol_billion_proxy_v2:
+    path: data/omol_billion_proxy_v2.xyz
+    key: energy
+    matrix: false
+    generate:
+      n_structures: 20000
+      max_cells: 8
+      seed: 4
 
 sweep:
   workers: [0, 1, 4]
@@ -133,3 +145,34 @@ distributed:
   cpus_per_task: 8
   mem_mb: 65536
   runtime_min: 45
+
+# "Best expected vs baseline": each variant run with the best batching
+# strategy it actually supports, not held to a shared fixed batch_size --
+# baseline (no max_atoms_per_batch support) still uses fixed batch_size,
+# everything uses the atom-count sampler (8192 was the best speed/memory
+# tradeoff measured in the small-scale A/B: +22% throughput, -18% peak
+# memory vs its own fixed-batch_size run). This is what you'd actually
+# deploy, not a controlled ablation -- see distributed: above for that.
+distributed_best:
+  variants: [baseline, everything]
+  dataset: omol_billion_proxy_v2
+  # world_size=8 (cross-node) dropped here: the fair fixed-batch sweep
+  # (distributed: above) already validated the 1/2/4/8 scaling *pattern*.
+  world_sizes: [1, 2, 4]
+  batch_size: 4
+  variant_overrides:
+    everything:
+      max_atoms_per_batch: 8192
+  epochs: 2
+  # repeats=1: the fair fixed-batch sweep (distributed:) already confirmed
+  # <1% run-to-run variance at the smaller 3000-structure scale, and a
+  # 2-node/4h allocation was queuing ~5h out on a now-busy cluster --
+  # single-repeat keeps this directional-but-solid without the wait.
+  repeats: 1
+  # 20000 structures is ~6.7x omol_billion_proxy's 3000 -- world_size=1 (the
+  # slowest case, before DDP splits the data) took ~130-150s/2-epoch at that
+  # smaller scale, so budget generously here.
+  timeout_s: 3300
+  cpus_per_task: 8
+  mem_mb: 65536
+  runtime_min: 60

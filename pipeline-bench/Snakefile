@@ -67,6 +67,15 @@ DIST_VARIANTS = list(DIST.get("variants", []))
 DIST_DATASET = DIST.get("dataset")
 DIST_WORLD_SIZES = [str(w) for w in DIST.get("world_sizes", [1])]
 DIST_REPEATS = [str(r) for r in range(int(DIST.get("repeats", 1)))]
+
+# "Best expected vs baseline": each variant's best-supported batching
+# strategy, not a controlled fixed-batch_size ablation -- see DIST above
+# for that one. Mirrors DIST's shape plus a per-variant override dict.
+DIST_BEST = CFG.get("distributed_best", {})
+DIST_BEST_VARIANTS = list(DIST_BEST.get("variants", []))
+DIST_BEST_DATASET = DIST_BEST.get("dataset")
+DIST_BEST_WORLD_SIZES = [str(w) for w in DIST_BEST.get("world_sizes", [1])]
+DIST_BEST_REPEATS = [str(r) for r in range(int(DIST_BEST.get("repeats", 1)))]
 # `datasets:` is trimmed down by active_config() when smoke=true, but the
 # `distributed:` sweep is independent of smoke -- resolve its dataset from
 # the untrimmed file config instead of the (possibly smoke-filtered) DATASETS.
@@ -96,6 +105,13 @@ DIST_CELLS = [
     for variant in DIST_VARIANTS
     for world_size in DIST_WORLD_SIZES
     for repeat in DIST_REPEATS
+]
+
+DIST_BEST_CELLS = [
+    RESULTS / "distributed_best" / variant / f"g{world_size}_r{repeat}.json"
+    for variant in DIST_BEST_VARIANTS
+    for world_size in DIST_BEST_WORLD_SIZES
+    for repeat in DIST_BEST_REPEATS
 ]
 
 wildcard_constraints:
@@ -161,6 +177,19 @@ rule omol_billion_proxy:
         n_structures=ALL_DATASETS.get("omol_billion_proxy", {}).get("generate", {}).get("n_structures", 3000),
         max_cells=ALL_DATASETS.get("omol_billion_proxy", {}).get("generate", {}).get("max_cells", 8),
         seed=ALL_DATASETS.get("omol_billion_proxy", {}).get("generate", {}).get("seed", 2),
+    shell:
+        "{PYTHON} {SCRIPTS}/make_omol_proxy.py --out {output} "
+        "--n-structures {params.n_structures} --max-cells {params.max_cells} "
+        "--seed {params.seed}"
+
+
+rule omol_billion_proxy_v2:
+    output:
+        DATA / "omol_billion_proxy_v2.xyz",
+    params:
+        n_structures=ALL_DATASETS.get("omol_billion_proxy_v2", {}).get("generate", {}).get("n_structures", 20000),
+        max_cells=ALL_DATASETS.get("omol_billion_proxy_v2", {}).get("generate", {}).get("max_cells", 8),
+        seed=ALL_DATASETS.get("omol_billion_proxy_v2", {}).get("generate", {}).get("seed", 4),
     shell:
         "{PYTHON} {SCRIPTS}/make_omol_proxy.py --out {output} "
         "--n-structures {params.n_structures} --max-cells {params.max_cells} "
@@ -299,6 +328,82 @@ rule distributed:
         RESULTS / "distributed_summary.md",
         RESULTS / "distributed_cells.csv",
         RESULTS / "distributed_stages.csv",
+
+
+def _dist_best_variant_param(wildcards, key, default):
+    return (
+        DIST_BEST.get("variant_overrides", {})
+        .get(wildcards.variant, {})
+        .get(key, DIST_BEST.get(key, default))
+    )
+
+
+rule distributed_best_cell:
+    input:
+        marker=WORKTREES / "{variant}" / ".variant-shas",
+        dataset=resolve_dataset(DIST_BEST_DATASET, ALL_DATASETS) if DIST_BEST_DATASET else [],
+    output:
+        json=RESULTS / "distributed_best" / "{variant}" / "g{world_size}_r{repeat}.json",
+        log=RESULTS / "distributed_best" / "{variant}" / "g{world_size}_r{repeat}.log",
+    params:
+        worktree=lambda wildcards: WORKTREES / wildcards.variant,
+        key=ALL_DATASETS.get(DIST_BEST_DATASET, {}).get("key", "energy"),
+        epochs=DIST_BEST.get("epochs", 2),
+        timeout=DIST_BEST.get("timeout_s", 1500),
+        batch_size=lambda wildcards: _dist_best_variant_param(wildcards, "batch_size", 8),
+        max_atoms_flag=lambda wildcards: (
+            f"--max-atoms-per-batch {_dist_best_variant_param(wildcards, 'max_atoms_per_batch', None)}"
+            if _dist_best_variant_param(wildcards, "max_atoms_per_batch", None)
+            else ""
+        ),
+        python=SNAKEMAKE_PY,
+    resources:
+        gpu=lambda wildcards: int(wildcards.world_size),
+        mem_mb=DIST_BEST.get("mem_mb", 32000),
+        runtime=DIST_BEST.get("runtime_min", 30),
+    shell:
+        "{params.python} {SCRIPTS}/run_cell.py "
+        "--worktree {params.worktree} "
+        "--python {PYTHON} "
+        "--dataset {input.dataset} "
+        "--key {params.key} "
+        "--num-workers 0 "
+        "--batch-size {params.batch_size} "
+        "--device cuda "
+        "--epochs {params.epochs} "
+        "--timeout-s {params.timeout} "
+        "--variant {wildcards.variant} "
+        "--dataset-name {DIST_BEST_DATASET} "
+        "--repeat {wildcards.repeat} "
+        "--world-size {wildcards.world_size} "
+        "{params.max_atoms_flag} "
+        "--out {output.json} "
+        "--log {output.log}"
+
+
+rule distributed_best_aggregate:
+    input:
+        DIST_BEST_CELLS,
+    output:
+        summary=RESULTS / "distributed_best_summary.md",
+        cells=RESULTS / "distributed_best_cells.csv",
+        stages=RESULTS / "distributed_best_stages.csv",
+    params:
+        baseline=CFG.get("baseline_variant", "baseline"),
+        python=SNAKEMAKE_PY,
+    shell:
+        "{params.python} {SCRIPTS}/aggregate.py {input} "
+        "--baseline {params.baseline} "
+        "--cells-csv {output.cells} "
+        "--stages-csv {output.stages} "
+        "--summary {output.summary}"
+
+
+rule distributed_best:
+    input:
+        RESULTS / "distributed_best_summary.md",
+        RESULTS / "distributed_best_cells.csv",
+        RESULTS / "distributed_best_stages.csv",
 
 
 rule aggregate:
