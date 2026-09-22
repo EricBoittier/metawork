@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import py_compile
 import re
 import subprocess
 import sys
@@ -63,6 +64,15 @@ def merge(path: Path, sha: str) -> None:
             sys.stderr.write(result.stdout + result.stderr)
             raise SystemExit(result.returncode)
         file.write_text(resolved)
+        if rel.endswith(".py"):
+            try:
+                py_compile.compile(str(file), doraise=True)
+            except py_compile.PyCompileError as exc:
+                sys.stderr.write(
+                    f"keep_both_sides produced invalid Python in {rel} "
+                    f"(likely a modify/modify conflict, not add/add):\n{exc}\n"
+                )
+                raise SystemExit(1)
         git(path, "add", rel)
     git(
         path,
