@@ -1,1 +1,4 @@
 madcore-outputs/
+!madcore-outputs/
+madcore-outputs/*
+!madcore-outputs/madcore-head.json.gz
