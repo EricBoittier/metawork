@@ -44,6 +44,6 @@ fi
 if [ -f "$HERE/rust/Cargo.toml" ]; then
   METATOMIC_LIB_DIR="$LIB" METATENSOR_LIB_DIR="$MTS/lib" \
     cargo build --release --manifest-path "$HERE/rust/Cargo.toml" --target-dir "$BUILD/rust"
-  cp "$BUILD/rust/release/madcore-scan" "$BUILD/"
+  cp "$BUILD/rust/release/madcore-scan" "$BUILD/rust/release/madcore-to-diskdataset" "$BUILD/"
 fi
 ls -la "$BUILD" | grep -v "^d"

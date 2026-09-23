@@ -13,11 +13,12 @@ but only the key names are MAD-specific.
 | `extxyz-gz-to-mta` | C | `.extxyz[.gz]` (zlib) | `mta_system_t` per frame, optionally saved as `.mta` |
 | `h5-features-to-mts` | C++ | `.h5` (HDF5 C API) | features as a `.mts` TensorMap; features attached to a `.mta` system as custom data |
 | `madcore-scan` | Rust | `.extxyz[.gz]` (flate2 / zlib-rs), one thread per file | per-structure summary and sparse composition as `.mts` TensorMaps; validates every frame as an `mta_system_t` |
+| `madcore-to-diskdataset` | Rust | `.extxyz[.gz]` + a split (`../madcore/splits`) | metatrain training data per split: MemmapDataset directories (default) or DiskDataset zips (`system.mta` via `mta_save_buffer`); see [`../madcore`](../madcore/README.md) |
 
 ## Build
 
 ```bash
-bash build.sh        # builds metatomic-core with cargo, then the three examples into build/
+bash build.sh        # builds metatomic-core with cargo, then the examples into build/
 ```
 
 `build.sh` expects the metatomic checkout next to this directory (override
@@ -85,9 +86,19 @@ compressed), since gzip decompression is sequential within a file.
   files often keep a `Lattice` for molecules, so the readers zero it.
 * Custom data names must be `<namespace>::<name>` and match the system dtype
   (float64 here).
-* `metatomic-core` is built as `cdylib`/`staticlib` only, so the Rust example
-  goes through the C API over FFI (with `dlpk` to build DLPack tensors) rather
-  than depending on the crate directly.
+* `metatomic-core` is built as `cdylib`/`staticlib` only, so the Rust examples
+  go through the C API over FFI (with `dlpk` to build DLPack tensors) rather
+  than depending on the crate directly. The shared reader and FFI wrapper are
+  in `rust/src/lib.rs`.
+* **`.mta` files from metatomic-core are not readable by the current
+  metatomic-torch.** metatomic-core writes one-byte dtypes with an
+  endianness prefix (`'<b1'` for `pbc`, `metatomic-core/src/io/tensor.rs`),
+  while numpy and metatomic-torch's reader (`metatomic-torch/src/internal/npy.cpp`)
+  use `'|b1'`, so `metatomic.torch.load_system` fails with
+  `npy_read: unsupported descr: <b1`. `madcore-to-diskdataset` rewrites the
+  headers (`fix_one_byte_descr` in `rust/src/lib.rs`); the `.mta` files from
+  `extxyz-gz-to-mta` and `h5-features-to-mts --attach` still have the issue.
+  The fix belongs in metatomic-core: use `'|'` for one-byte types.
 
 `scripts/check_mta.py <input.extxyz.gz> <dir>` compares `.mta` files written
 by `extxyz-gz-to-mta` with ASE's reading of the same frames, for downstream

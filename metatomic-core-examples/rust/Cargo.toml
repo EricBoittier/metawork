@@ -9,6 +9,7 @@ dlpk = { version = "0.4.1", features = ["ndarray"] }
 flate2 = { version = "1", default-features = false, features = ["zlib-rs"] }
 metatensor = "0.5.1"
 ndarray = "0.17"
+zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [profile.release]
 debug = false

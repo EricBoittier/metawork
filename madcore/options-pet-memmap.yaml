@@ -1,0 +1,61 @@
+# Train PET on MAD-CORE from the MemmapDataset directories written by
+# metatomic-core-examples/build/madcore-to-diskdataset, e.g. for the level-18
+# coreset (first 2^18 rows):
+#
+#   ./build/madcore-to-diskdataset --split ../madcore/splits/madcore-split-seed0.npz \
+#       -o ~/data/madcore/memmap-2pow18 --max-rows 262144 ~/data/madcore/madcore_*.extxyz.gz
+#   cd ~/data/madcore/memmap-2pow18 && mtt train ~/metawork/madcore/options-pet-memmap.yaml
+#
+# The split is fixed (madcore/splits/madcore-split-seed0.npz), so train / val /
+# test are read from their own directories instead of being carved out of
+# the training set.
+#
+# Labels are model predictions: `ecumetric_energy` and the *direct*
+# (non-conservative) forces `ecumetric_nc_forces`. They are trained as two
+# targets, and the energy target does not ask for position gradients.
+
+seed: 42
+base_precision: 32
+
+architecture:
+  name: pet
+  training:
+    num_epochs: 10
+    # still used to fit the composition model and scaler
+    batch_size: 64
+    # batches are packed by total atom count instead of structure count; every
+    # MAD-CORE structure has <= 1000 atoms, so none is skipped. The mean is
+    # 12.9 atoms (6.7 in the level-18 head), so this is ~80-150 structures
+    # per batch.
+    max_atoms_per_batch: 1024
+
+training_set:
+  systems:
+    read_from: train/
+    length_unit: angstrom
+  targets: &targets
+    energy:
+      key: energy
+      unit: eV
+      forces: false
+      stress: false
+    non_conservative_force:
+      key: non_conservative_force
+      quantity: force
+      unit: eV/A
+      sample_kind: atom
+      type:
+        cartesian:
+          rank: 1
+
+validation_set:
+  systems:
+    read_from: val/
+    length_unit: angstrom
+  targets: *targets
+
+test_set:
+  systems:
+    read_from: test/
+    length_unit: angstrom
+  targets: *targets
