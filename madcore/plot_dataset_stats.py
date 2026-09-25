@@ -70,6 +70,7 @@ def main():
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    import matplotlib.ticker
 
     plt.rcParams.update({
         "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,
@@ -118,6 +119,8 @@ def main():
                         ax.annotate(f"{int(count):,}", (d, count), xytext=(0, 3), textcoords="offset points",
                                     ha="center", color=INK_2, fontsize=8)
             ax.set_xticks(range(4), ["0 (molecule)", "1", "2 (slab)", "3 (bulk)"])
+            if not overlay:  # counts in full rather than with a 1e7 offset
+                ax.yaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter("{x:,.0f}"))
             ax.grid(axis="x", visible=False)
 
         else:

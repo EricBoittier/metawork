@@ -102,5 +102,28 @@ python plot_dataset_stats.py stats-2pow18/histograms.npz --split train val test 
 per-atom histograms). At 4.5 A the neighbour lists match `madcore-neighbors`
 (168.7 pairs per structure, 26.2 neighbours per atom, 6801 isolated atoms).
 
-For the full dataset `per-structure.npz` is ~1.2 GB, over GitHub's 100 MB file
-limit: commit only its `histograms.npz`, `per-atom.npz`, summary and plots.
+[`stats-full/`](stats-full) is the same for all 2^24 rows (converted with
+`madcore-to-diskdataset` without `--max-rows` from the rechunked shards: 22 s,
+6.4 GB; statistics: 5.4 min with 20 workers, 4.5 GB of memory). Its
+`per-structure.npz` is 1.24 GB, over GitHub's 100 MB file limit, so it stays in
+`~/data/madcore/stats-full/` and is ignored here; the histograms, summary and
+plots are committed. It matches `madcore-neighbors` on the whole dataset (230.9
+pairs per structure, 17.9 neighbours per atom), except for one atom counted as
+isolated here and not there, most likely a pair at the cutoff that the float32
+positions of the memmap round across it.
+
+The coreset is ordered by farthest point sampling, so the level-18 head is not
+a sample of the whole: its structures are half the size (6.4 vs 12.9 atoms)
+and denser (26.2 vs 17.9 neighbours per atom).
+
+| | level 18 | all rows |
+| --- | --- | --- |
+| structures | 262,144 | 16,777,216 |
+| atoms per structure, mean / median / max | 6.4 / 4 / 784 | 12.9 / 10 / 1000 |
+| 3D periodic / molecules / slabs | 94.4 % / 5.6 % / 45 | 95.6 % / 4.4 % / 1,075 |
+| cell volume, median | 76 A^3 | 229 A^3 |
+| mass density, median | 9.1 g/cm^3 | 6.7 g/cm^3 |
+| energy per atom, median | -4.7 eV | -5.0 eV |
+| largest force, median | 1.3 eV/A | 4.0 eV/A |
+| pairs per structure at 4.5 A, mean / max | 168.7 / 34,090 | 230.9 / 72,512 |
+| neighbours per atom, mean / median | 26.2 / 22 | 17.9 / 16 |

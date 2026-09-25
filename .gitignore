@@ -52,3 +52,7 @@
 
 __pycache__/
 *.pyc
+
+# per-structure statistics of the full dataset are 1.2 GB (see madcore/README.md)
+/madcore/stats-*/per-structure.npz
+!/madcore/stats-2pow18/per-structure.npz
