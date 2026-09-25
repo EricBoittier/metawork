@@ -1,0 +1,59 @@
+== train: 256864 structures, 1654695 atoms
+periodic directions: 0D 14452 (5.6 %), 1D 0 (0.0 %), 2D 45 (0.0 %), 3D 242367 (94.4 %)
+                                                    mean          p0          p1          p5         p25         p50         p75         p95         p99        p100
+atoms per structure                               6.4419           1           2           2           3           4           6          16          48         784
+neighbour pairs per structure (full list)         168.82           0           2           6          54          96         168         500      1270.7       34090
+cell volume, 3D periodic [A^3]                    190.68      1.2815       13.35      22.322      48.143      76.306      127.58      379.51      1170.4  3.5829e+06
+number density, 3D periodic [atoms/A^3]         0.069237  8.3731e-07   0.0086418    0.020885    0.044565      0.0621    0.085674     0.13871     0.19575      3.9766
+mass density, 3D periodic [g/cm^3]                10.134  0.00021692     0.93648      2.3176      5.7478      9.0901      13.292      21.647      30.037      51.071
+energy [eV]                                      -21.681     -5622.8     -191.32      -77.06     -33.376     -18.788     -6.9279      29.399      136.38      4885.4
+energy per atom [eV/atom]                        -3.6814     -12.375     -10.083     -8.9401     -6.7466     -4.7148     -2.0004      5.8429      13.186      48.926
+largest force norm [eV/A]                         11.942           0  3.1623e-08  8.4853e-08  0.00042752      1.3253      9.5567      71.129      111.24      152.96
+neighbours per atom within 4.5 A                  26.206           0           2           6          16          22          33          56          79        1523
+                                            isolated atoms (no neighbour): 6686
+force norm per atom [eV/A] (binned)                                0           0           0       0.075       0.944        4.73        42.2        94.4         150
+
+== val: 2584 structures, 16748 atoms
+periodic directions: 0D 126 (4.9 %), 1D 0 (0.0 %), 2D 0 (0.0 %), 3D 2458 (95.1 %)
+                                                    mean          p0          p1          p5         p25         p50         p75         p95         p99        p100
+atoms per structure                               6.4814           1           2           2           3           4           6          16          36         624
+neighbour pairs per structure (full list)         164.62           0           4           6          56          92         168       499.4      1122.7       14832
+cell volume, 3D periodic [A^3]                    139.52      4.0116      13.169      23.235      48.867      76.304      123.25      350.85      1059.1       27000
+number density, 3D periodic [atoms/A^3]           0.0685  0.00014815    0.011039    0.021583    0.044604    0.061839     0.08476     0.13748     0.19554      0.2736
+mass density, 3D periodic [g/cm^3]                10.046    0.045226      1.0934      2.3662       5.689      9.0139      13.039       20.83      30.075      45.475
+energy [eV]                                      -22.478     -2586.1     -172.56     -74.447     -34.085     -19.535     -7.7603      25.928      142.58      1310.8
+energy per atom [eV/atom]                        -3.8915     -11.384     -10.149     -8.9262      -6.844     -4.8504     -2.3454      5.1282      13.259      35.541
+largest force norm [eV/A]                         10.921  1.4142e-08  3.3166e-08  7.5597e-08  6.8073e-05      1.1904      8.2112      66.273      103.85      143.89
+neighbours per atom within 4.5 A                  25.399           0           2           7          16          22          32          56          77         110
+                                            isolated atoms (no neighbour): 42
+force norm per atom [eV/A] (binned)                                0           0           0       0.075       0.841        4.73        42.2        94.4         150
+
+== test: 2696 structures, 16597 atoms
+periodic directions: 0D 173 (6.4 %), 1D 0 (0.0 %), 2D 0 (0.0 %), 3D 2523 (93.6 %)
+                                                    mean          p0          p1          p5         p25         p50         p75         p95         p99        p100
+atoms per structure                               6.1562           1           2           2           3           4           6          16          36         110
+neighbour pairs per structure (full list)         159.12           0           2           6          54          92         160         481      1248.8        7990
+cell volume, 3D periodic [A^3]                    130.73      6.0384      14.306      22.755      47.394      74.289      123.49      376.44      970.12      7530.1
+number density, 3D periodic [atoms/A^3]         0.068935   0.0010624   0.0096405    0.023104    0.044442    0.061906    0.085911     0.13522     0.18138     0.68311
+mass density, 3D periodic [g/cm^3]                10.155    0.065758     0.96883      2.3558      5.8772      9.0878       13.13      21.727      29.524      40.222
+energy [eV]                                      -20.708     -844.04     -201.54     -73.915     -32.711     -18.677      -6.388       34.13      131.33        1273
+energy per atom [eV/atom]                        -3.6397     -11.656      -9.928     -8.9489     -6.7761     -4.7025     -1.9787      6.0511      13.759      28.154
+largest force norm [eV/A]                         11.777           0  3.1623e-08  8.6023e-08   0.0016464      1.2726      9.9868      69.339      111.14      142.98
+neighbours per atom within 4.5 A                  25.848           0           1           6          15          22          32          56          80         267
+                                            isolated atoms (no neighbour): 73
+force norm per atom [eV/A] (binned)                                0           0           0      0.0668       0.841        4.22        42.2        94.4         150
+
+== all: 262144 structures, 1688040 atoms
+periodic directions: 0D 14751 (5.6 %), 1D 0 (0.0 %), 2D 45 (0.0 %), 3D 247348 (94.4 %)
+                                                    mean          p0          p1          p5         p25         p50         p75         p95         p99        p100
+atoms per structure                               6.4394           1           2           2           3           4           6          16          48         784
+neighbour pairs per structure (full list)         168.68           0           2           6          54          96         168         500        1268       34090
+cell volume, 3D periodic [A^3]                    189.56      1.2815      13.364      22.334      48.143      76.287       127.5      379.11      1163.5  3.5829e+06
+number density, 3D periodic [atoms/A^3]         0.069227  8.3731e-07   0.0086735    0.020914    0.044563    0.062095    0.085669     0.13867     0.19561      3.9766
+mass density, 3D periodic [g/cm^3]                10.133  0.00021692     0.93722      2.3182      5.7484      9.0893      13.289       21.64      30.033      51.071
+energy [eV]                                      -21.679     -5622.8     -191.09     -77.006     -33.376     -18.795     -6.9319      29.393       136.4      4885.4
+energy per atom [eV/atom]                        -3.6831     -12.375     -10.084     -8.9401     -6.7484     -4.7156     -2.0049      5.8406      13.199      48.926
+largest force norm [eV/A]                          11.93           0  3.1623e-08  8.4853e-08  0.00041797      1.3236      9.5475      71.049       111.2      152.96
+neighbours per atom within 4.5 A                  26.195           0           2           6          16          22          33          56          79        1523
+                                            isolated atoms (no neighbour): 6801
+force norm per atom [eV/A] (binned)                                0           0           0       0.075       0.841        4.73        42.2        94.4         150

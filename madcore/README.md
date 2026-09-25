@@ -78,3 +78,29 @@ Measured with metatrain's own dataset classes on the level-18 data:
   workers if the GPU waits on data.
 * **Batches** are packed by atom count, so step cost stays even across
   the wide size range instead of alternating between tiny and huge batches.
+
+## Dataset statistics
+
+`dataset_stats.py` reads MemmapDataset directories through metatrain's
+batched loader (`MemmapDataset.__getitems__`, perf/6), and computes per
+structure the atom count, periodic directions, cell volume, number and mass
+density (3D periodic cells), energy, energy per atom, largest force and the
+size of the full neighbour list (vesin, in the dataloader workers), plus per
+atom the force norm and neighbour count. Plotting is separate and only reads
+the pre-binned histograms:
+
+```bash
+python dataset_stats.py ~/data/madcore/memmap-2pow18/{train,val,test} -o stats-2pow18   # ~6 s, 16 workers
+python plot_dataset_stats.py stats-2pow18/histograms.npz                              # ~2 s
+python plot_dataset_stats.py stats-2pow18/histograms.npz --split train val test -o stats-2pow18/distributions-train-val-test.pdf
+```
+
+[`stats-2pow18/`](stats-2pow18) holds the level-18 results: `summary.txt`
+(percentiles per split), `distributions-*.{png,pdf}`, and the uncompressed
+`.npz` files (`histograms.npz`, 0.4 MB, is all the plots need;
+`per-structure.npz`, 19 MB, has one row per structure; `per-atom.npz` the
+per-atom histograms). At 4.5 A the neighbour lists match `madcore-neighbors`
+(168.7 pairs per structure, 26.2 neighbours per atom, 6801 isolated atoms).
+
+For the full dataset `per-structure.npz` is ~1.2 GB, over GitHub's 100 MB file
+limit: commit only its `histograms.npz`, `per-atom.npz`, summary and plots.
