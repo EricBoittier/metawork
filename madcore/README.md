@@ -127,3 +127,30 @@ and denser (26.2 vs 17.9 neighbours per atom).
 | largest force, median | 1.3 eV/A | 4.0 eV/A |
 | pairs per structure at 4.5 A, mean / max | 168.7 / 34,090 | 230.9 / 72,512 |
 | neighbours per atom, mean / median | 26.2 / 22 | 17.9 / 16 |
+
+## Feature PCA
+
+`features_pca.py` fits a PCA on the MAD-CORE features of **every** row (all
+seven `madcore_features_*.h5`, downloaded with
+`etc/download-madcore-features.sh`, which needs the record's preview token
+while it is a draft), scaled as the FPS selection does, and projects every row
+on the leading components. It streams the HDF5 files in two passes over row
+ranges on parallel processes: 57 s for the 16,777,216 rows, under 1 GB of
+memory. `extract_groups.py` writes the `dataset_group` / `dataset_id` of every
+row from the extxyz headers (4 min), checking that row i is `fps_order` i in
+every shard. `plot_pca.py` draws every row as a grey density and one group on
+top in colour; the group only selects which points are coloured, it plays no
+part in the fit.
+
+```bash
+python extract_groups.py -o ~/data/madcore/groups.npz
+python features_pca.py -o ~/data/madcore/pca-full
+python plot_pca.py ~/data/madcore/pca-full --highlight OMol25 --color n_atoms   # or dataset, energy_per_atom, ...
+```
+
+[`pca-full/`](pca-full) holds the model (`pca.npz`: components, eigenvalues,
+the feature scaler) and the figures. `projections.npy` (670 MB, 16.8M x 10) and
+`groups.npz` (67 MB) stay in `~/data/madcore`. PC1 and PC2 explain 32.1 % and
+9.0 % of the variance, the first ten 66.9 %. OMol25 is 367,234 rows (2.2 %), of
+which only 561 are in the level-18 head, so a PCA of the head says little about
+it.
