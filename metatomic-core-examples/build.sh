@@ -37,9 +37,17 @@ INCLUDES=(-I"$METATOMIC/metatomic-core/include" -I"$BUILD/include" -I"$MTS/inclu
 LINK=(-L"$LIB" -L"$MTS/lib" -lmetatomic -lmetatensor -Wl,--disable-new-dtags -Wl,-rpath,"$LIB" -Wl,-rpath,"$MTS/lib")
 
 cc -O2 -std=c11 -Wall -Wextra "${INCLUDES[@]}" "$HERE/c/extxyz-gz-to-mta.c" -o "$BUILD/extxyz-gz-to-mta" "${LINK[@]}" -lz
-if [ -f "$HERE/cpp/h5-features-to-mts.cpp" ]; then
+# The HDF5 *devel* headers (not just the runtime .so, which may already be
+# present) are only needed for this one C++ example -- the Rust converter/
+# scanner below don't touch HDF5 at all. Skip it gracefully rather than
+# aborting the whole build (set -e) when a machine has the runtime lib but
+# not -devel installed and the user has no root to fix that (e.g. this
+# cluster, RHEL9: hdf5-1.12.1 installed, hdf5-devel is not).
+if [ -f "$HERE/cpp/h5-features-to-mts.cpp" ] && [ -f "$HDF5_INC/hdf5.h" ]; then
   c++ -O2 -std=c++17 -Wall -Wextra "${INCLUDES[@]}" -I"$HDF5_INC" "$HERE/cpp/h5-features-to-mts.cpp" \
     -o "$BUILD/h5-features-to-mts" "${LINK[@]}" -L"$HDF5_LIB" -lhdf5 -Wl,-rpath,"$HDF5_LIB"
+elif [ -f "$HERE/cpp/h5-features-to-mts.cpp" ]; then
+  echo "skipping h5-features-to-mts: no HDF5 headers at $HDF5_INC/hdf5.h (only the C++ example needs them)"
 fi
 if [ -f "$HERE/rust/Cargo.toml" ]; then
   METATOMIC_LIB_DIR="$LIB" METATENSOR_LIB_DIR="$MTS/lib" \

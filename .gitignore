@@ -24,6 +24,12 @@
 /.venv/
 /.venv-upet/
 
+# separate venv for the lyra cluster's Blackwell GPUs (sm_100/sm_120) --
+# needs a newer torch than the shared /.venv/'s sm_90-max cu121 build, kept
+# in its own venv rather than upgrading /.venv/ in place since that one is
+# still used on kuma (L40S/H100, sm_89/sm_90 -- no need to touch it there)
+/.venv-blackwell/
+
 # datasets downloaded by etc/download-datasets.sh (when pointed inside this repo)
 /data/
 

@@ -33,6 +33,21 @@ def probe(python: Path) -> dict:
     return json.loads(result.stdout)
 
 
+def _supports_seed(python: Path, script: Path) -> bool:
+    """Whether this worktree's benchmark_pipeline.py accepts --seed.
+
+    The pipeline-bench worktrees are checkouts of independent metatrain PR
+    branches (see config.yaml's `variants:`), predating this repo's own
+    --seed addition here -- unconditionally forwarding it breaks any
+    worktree whose benchmark_pipeline.py doesn't have it yet ("unrecognized
+    arguments: --seed"), so probe via --help instead of assuming.
+    """
+    result = subprocess.run(
+        [str(python), str(script), "--help"], capture_output=True, text=True
+    )
+    return "--seed" in result.stdout
+
+
 def run_benchmark(
     python: Path,
     worktree: Path,
@@ -67,9 +82,9 @@ def run_benchmark(
         device,
         "--epochs",
         str(epochs),
-        "--seed",
-        str(seed),
     ]
+    if _supports_seed(python, script):
+        cmd += ["--seed", str(seed)]
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("w") as log:
         log.write("# " + " ".join(cmd) + "\n")
