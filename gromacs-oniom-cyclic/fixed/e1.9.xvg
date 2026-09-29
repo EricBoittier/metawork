@@ -1,0 +1,26 @@
+# This file was created Tue Sep 29 11:05:56 2026
+# Created by:
+#   :-) GROMACS - gmx energy, 2027.0-dev-20260929-1ab373dae8-dirty-unknown (-:
+# 
+# Executable:   /home/boittier/metawork/gromacs-oniom-torch/build/bin/gmx
+# Data prefix:  /home/boittier/metawork/gromacs-oniom-torch (source tree)
+# Working dir:  /home/boittier/metawork/gromacs-oniom-cyclic/fixed
+# Command line:
+#   gmx energy -f e1.9.edr -o e1.9.xvg -dp
+# gmx energy is part of G R O M A C S:
+#
+# Glycine aRginine prOline Methionine Alanine Cystine Serine
+#
+@    title "GROMACS Energies"
+@    xaxis  label "Time (ps)"
+@    yaxis  label "(kJ/mol)"
+@TYPE xy
+@ view 0.15, 0.15, 0.75, 0.85
+@ legend on
+@ legend box on
+@ legend loctype view
+@ legend 0.78, 0.8
+@ legend length 2
+@ s0 legend "Coulomb (SR)"
+@ s1 legend "Coul. recip."
+    0.000000  -186129.578125000000  164.612808227539
