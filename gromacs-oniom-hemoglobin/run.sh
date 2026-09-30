@@ -4,14 +4,24 @@
 # link atoms. MM minimisation, heating and NpT, then ONIOM NVT (2 ps) and NVE (5 ps) twice:
 # PET-MAD xs with the sites as one ML system (onvt, onve), and PET-OMol s with each site its
 # own system, charge -2 and a quintet (omvt, omve; needs metatomic-site-groups, from the
-# oniom-stress-fixes branch). Stages are skipped once their output exists.
+# oniom-stress-fixes branch). Stages are skipped once their output exists, and mdrun resumes
+# from its checkpoint, so the script can be restarted at any point.
+#
+#   ./run.sh [RUN_DIR [SEED]]   run in RUN_DIR (default: here), with SEED for the MM heating
+#                               velocities (default 1); replicas can run side by side
+# Paths (GMX, ONIOM_MODELS, NT) come from ../etc/oniom/env.sh; see ../etc/oniom/README.md.
 # models/pet-omol-s-v1.0.0.pt: python -c "import upet; upet.save_upet(model='pet-omol',
 #   size='s', version='1.0.0', output='models/pet-omol-s-v1.0.0.pt')" (in /.venv-upet)
 set -euo pipefail
-cd "$(dirname "$0")"
-G=${GMX:-../gromacs-plainpairlist/build/bin/gmx}   # oniom-stress-fixes build
-NT=${NT:-16}
-gmx() { "$G" "$@"; }
+HB=$(cd "$(dirname "$0")" && pwd)
+. "$HB/../etc/oniom/env.sh"
+RUN=${1:-$HB}
+SEED=${2:-1}
+mkdir -p "$RUN" && cd "$RUN"
+for f in 1A3N.pdb specbond.dat charmm27.ff make_sites.py; do   # shared inputs of a replica
+    [[ -e $f ]] || ln -s "$HB/$f" .
+done
+gmx() { "$GMX" "$@"; }
 have() { [[ -f $1 ]]; }
 
 # charmm27.ff/aminoacids.hdb here adds hydrogen rules for HEME, which the shipped
@@ -24,14 +34,18 @@ if ! have ions.gro; then
     gmx pdb2gmx -f hb_clean.pdb -ff charmm27 -water tip3p -ignh -merge all -o hb.gro -p topol.top -i posre.itp
     gmx editconf -f hb.gro -o box.gro -d 1.0 -c -bt dodecahedron
     gmx solvate -cp box.gro -cs spc216.gro -p topol.top -o solv.gro
-    gmx grompp -f mdp/em.mdp -c solv.gro -p topol.top -o ions.tpr -maxwarn 1   # net charge before genion
+    gmx grompp -f "$HB/mdp/em.mdp" -c solv.gro -p topol.top -o ions.tpr -maxwarn 1   # net charge before genion
     echo SOL | gmx genion -s ions.tpr -o ions.gro -p topol.top -pname NA -nname CL -neutral -conc 0.15
 fi
 
-step() {  # step NAME MDP [grompp args]: run one stage unless it is done
+step() {  # step NAME MDP [grompp args]: run one stage unless it is done, resuming from its checkpoint
     have $1.gro && return
-    gmx grompp -f mdp/$2.mdp -p topol.top -n index.ndx -o $1.tpr "${@:3}"
-    gmx mdrun -deffnm $1 -nt "$NT"
+    oniom_mdp "$HB/mdp/$2.mdp" $1.mdp   # fills in the model path
+    [[ $2 == nvt ]] && sed -i "s/^gen-seed .*/gen-seed                = $SEED/" $1.mdp
+    [[ -f $1.tpr ]] || gmx grompp -f $1.mdp -p topol.top -n index.ndx -o $1.tpr -po $1.mdout.mdp "${@:3}"
+    local cpi=()
+    [[ -f $1.cpt ]] && cpi=(-cpi $1.cpt)
+    gmx mdrun -deffnm $1 -nt "$NT" "${cpi[@]}"
 }
 
 if ! have index.ndx; then

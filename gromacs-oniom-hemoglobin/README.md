@@ -6,8 +6,10 @@ proximal histidine as a machine-learned site, cut at CA-CB with link atoms. The 
 needed are on the `oniom-stress-fixes` branch of the GROMACS fork; the report is the
 "Hemoglobin ONIOM Stress Test" artifact.
 
-* `run.sh`: build, MM equilibration, then ONIOM NVT + NVE with PET-MAD xs (the sites as one
-  system) and with PET-OMol s (one system per site, charge -2, quintet).
+* `run.sh [RUN_DIR [SEED]]`: build, MM equilibration, then ONIOM NVT + NVE with PET-MAD xs (the
+  sites as one system) and with PET-OMol s (one system per site, charge -2, quintet).
+  `tasks.txt` runs eight seeds; submit it with `etc/oniom/submit.sh tasks.txt` on any of the
+  clusters (see `etc/oniom/README.md`). Paths come from `etc/oniom/env.sh`.
 * `charmm27.ff/aminoacids.hdb`: adds hydrogen rules for `HEME`, which the shipped CHARMM27
   lacks; `specbond.dat` links His NE2-Fe at 0.225 nm (the deoxy distances, 0.223-0.236 nm,
   fall outside the shipped 0.2 nm +- 10%).

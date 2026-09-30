@@ -26,7 +26,7 @@ ref-t                   = 300
 continuation            = yes
 ; ONIOM: PET-MAD on the four heme sites (group ML), CHARMM27 elsewhere
 metatomic-active        = yes
-metatomic-model         = /home/boittier/metawork/gromacs-oniom-hemoglobin/models/pet-omol-s-v1.0.0.pt
+metatomic-model         = @MODELS@/pet-omol-s-v1.0.0.pt
 metatomic-input-group   = ML
 metatomic-device        = cuda
 metatomic-oniom         = yes

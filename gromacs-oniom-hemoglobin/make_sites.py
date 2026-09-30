@@ -5,7 +5,7 @@ all-protein ML test). Reads npt_whole.gro (npt.gro with whole molecules) and ml.
 import math
 from pathlib import Path
 
-here = Path(__file__).resolve().parent
+here = Path.cwd()  # the run directory
 lines = (here / "npt_whole.gro").read_text().splitlines()
 n = int(lines[1])
 atoms = lines[2 : 2 + n]

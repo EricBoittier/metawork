@@ -15,7 +15,14 @@ rcoulomb 1.0 nm, rlist 1.55 nm (`templates/`).
 Binary: `gromacs-oniom-torch` (PR #11 + metatomic + the embedded Coulomb
 correction, Torch build), PET-MAD on the GPU, 16 OpenMP threads.
 
-## Running unattended
+## On the clusters
+
+`./tasks.sh > tasks.txt` writes the task list, and `etc/oniom/submit.sh tasks.txt` runs it on
+kuma or lyra (one GPU per run) or on daint or clariden (8 GPUs per job); see
+`etc/oniom/README.md`. Paths come from `etc/oniom/env.sh`, and the model path in the
+templates (`@MODELS@`) is filled in when a job runs.
+
+## Running unattended (one machine)
 
     ./install_cron.sh      # adds the cron entry and starts the runner now
 

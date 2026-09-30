@@ -1,0 +1,11 @@
+# Hemoglobin replicas for etc/oniom/worker.sh: eight seeds of the MM heating, each through
+# both ONIOM runs (PET-MAD xs, then PET-OMol s with four sites). Eight tasks fill one
+# 8-GPU allocation on daint or clariden, or eight single-GPU array tasks on kuma or lyra.
+hb_s1 ./run.sh runs/s1 1
+hb_s2 ./run.sh runs/s2 2
+hb_s3 ./run.sh runs/s3 3
+hb_s4 ./run.sh runs/s4 4
+hb_s5 ./run.sh runs/s5 5
+hb_s6 ./run.sh runs/s6 6
+hb_s7 ./run.sh runs/s7 7
+hb_s8 ./run.sh runs/s8 8

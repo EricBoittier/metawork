@@ -6,7 +6,8 @@
 # anything unexpected. Then commits summary.md/csv to metawork.
 set -euo pipefail
 CAMPAIGN=$(cd "$(dirname "$0")" && pwd)
-REPO=/home/boittier/metawork/gromacs-oniom-capi
+METAWORK=$(cd "$CAMPAIGN/../.." && pwd)
+REPO=${ONIOM_GROMACS_REPO:-$METAWORK/gromacs-oniom-capi}
 DEST=src/gromacs/applied_forces/metatomic/docs/oniom_peptide
 log() { echo "$(date -Is) finish: $*"; }
 
@@ -40,7 +41,7 @@ push_gromacs() {
 # The campaign summary in metawork, on its current branch, when that branch
 # is in sync with origin (so nothing but this commit is pushed).
 push_metawork() {
-    local repo=/home/boittier/metawork
+    local repo=$METAWORK
     cd "$repo"
     local branch; branch=$(git rev-parse --abbrev-ref HEAD)
     git fetch -q origin "$branch"

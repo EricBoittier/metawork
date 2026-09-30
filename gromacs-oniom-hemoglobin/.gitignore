@@ -20,3 +20,6 @@ models/*.pt
 models/*.log
 allml/
 *.dump
+runs/
+tasks.txt.d/
+slurm-*.out

@@ -4,13 +4,15 @@ For each run (PET-MAD xs: onvt/onve, PET-OMol s: omvt/omve) reads the NVT and NV
 files and the four proximal His NE2 - Fe distances from the compressed trajectories.
 """
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
 
-HERE = Path(__file__).resolve().parent
-G = "/home/boittier/metawork/gromacs-plainpairlist/build/bin/gmx"
+HERE = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parent  # a run directory
+G = os.environ["GMX"]  # from etc/oniom/env.sh
 RUNS = {"pet-mad-xs": ("onvt", "onve"), "pet-omol-s": ("omvt", "omve")}
 
 

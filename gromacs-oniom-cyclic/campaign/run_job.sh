@@ -4,9 +4,8 @@
 # checkpoint, so the script can be restarted at any point.
 set -euo pipefail
 CAMPAIGN=$(cd "$(dirname "$0")" && pwd)
-GMX=${GMX:-/home/boittier/metawork/gromacs-oniom-torch/build/bin/gmx}
-PY=${PY:-/home/boittier/metawork/.venv/bin/python}
-NT=${NT:-16}
+. "$CAMPAIGN/../../etc/oniom/env.sh"   # GMX, GMX_D, ONIOM_PY, ONIOM_MODELS, NT
+PY=${PY:-$ONIOM_PY}
 name=$1 box=$2 ml=$3 seed=$4
 job=${JOBS:-$CAMPAIGN/jobs}/$name
 mkdir -p "$job" && cd "$job"
@@ -59,9 +58,9 @@ fi
 for stage in npt nve; do
     if ! done_ $stage; then
         [[ $stage == npt ]] && prev=nvt || prev=npt
-        mdp=$T/$stage.mdp
-        if [[ -f pull.mdp ]]; then cat "$T/$stage.mdp" pull.mdp > $stage.mdp; mdp=$stage.mdp; fi
-        [[ -f $stage.tpr ]] || gmx grompp -f "$mdp" -c $prev.gro -t $prev.cpt -p topol.top \
+        oniom_mdp "$T/$stage.mdp" $stage.mdp   # the model path, and the shell restraints
+        if [[ -f pull.mdp ]]; then cat pull.mdp >> $stage.mdp; fi
+        [[ -f $stage.tpr ]] || gmx grompp -f $stage.mdp -c $prev.gro -t $prev.cpt -p topol.top \
             -n index.ndx -o $stage.tpr > grompp_$stage.log 2>&1
         mdrun $stage && mark $stage
     fi

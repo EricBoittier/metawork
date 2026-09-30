@@ -6,7 +6,8 @@
 set -uo pipefail
 CAMPAIGN=$(cd "$(dirname "$0")" && pwd)
 MAX_TRIES=${MAX_TRIES:-3}
-PY=${PY:-/home/boittier/metawork/.venv/bin/python}
+. "$CAMPAIGN/../../etc/oniom/env.sh"
+PY=${PY:-$ONIOM_PY}
 cd "$CAMPAIGN"
 log() { echo "$(date -Is) $*"; }
 
