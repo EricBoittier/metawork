@@ -1,0 +1,33 @@
+; ONIOM NVT, 2 ps: let the heme sites relax on the PET-MAD surface
+integrator              = md
+dt                      = 0.0005
+constraints             = none          ; ML atoms are flexible, waters stay rigid via SETTLE
+cutoff-scheme           = Verlet
+pbc                     = xyz
+coulombtype             = PME
+rcoulomb                = 1.2
+vdwtype                 = Cut-off
+vdw-modifier            = Force-switch
+rvdw-switch             = 1.0
+rvdw                    = 1.2
+DispCorr                = no
+verlet-buffer-tolerance = -1
+rlist                   = 1.55          ; past the 1.5 nm PET-MAD range
+nstlist                 = 20
+nstcalcenergy           = 1
+nstenergy               = 20
+nstlog                  = 1000
+nstxout-compressed      = 1000
+nsteps                  = 4000
+tcoupl                  = V-rescale
+tc-grps                 = System
+tau-t                   = 0.1
+ref-t                   = 300
+continuation            = yes
+; ONIOM: PET-MAD on the four heme sites (group ML), CHARMM27 elsewhere
+metatomic-active        = yes
+metatomic-model         = /home/boittier/metawork/openmm-metatomic/models/pet-mad-xs-v1.5.0.pt
+metatomic-input-group   = ML
+metatomic-device        = cuda
+metatomic-oniom         = yes
+metatomic-link-atoms    = yes          ; cap the four CA-CB cuts with hydrogens

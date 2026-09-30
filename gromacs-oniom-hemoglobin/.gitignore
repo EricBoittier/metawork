@@ -1,0 +1,22 @@
+# simulation outputs and generated files; inputs and scripts are tracked
+*.cpt
+*.edr
+*.trr
+*.xtc
+*.tpr
+*.log
+*.out
+*.xvg
+\#*#
+mdout.mdp
+*.gro
+!conf.gro
+hb_clean.pdb
+posre.itp
+topol.top
+index.ndx
+ml.ndx
+models/*.pt
+models/*.log
+allml/
+*.dump

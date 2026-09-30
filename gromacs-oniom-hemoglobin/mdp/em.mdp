@@ -1,0 +1,13 @@
+; MM minimisation
+integrator              = steep
+emtol                   = 500
+nsteps                  = 5000
+cutoff-scheme           = Verlet
+pbc                     = xyz
+coulombtype             = PME
+rcoulomb                = 1.2
+vdwtype                 = Cut-off
+vdw-modifier            = Force-switch
+rvdw-switch             = 1.0
+rvdw                    = 1.2
+DispCorr                = no
