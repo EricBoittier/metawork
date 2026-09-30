@@ -10,7 +10,8 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 jobs = [l.split() for l in (HERE / "jobs.txt").read_text().splitlines() if l.strip() and not l.startswith("#")]
 KEYS = ["atoms", "ml_atoms", "nve_drift_kj_mol_ps", "nve_drift_per_atom", "nve_residual_std_kj_mol",
-        "nve_temperature_k", "npt_density_kg_m3", "ring_bond_nm", "uncertainty_warnings", "nve_ms_per_step"]
+        "nve_temperature_k", "npt_density_kg_m3", "ring_bond_nm", "uncertainty_warnings", "nve_ms_per_step",
+        "shell_waters", "shell_kept", "mm_in_shell", "shell_max_dist_nm"]
 
 rows, groups = [], defaultdict(list)
 for name, box, ml, seed in jobs:
@@ -31,6 +32,7 @@ with open(HERE / "summary.csv", "w", newline="") as f:
     w = csv.DictWriter(f, fieldnames=list(rows[0]))
     w.writeheader(); w.writerows(rows)
 
+kept = lambda r: f"{r['shell_kept']}/{r['shell_waters']}" if r["shell_kept"] != "" else ""
 fmt = lambda v, d: "" if v == "" else f"{v:.{d}f}" if isinstance(v, float) else str(v)
 md = ["# ONIOM campaign summary", "", f"{sum(r['status'] == 'done' for r in rows)}/{len(rows)} jobs done.", "",
       "## Means over seeds", "",
@@ -41,9 +43,12 @@ for (box, ml), ms in sorted(groups.items()):
     pm = lambda k, d: f"{a(k).mean():.{d}f}" + (f" ± {a(k).std(ddof=1):.{d}f}" if len(ms) > 1 else "")
     md.append(f"| {box:.1f} | {ml} | {len(ms)} | {int(a('atoms').mean())} | {pm('ml_atoms', 0)} | {pm('nve_drift_kj_mol_ps', 2)} "
               f"| {pm('nve_residual_std_kj_mol', 2)} | {pm('nve_temperature_k', 1)} | {pm('npt_density_kg_m3', 1)} | {pm('nve_ms_per_step', 1)} |")
-md += ["", "## Jobs", "", "| job | status | ML atoms | drift | std | ring bond (nm) | uncertainty warnings |",
-       "| --- | --- | --- | --- | --- | --- | --- |"]
+md += ["", "## Jobs", "", "Shell kept: ML waters with any atom within 0.5 nm of the peptide at the end of NVE; "
+       "MM in: MM waters that moved that close; farthest: the shell water farthest from the peptide (nm).", "",
+       "| job | status | ML atoms | drift | std | ring bond (nm) | uncertainty warnings | shell kept | MM in | farthest |",
+       "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
 md += [f"| {r['job']} | {r['status']} | {r['ml_atoms']} | {fmt(r['nve_drift_kj_mol_ps'], 2)} | {fmt(r['nve_residual_std_kj_mol'], 2)} "
-       f"| {fmt(r['ring_bond_nm'], 3)} | {r['uncertainty_warnings']} |" for r in rows]
+       f"| {fmt(r['ring_bond_nm'], 3)} | {r['uncertainty_warnings']} "
+       f"| {kept(r)} | {r['mm_in_shell']} | {fmt(r['shell_max_dist_nm'], 2)} |" for r in rows]
 (HERE / "summary.md").write_text("\n".join(md) + "\n")
 print("\n".join(md))

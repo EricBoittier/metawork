@@ -44,20 +44,24 @@ if ! done_ index; then
     # the ML region is fixed from here on; "shell" takes whole waters near the peptide
     case $ml in
         peptide) sel='"ML" group Protein' ;;
-        shell)   sel='"ML" group Protein or same residue as (resname SOL and within 0.5 of group Protein)' ;;
+        shell|shellres) sel='"ML" group Protein or same residue as (resname SOL and within 0.5 of group Protein)' ;;
         *) echo "unknown ML region $ml" >&2; exit 2 ;;
     esac
     printf "q\n" | gmx make_ndx -f nvt.gro -o groups.ndx > index.log 2>&1
     gmx select -s nvt.tpr -f nvt.gro -select "$sel" -on ml.ndx >> index.log 2>&1
     sed -i "1s/.*/[ ML ]/" ml.ndx  # gmx select appends the frame to the name
     cat groups.ndx ml.ndx > index.ndx
+    # shellres: flat-bottomed restraints keep the shell waters near the peptide
+    if [[ $ml == shellres ]]; then "$PY" "$CAMPAIGN/shell_restraints.py" . >> index.log; fi
     mark index
 fi
 
 for stage in npt nve; do
     if ! done_ $stage; then
         [[ $stage == npt ]] && prev=nvt || prev=npt
-        [[ -f $stage.tpr ]] || gmx grompp -f "$T/$stage.mdp" -c $prev.gro -t $prev.cpt -p topol.top \
+        mdp=$T/$stage.mdp
+        if [[ -f pull.mdp ]]; then cat "$T/$stage.mdp" pull.mdp > $stage.mdp; mdp=$stage.mdp; fi
+        [[ -f $stage.tpr ]] || gmx grompp -f "$mdp" -c $prev.gro -t $prev.cpt -p topol.top \
             -n index.ndx -o $stage.tpr > grompp_$stage.log 2>&1
         mdrun $stage && mark $stage
     fi

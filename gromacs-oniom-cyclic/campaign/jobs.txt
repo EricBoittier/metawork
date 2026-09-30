@@ -20,3 +20,15 @@ box4_peptide_s3   4.0     peptide    3
 box6_peptide_s3   6.0     peptide    3
 box4_shell_s3     4.0     shell      3
 box6_shell_s3     6.0     shell      3
+# shellres: the shell with flat-bottomed restraints (shell_restraints.py), run
+# with the double-precision build (GMX=../gromacs-oniom-torch/build-double/bin/gmx_d,
+# set through install_cron.sh), so compare against the single-precision shell runs with care.
+box5_shellres_s1  5.0     shellres   1
+box4_shellres_s1  4.0     shellres   1
+box6_shellres_s1  6.0     shellres   1
+box5_shellres_s2  5.0     shellres   2
+box4_shellres_s2  4.0     shellres   2
+box6_shellres_s2  6.0     shellres   2
+box5_shellres_s3  5.0     shellres   3
+box4_shellres_s3  4.0     shellres   3
+box6_shellres_s3  6.0     shellres   3

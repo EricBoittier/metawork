@@ -44,6 +44,27 @@ L = float(gro[-1].split()[0])
 ring = xyz(85) - xyz(0)  # ALA6 C - GLY1 N, the bond that closes the ring
 ring -= L * np.round(ring / L)
 
+
+
+def shell_occupancy():
+    """ML waters still within 0.5 nm of the peptide at the end of NVE (any atom), and MM waters that moved in."""
+    names = np.array([l[10:15].strip() for l in gro[2:2 + natoms]])
+    resn = np.array([l[5:10].strip() for l in gro[2:2 + natoms]])
+    X = np.array([xyz(i) for i in range(natoms)])
+    pep, ow = np.where(resn != "SOL")[0], np.where(names == "OW")[0]
+    ml = set(int(t) - 1 for t in (job / "ml.ndx").read_text().split("]", 1)[1].split())
+    w = np.stack([ow, ow + 1, ow + 2], 1)  # the selection rule: any water atom within 0.5 nm of the peptide
+    d = X[w][:, :, None] - X[pep][None, None]
+    d -= L * np.round(d / L)
+    dmin = np.linalg.norm(d, axis=3).min((1, 2))
+    near = dmin < 0.5
+    is_ml = np.array([o in ml for o in ow])
+    if not is_ml.any():
+        return {}
+    return {"shell_waters": int(is_ml.sum()), "shell_kept": int((near & is_ml).sum()), "mm_in_shell": int((near & ~is_ml).sum()),
+            "shell_max_dist_nm": float(dmin[is_ml].max())}
+
+
 metrics = {
     "atoms": natoms,
     "ml_atoms": ml_atoms(),
@@ -57,6 +78,7 @@ metrics = {
     "npt_temperature_k": float(p["Temperature"][half:].mean()),
     "uncertainty_warnings": sum((job / f).read_text().count("uncertainty on atomic") for f in ("npt.out", "nve.out")),
     **{f"nve_{k}": v for k, v in performance("nve.log").items()},
+    **shell_occupancy(),
 }
 (job / "metrics.json").write_text(json.dumps(metrics, indent=1))
 print(json.dumps(metrics, indent=1))

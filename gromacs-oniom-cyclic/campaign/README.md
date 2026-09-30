@@ -10,6 +10,7 @@ rcoulomb 1.0 nm, rlist 1.55 nm (`templates/`).
 | --- | --- | --- |
 | `peptide` | 87 | the peptide only |
 | `shell` | ~435 | peptide + whole waters with any atom within 0.5 nm after heating (116 in the 5 nm box); their SETTLEs are removed, so they are flexible PET-MAD waters. The set is fixed for the run, so shell waters can diffuse away over 40 ps. The region is 2-3 nm wide, well beyond rcoulomb, so it relies on the embedded Coulomb correction. |
+| `shellres` | ~435 | as `shell`, plus a flat-bottomed restraint per shell water (`shell_restraints.py`, pull code): on the distance from the peptide COM to the water COM, zero up to the water's distance after heating + 0.1 nm, 1000 kJ/mol/nm² beyond. Shell waters can't diffuse away; MM waters can still move in between them. Applied in NpT and NVE; the energy is `COM Pull En.` |
 
 Binary: `gromacs-oniom-torch` (PR #11 + metatomic + the embedded Coulomb
 correction, Torch build), PET-MAD on the GPU, 16 OpenMP threads.
