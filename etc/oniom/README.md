@@ -34,13 +34,14 @@ its log is `TASKS.d/NAME/log`.
 
 ### Which kuma partition
 
-`submit.sh` uses `h100` on kuma unless you pass `--partition`. `l40s` is often full. The MIG
-partitions `mig12gb` and `mig24gb` are slices of an H100 with a fraction of its compute and
-12 or 24 GB of memory; they suit the peptide campaign (well under 1 GB of GPU memory per run,
-and a model call that is latency-bound) and are usually idle. Check how the slices are
-requested there (`sinfo -o '%P %G'`) before submitting to them; if the gres is not plain
-`gpu`, pass it, e.g. `--partition=mig24gb --gres=gpu:<name>:1`. The whole-protein ML test
-needs a full GPU (7 GB with PET-MAD xs, far more with larger models).
+`submit.sh` uses `h100` on kuma unless you pass `--partition`. `l40s` is often full. kuma
+allows at most 16 cores per GPU. The MIG partitions `mig12gb` and `mig24gb` are slices of an
+H100 with a fraction of its compute and 12 or 24 GB of memory; they suit the peptide campaign
+(well under 1 GB of GPU memory per run, and a model call that is latency-bound) and are usually
+idle. Their gres is typed, `gpu:nvidia_h100_1g.12gb` (28 per node) and
+`gpu:nvidia_h100_2g.24gb` (12 per node), so pass it explicitly:
+`--partition=mig24gb --gres=gpu:nvidia_h100_2g.24gb:1`. The whole-protein ML runs need a full
+H100 (see the memory table in `gromacs-oniom-hemoglobin/README.md`).
 
 ## Once per cluster
 
@@ -57,6 +58,26 @@ On Alps, run the build inside the uenv that the jobs use, so that torch, CUDA an
 compilers match: `uenv start pytorch/v2.6.0:v1@clariden --view=default`. The build
 downloads metatomic-torch and FFTW, so the node needs network access (or set
 `GMX_BUILD_OWN_FFTW=OFF` where a system FFTW exists).
+
+On kuma, three things differ from the defaults (built this way on 2026-09-30):
+
+* The shared `.venv` has torch 2.5.1, built with the pre-cxx11 ABI, which GROMACS refuses.
+  Build against a venv with torch 2.13.0+cu126 instead (the node driver, 560, supports CUDA
+  12.6 at most): `uv venv -p 3.12 builds/torch-cu126` and install
+  `torch==2.13.0+cu126` from `https://download.pytorch.org/whl/cu126`, then numpy,
+  metatomic-torch and ase from PyPI. Use it as `ONIOM_PY`.
+* Modules: `gcc/13.2.0 cuda/12.4.1` (CUDA 12.5 is only in the NVHPC stack). The fork needs
+  CMake >= 3.28 and kuma has 3.27.9; use CMake 3.x from pip (`cmake>=3.28,<4`; CMake 4 drops
+  the old policies the bundled FFTW relies on).
+* Torch cu126 needs the CUDA 12.6 runtime it ships, not the module's 12.4, both at link time
+  and at run time, and FindPython misses the uv python:
+
+```bash
+CUDART=builds/torch-cu126/lib/python3.12/site-packages/nvidia/cuda_runtime/lib
+export GMX_CMAKE_ARGS="-DPython_ROOT_DIR=$(builds/torch-cu126/bin/python -c 'import sys; print(sys.base_prefix)') \
+    -DPython_FIND_VIRTUALENV=STANDARD -DCUDA_cudart_LIBRARY=$PWD/$CUDART/libcudart.so.12"
+export LD_LIBRARY_PATH=$PWD/$CUDART:$LD_LIBRARY_PATH   # also before submitting the jobs
+```
 
 ## Running
 

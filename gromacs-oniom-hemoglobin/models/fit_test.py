@@ -43,7 +43,9 @@ for size in (500, 1000, 2000, 4000, 6000, len(solute)):
         a.get_forces()
         torch.cuda.synchronize()
         t2 = time.time()
-    except torch.OutOfMemoryError:
+    except (torch.OutOfMemoryError, RuntimeError) as e:  # TorchScript raises OOM as RuntimeError
+        if "out of memory" not in str(e):
+            raise
         print(f"{size:6d} atoms: out of GPU memory", flush=True)
         break
     peak = torch.cuda.max_memory_allocated() / 2**30

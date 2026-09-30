@@ -1,0 +1,7 @@
+# Whole solute as ML (allml.sh) from replica s1's MM NpT, one model per task, one GPU each.
+# Time per ML call on an H100 at 9,026 atoms: xs 0.07 s, s 0.23 s, m about 1 s (14,000 steps).
+allml_xs_s1        ./allml.sh runs/s1 pet-mad-xs-v1.5.0
+allml_s_s1         ./allml.sh runs/s1 pet-mad-s-v1.5.0
+allml_omol_s_s1    ./allml.sh runs/s1 pet-omol-s-v1.0.0
+allml_m_s1         ./allml.sh runs/s1 pet-mad-m-v1.6.0
+allml_omol_m_s1    ./allml.sh runs/s1 pet-omol-m-v1.0.0

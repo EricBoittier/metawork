@@ -8,7 +8,8 @@
 #
 # Run it on a compute node of the target cluster (the CUDA architectures and the CPU SIMD
 # are chosen for it), with ONIOM_PY's torch. Paths and the cluster come from env.sh; set
-# GMX_SRC to build an existing checkout, JOBS for the build parallelism.
+# GMX_SRC to build an existing checkout, JOBS for the build parallelism, GMX_CMAKE_ARGS for
+# extra CMake options (e.g. -DPython_ROOT_DIR=... where FindPython misses a uv or venv python).
 set -euo pipefail
 . "$(dirname "$0")/env.sh"
 
@@ -53,6 +54,7 @@ cmake -S "$GMX_SRC" -B "$build" \
     -DCMAKE_CUDA_ARCHITECTURES="$arch" \
     -DTORCH_CUDA_ARCH_LIST="$torch_arch" \
     -DGMX_BUILD_OWN_FFTW="${GMX_BUILD_OWN_FFTW:-ON}" \
-    -DBUILD_TESTING=OFF -DGMX_BUILD_MANUAL=OFF
+    -DBUILD_TESTING=OFF -DGMX_BUILD_MANUAL=OFF \
+    ${GMX_CMAKE_ARGS:-}
 cmake --build "$build" -j "${JOBS:-16}" --target install
 echo "installed $prefix (double precision: $double, GPU: $gpu, CUDA arch $arch)"
