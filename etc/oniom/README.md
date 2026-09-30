@@ -90,6 +90,11 @@ runs never did (about 23 ms of each hemoglobin step was MM on the CPU).
 | Hemoglobin, 4 PET-OMol sites | 0.67 ns/day | 1.5-2.5 ns/day |
 | Whole protein ML, PET-MAD xs | 0.042 ns/day | 3-5x faster; PET-MAD s or PET-OMol s also fit in 96 GB |
 
+Checked on the workstation with a CUDA build from `build-gromacs.sh`: with non-bondeds and PME
+on the GPU, the ONIOM energies match the CPU build (PET-MAD within 0.004 kJ/mol; the four
+PET-OMol hemoglobin sites identical), and a 20 ps peptide NVE drifts -0.23 kJ/mol/ps (CPU
+build: -0.45) at 15.9 instead of 18.7 ms/step, on a GPU shared with other jobs.
+
 The GH200's 96 GB lets larger models run with the whole protein as ML (PET-MAD s needs about
 26 GB for 9,026 atoms, PET-OMol s about 18 GB); the 16 GB workstation GPU fits only PET-MAD xs.
 The double-precision build keeps MM on the CPU, as GROMACS has no GPU support in double, so
