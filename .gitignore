@@ -23,6 +23,9 @@
 # venvs created by etc/setup-metawork.sh
 /.venv/
 /.venv-upet/
+# venv for the metatomic-torch plugin (one metatensor-core for metatomic-core and
+# metatensor-torch), see builds/metatomic-core-src/metatomic-torch-plugin
+/.venv-mtaplugin/
 
 # separate venv for the lyra cluster's Blackwell GPUs (sm_100/sm_120) --
 # needs a newer torch than the shared /.venv/'s sm_90-max cu121 build, kept
