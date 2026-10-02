@@ -64,3 +64,6 @@ __pycache__/
 /builds/
 /models/
 /gromacs-oniom-src/
+
+# git bundles carry local-only branches (e.g. the LOREM long_range switch): never commit them
+*.bundle

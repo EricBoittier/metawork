@@ -1,0 +1,47 @@
+# experimental.lorem (metatrain PR #1265) on MAD-CORE level 18, read from
+# DiskDataset zips (system.mta + energy.mts per structure). LOREM predicts
+# forces as -dE/dx, so the zips come from conservative_zip.py, which stores
+# the forces as the positions gradient of energy.mts:
+#
+#   madcore-to-diskdataset --format zip --max-rows 262144 -o mts-2pow18 ...
+#   python conservative_zip.py mts-2pow18 mts-2pow18-conservative
+#
+# Model hypers are the paper defaults (5 A cutoff, 128 features, l <= 6).
+# Batches are packed by atom count: sizes span 1 to 784 atoms (mean 6.4).
+
+seed: 42
+base_precision: 32
+
+architecture:
+  name: experimental.lorem
+  training:
+    num_epochs: 10
+    batch_size: 64
+    max_atoms_per_batch: 1024
+    learning_rate: 0.001
+    num_workers: 8
+    log_interval: 1
+    checkpoint_interval: 1
+
+training_set:
+  systems:
+    read_from: train.zip
+    length_unit: angstrom
+  targets: &targets
+    energy:
+      key: energy
+      unit: eV
+      forces: true
+      stress: false
+
+validation_set:
+  systems:
+    read_from: val.zip
+    length_unit: angstrom
+  targets: *targets
+
+test_set:
+  systems:
+    read_from: test.zip
+    length_unit: angstrom
+  targets: *targets
