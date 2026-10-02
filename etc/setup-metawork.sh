@@ -18,6 +18,16 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV_DIR="$BASE_DIR/.venv"
 PYTHON_VERSION="3.12"
 
+# METAWORK_PINNED=1: keep every submodule on the commit recorded in this repo
+# (e.g. to reproduce another machine's environment) instead of checking out
+# the REPO_BRANCH branches below and pulling them.
+METAWORK_PINNED="${METAWORK_PINNED:-0}"
+
+# Fail instead of prompting for credentials: GitHub answers a fork that does
+# not exist like a private repo, and a password prompt stalls the clone that
+# should have fallen back to upstream.
+export GIT_TERMINAL_PROMPT=0
+
 FORK_OWNER="EricBoittier"     # repos are cloned from your fork when one exists
 UPSTREAM_ORG="metatensor"     # falls back to the upstream org otherwise
 
@@ -106,12 +116,29 @@ is_submodule() {
   git -C "$BASE_DIR" config -f .gitmodules --get "submodule.$1.path" >/dev/null 2>&1
 }
 
+# Detach $1 at the commit this repo records for it (METAWORK_PINNED=1).
+checkout_recorded_commit() {
+  local repo="$1"
+  local commit
+  commit="$(git -C "$BASE_DIR" ls-tree HEAD "$repo" | awk '$2 == "commit" {print $3}')"
+  [ -n "$commit" ] || return 0
+  log "Pinning $repo at ${commit:0:8}"
+  git -C "$BASE_DIR/$repo" fetch --all --quiet 2>/dev/null || true
+  git -C "$BASE_DIR/$repo" checkout --detach "$commit" \
+    || echo "  (could not check out the recorded ${commit:0:8} on $repo -- leaving as-is)"
+}
+
 # Check out $2 in $1 if that branch exists on origin or upstream.
 # No-op when the branch is empty, already checked out, or not found.
+# With METAWORK_PINNED=1, check out the recorded commit instead.
 checkout_intended_branch() {
   local repo="$1"
   local branch="${2:-${REPO_BRANCH[$repo]:-}}"
   local dir="$BASE_DIR/$repo"
+  if [ "$METAWORK_PINNED" = 1 ]; then
+    [ -e "$dir/.git" ] && checkout_recorded_commit "$repo"
+    return 0
+  fi
   [ -z "$branch" ] && return 0
   [ -e "$dir/.git" ] || return 0
   git -C "$dir" rev-parse --verify HEAD >/dev/null 2>&1 || return 0
@@ -122,10 +149,16 @@ checkout_intended_branch() {
   fi
   log "Checking out $repo on $branch"
   git -C "$dir" fetch --all --quiet 2>/dev/null || true
-  if git -C "$dir" show-ref --verify --quiet "refs/heads/$branch" \
-     || git -C "$dir" show-ref --verify --quiet "refs/remotes/origin/$branch" \
-     || git -C "$dir" show-ref --verify --quiet "refs/remotes/upstream/$branch"; then
+  # a bare `git checkout <branch>` refuses when both origin and upstream have
+  # it ("matched multiple remote tracking branches"): prefer origin (the fork)
+  local remote
+  if git -C "$dir" show-ref --verify --quiet "refs/heads/$branch"; then
     git -C "$dir" checkout "$branch" \
+      || echo "  (could not checkout $branch on $repo -- leaving as-is)"
+  elif remote="$(for r in origin upstream; do
+        git -C "$dir" show-ref --verify --quiet "refs/remotes/$r/$branch" && echo "$r" && break
+      done)" && [ -n "$remote" ]; then
+    git -C "$dir" checkout -b "$branch" --track "$remote/$branch" \
       || echo "  (could not checkout $branch on $repo -- leaving as-is)"
   else
     echo "  (no $branch branch on $repo -- leaving $current)"
@@ -149,9 +182,11 @@ clone_or_update() {
     # detect it and fall through to a fresh clone instead of just skipping.
     if git -C "$BASE_DIR/$repo" rev-parse --verify HEAD >/dev/null 2>&1; then
       checkout_intended_branch "$repo" "$branch"
-      log "Updating $repo"
-      git -C "$BASE_DIR/$repo" pull --ff-only \
-        || echo "  (skipped: local changes or diverged branch -- update $repo by hand)"
+      if [ "$METAWORK_PINNED" != 1 ]; then
+        log "Updating $repo"
+        git -C "$BASE_DIR/$repo" pull --ff-only \
+          || echo "  (skipped: local changes or diverged branch -- update $repo by hand)"
+      fi
       return
     fi
     echo "  $repo has no commit checked out (broken/interrupted clone) -- re-cloning"

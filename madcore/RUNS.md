@@ -159,3 +159,4 @@ Bound: mixed/periodic 2 × 12 h segments, nonperiodic 1 × 4 h → 104 GPU-h ≈
 | lorem-nonperiodic-sr-100ep | 4491403 |
 - Startup on full mixed with a73363f3 + cache: 44 s (was 3 min 50 s; types 98 → 15 s, stats 123 → 16 s).
 - Epoch time on full data, a73363f3 (min/epoch): mixed LR 5.0, periodic LR 4.5, mixed SR 3.1, periodic SR 2.9, nonperiodic LR 0.18, SR 0.15. (Original code: mixed LR ~33; batched Ewald only: 6.2.) Expected: mixed LR ~8.3 h, periodic LR ~7.5 h, SR ~5 h, nonperiodic < 30 min — all inside the first 12 h segment.
+- nonperiodic 100 epochs done (a73363f3): LR 4491402 test E 518.4 meV/atom, F 2114 meV/A; SR 4491403 test E 615.7, F 2355 → LR −16 % E, −10 % F (val, 126 structures: −29 % / +2 %). Comparison script: madcore/compare_runs.py.

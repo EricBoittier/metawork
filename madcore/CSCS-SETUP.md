@@ -8,11 +8,21 @@ against docs.cscs.ch or on the cluster.
 ```bash
 git clone -b bench/medium-hardware https://github.com/EricBoittier/metawork
 cd metawork
-# metatomic, metatrain (and sirmarcel/iris-infra) use git@ URLs; without a
-# GitHub key on CSCS, fetch them over https instead:
+# metatomic and metatrain are https in .gitmodules; anything else on git@
+# (sirmarcel/iris-infra, private) needs a GitHub key or a credential helper
 git config --global url."https://github.com/".insteadOf git@github.com:
-git submodule update --init metatensor metatomic metatrain openmm-ml
+METAWORK_PINNED=1 bash etc/setup-metawork.sh
 ```
+
+`METAWORK_PINNED=1` keeps every submodule on the commit recorded here instead
+of switching to the `REPO_BRANCH` branches and pulling them; without it,
+metatensor and metatomic land on `metatomic-core`, which is not what kuma
+runs. The script no longer prompts for credentials, so a fork that does not
+exist (e.g. `gpu-lite`) falls back to upstream instead of stalling.
+
+If a run is interrupted mid-clone, remove the half-cloned submodule before
+re-running (`rm -rf <name> .git/modules/<name>`), otherwise checkout refuses
+to overwrite its files.
 
 The submodules are recorded at what kuma's venv runs (editable installs):
 metatensor `a9fc36e7` (main), metatomic `e12f2628`
