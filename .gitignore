@@ -46,3 +46,8 @@
 
 __pycache__/
 *.pyc
+
+# Obsidian per-machine UI state (the vault notes themselves are tracked)
+/second-brain/.obsidian/workspace*.json
+/second-brain/.obsidian/cache
+/second-brain/.trash/
