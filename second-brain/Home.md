@@ -16,9 +16,15 @@ Add new things to [[Inbox]] first, sort them later.
 - [[Conda and uv envs]] — miniforge, conda-smithy env, uv venv, torch/CUDA fixes
 
 ## HPC
-- [[Kuma and SLURM]] — QOS table, `hpc_run.py`, sbatch/srun/squeue
-- [[CSCS Alps]] — `cscs-key sign`, ProxyJump hosts
-- [[SSH and tunnels]] — keys, port forwards for Jupyter, cosmopc machines
+- [[Clusters overview]] — every cluster at a glance, which to pick, GPU arch table
+- Sites: [[EPFL SCITAS (Kuma, Lyra, Jed)]] · [[CSCS Alps]] · [[sciCORE]]
+- [[Kuma and SLURM]] — Kuma QOS + `hpc_run.py` job specs
+- [[SLURM cheatsheet]] — submit/monitor, arrays, dependencies, requeue, pending reasons
+- [[Containers on HPC]] — CSCS Container Engine (podman/enroot/EDF), Apptainer
+- [[Modules and Spack]] — Lmod, Spack specs, uenv recipes
+- [[Storage and data transfer]] — home vs scratch vs project, rsync, quotas
+- [[Remote dev on clusters]] — tmux, Jupyter on compute nodes, VS Code Remote-SSH
+- [[SSH and tunnels]] — keys, port forwards, cosmopc machines
 
 ## Dev
 - [[metawork setup]] — `setup-metawork.sh`, repo layout, where things live

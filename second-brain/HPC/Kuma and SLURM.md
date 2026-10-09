@@ -8,6 +8,10 @@ kuma            # alias: ssh boittier@kuma.hpc.epfl.ch
 lyra            # alias: ssh boittier@lyra.hpc.epfl.ch
 ```
 
+Full cluster details (partitions, Lyra, pricing): [[EPFL SCITAS (Kuma, Lyra, Jed)]] · generic commands: [[SLURM cheatsheet]]
+
+**No default partition** — every job needs `-p h100 | l40s | mig12gb | mig24gb`. RAM is fixed at 5900 MB/core.
+
 ## QOS
 | QOS | Priority | Max time | Limits | Use for |
 |---|---|---|---|---|
@@ -28,7 +32,7 @@ sacct -j <jobid> --format=JobID,State,Elapsed,MaxRSS,ExitCode
 scontrol show job <jobid>
 sinfo -s                                # partitions overview
 # interactive GPU shell:
-srun --qos=debug --gres=gpu:1 --cpus-per-task=8 --time=01:00:00 --pty bash
+srun -p h100 --qos=debug --gres=gpu:1 --cpus-per-task=8 --time=01:00:00 --pty bash
 ```
 
 ## metawork job runner
@@ -45,6 +49,7 @@ Spec skeleton:
 name: my-run
 type: train
 cluster: kuma
+partition: h100        # required on kuma
 qos: debug
 time: "01:00:00"
 nodes: 1
