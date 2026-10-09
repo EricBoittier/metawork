@@ -2,6 +2,10 @@
 
 Repo to install the entire metatensor ecosystem for testing!
 
+Python API tutorials: [metatomic-marimo](metatomic-marimo/README.md) contains
+interactive NumPy, JAX, and Torch examples, with a local
+[API tutorial roadmap](metatomic-marimo/ROADMAP.md).
+
 ```bash
 export CUDA_HOME=/usr/local/cuda
 export CUDACXX=/usr/local/cuda/bin/nvcc

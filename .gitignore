@@ -3,6 +3,9 @@
 # Keep this list in sync with INSTALL_REPOS/CLONE_ONLY_REPOS in that script.
 # iris-infra/ and lorem-jax/ are tracked git submodules (see .gitmodules),
 # not one of these.
+test-lorem/outputs/
+*.ckpt
+PETweb/
 /metatensor/
 /metatomic/
 /featomic/
@@ -51,3 +54,16 @@ __pycache__/
 /second-brain/.obsidian/workspace*.json
 /second-brain/.obsidian/cache
 /second-brain/.trash/
+
+# Bulky run artefacts and side checkouts that must never be committed
+test-lorem/**/*.xyz
+test-lorem/**/*.pt
+test-lorem/extensions/
+/MLIP-Visualization*/
+/chemiscope-before-607/
+/metatomic-metal-offset/
+/metatomic-c-lj-plugin/
+/metatomic-docs-openmm/
+/metatomic-torchscript-cxx/
+/atomistic-cookbook_/
+/torch-pme/

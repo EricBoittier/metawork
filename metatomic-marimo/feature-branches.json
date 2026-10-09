@@ -1,0 +1,158 @@
+{
+  "repository": "EricBoittier/metatomic",
+  "base_branch": "python-wrap-system",
+  "base_sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+  "created_on": "2026-10-06",
+  "branches": [
+    {
+      "task": "Error handling: finish native status and callback/lifetime coverage",
+      "branch": "codex/python-error-handling",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/python-error-handling"
+    },
+    {
+      "task": "JSON classes: finish cross-language serialization and validation",
+      "branch": "codex/python-json-serialization",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/python-json-serialization"
+    },
+    {
+      "task": "Execute non-Python models from Python Systems",
+      "branch": "codex/python-native-model-execution",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/python-native-model-execution"
+    },
+    {
+      "task": "Generic Python custom-model base class",
+      "branch": "codex/python-model-base",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/python-model-base"
+    },
+    {
+      "task": "Python plugin registration and load_model",
+      "branch": "codex/python-plugin-loader",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/python-plugin-loader"
+    },
+    {
+      "task": "TorchModel, existing model compatibility and torch.compile",
+      "branch": "codex/python-torch-model",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/python-torch-model"
+    },
+    {
+      "task": "Custom Torch model tutorial",
+      "branch": "codex/tutorial-custom-torch-model",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/tutorial-custom-torch-model"
+    },
+    {
+      "task": "NumpyModel base class",
+      "branch": "codex/python-numpy-model",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/python-numpy-model"
+    },
+    {
+      "task": "Custom NumPy model tutorial",
+      "branch": "codex/tutorial-custom-numpy-model",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/tutorial-custom-numpy-model"
+    },
+    {
+      "task": "Optional JaxModel base class",
+      "branch": "codex/python-jax-model",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/python-jax-model"
+    },
+    {
+      "task": "Custom JAX model tutorial",
+      "branch": "codex/tutorial-custom-jax-model",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/tutorial-custom-jax-model"
+    },
+    {
+      "task": "NumPy/Torch/JAX engine tutorial with the real model API",
+      "branch": "codex/tutorial-python-engines",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/tutorial-python-engines"
+    },
+    {
+      "task": "LAMMPS pair_style metatomic migration",
+      "branch": "codex/lammps-pair-new-api",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/lammps-pair-new-api"
+    },
+    {
+      "task": "LAMMPS fix metatomic migration",
+      "branch": "codex/lammps-fix-new-api",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/lammps-fix-new-api"
+    },
+    {
+      "task": "LAMMPS compute metatomic migration",
+      "branch": "codex/lammps-compute-new-api",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/lammps-compute-new-api"
+    },
+    {
+      "task": "LAMMPS migration documentation",
+      "branch": "codex/lammps-new-api-docs",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/lammps-new-api-docs"
+    },
+    {
+      "task": "GROMACS custom MD module migration",
+      "branch": "codex/gromacs-new-api",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/gromacs-new-api"
+    },
+    {
+      "task": "PLUMED metatomic Action migration",
+      "branch": "codex/plumed-new-api",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/plumed-new-api"
+    },
+    {
+      "task": "ASE integration migration",
+      "branch": "codex/ase-new-python-api",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/ase-new-python-api"
+    },
+    {
+      "task": "i-PI integration migration",
+      "branch": "codex/ipi-new-python-api",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/ipi-new-python-api"
+    },
+    {
+      "task": "Chemiscope integration migration",
+      "branch": "codex/chemiscope-new-python-api",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/chemiscope-new-python-api"
+    },
+    {
+      "task": "TorchSim integration migration",
+      "branch": "codex/torchsim-new-python-api",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/torchsim-new-python-api"
+    },
+    {
+      "task": "Python NumPy LJ model for engine development",
+      "branch": "codex/lj-python-numpy",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/lj-python-numpy"
+    },
+    {
+      "task": "Python Torch LJ model for engine development",
+      "branch": "codex/lj-python-torch",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/lj-python-torch"
+    },
+    {
+      "task": "JAX-MD integration with the new Python API",
+      "branch": "codex/jax-md-new-python-api",
+      "sha": "b02b9ff3df6458cca21fa8690d229bbda97e6f78",
+      "url": "https://github.com/EricBoittier/metatomic/tree/codex/jax-md-new-python-api"
+    }
+  ]
+}

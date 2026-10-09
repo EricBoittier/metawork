@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metatomic · Notebook Lab</title>
+<style>
+:root{color-scheme:light;--ink:#1d332c;--muted:#62716a;--green:#386b50;--line:#dce3da;--paper:#f6f7f1;--sidebar:#173b30}
+*{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper)}
+a{color:inherit}button,input{font:inherit}button{cursor:pointer}input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #d8a750;outline-offset:3px}
+.shell{display:grid;grid-template-columns:246px minmax(0,1fr);height:100dvh}
+aside{background:var(--sidebar);color:#ecf3e9;padding:28px 18px;display:flex;flex-direction:column;overflow:auto}.brand{display:flex;gap:11px;align-items:center;padding:0 10px 30px;text-decoration:none}.brand strong{font-size:20px;letter-spacing:-.5px}.brand small{display:block;color:#a7c4b3;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;margin-top:4px}.mark{width:34px;height:34px;border:1px solid #759b84;border-radius:50%;display:grid;place-items:center;font-size:21px}
+.nav-group{margin-bottom:16px}.nav-heading{color:#9bb5a6;font-size:10px;letter-spacing:1.7px;text-transform:uppercase;margin:25px 12px 12px}nav{display:grid;gap:5px}.nav-link{display:flex;align-items:center;gap:11px;text-decoration:none;padding:12px 11px;border-radius:7px;color:#c4d6ca;font-size:13px;border:1px solid transparent}.nav-link:hover{background:#23483a}.nav-link.active{color:white;background:#315b47;border-color:#496d57}.num{font:11px ui-monospace,monospace;color:#9cbaa7;width:18px}.aside-footer{margin-top:auto;padding:30px 12px 0;color:#a8bdb0;font-size:11px;line-height:1.8}.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#abc59a;margin-right:6px}
+main{min-width:0;display:flex;flex-direction:column;overflow:hidden}.toolbar{height:70px;flex-shrink:0;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:#fafbf7;gap:12px}.breadcrumb{font-size:13px;color:var(--muted)}.breadcrumb strong{color:var(--ink);font-weight:500}.toolbar-links{display:flex;gap:16px;font-size:12px;align-items:center}.toolbar-links a{text-decoration:none}.toolbar-links a:hover{text-decoration:underline}.toolbar-links [hidden]{display:none}.pill{border:1px solid var(--line);border-radius:20px;padding:5px 9px;color:var(--green);font-size:10px;white-space:nowrap}
+#overview{padding:46px 44px 30px;overflow:auto}.eyebrow{font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:var(--green)}h1{font-family:Georgia,serif;font-size:46px;line-height:1.08;font-weight:400;letter-spacing:-1.4px;margin:15px 0} .intro{font-size:14px;color:var(--muted);line-height:1.8;max-width:650px;margin:0 0 26px}.stats{display:flex;gap:22px;font-size:11px;color:var(--muted);padding-bottom:28px;border-bottom:1px solid var(--line)}.stats strong{color:var(--ink)}
+.section-head{display:flex;justify-content:space-between;align-items:baseline;margin:28px 0 15px}.section-head h2{font-size:20px;margin:0;font-weight:600}.section-head span{font-size:11px;color:var(--muted)}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px;display:flex;flex-direction:column;text-decoration:none;transition:transform .15s,border-color .15s;min-height:212px}.card:hover{transform:translateY(-3px);border-color:#87a68c}.card-top{display:flex;align-items:center;justify-content:space-between}.card-number{font:12px ui-monospace,monospace;color:#98a59b}.tag{font-size:10px;background:#edf2e8;color:#4a6b4d;padding:4px 8px;border-radius:5px}.card h3{font-size:17px;font-weight:600;margin:21px 0 9px;letter-spacing:-.4px}.card p{font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 20px}.card .open{font-size:11px;color:var(--green);margin-top:auto}.card-kind{font-size:10px;color:#65756b;margin:-2px 0 12px}.note{margin-top:25px;border-left:2px solid #a3b796;padding:2px 0 2px 15px;color:var(--muted);font-size:12px;line-height:1.75}.note strong{color:var(--ink)}
+.study-paths{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0}.study-paths a{font-size:12px;text-decoration:none;border:1px solid var(--line);padding:9px 12px;border-radius:5px;background:white}.study-paths a:hover{border-color:var(--green)}.filter-bar{display:flex;align-items:center;gap:18px;margin:30px 0 10px}.filter-bar input{width:min(100%,420px);padding:11px 14px;border:1px solid #b5c5b7;border-radius:6px;background:#fff;color:var(--ink)}#result-count{font-size:12px;color:var(--muted)}.empty{padding:25px 0;color:var(--muted)}.collection[hidden],.card[hidden]{display:none}#workspace{flex:1;min-height:0;position:relative}#workspace[hidden]{display:none}.notebook-frame{border:0;width:100%;height:100%;background:white}.notebook-frame[hidden]{display:none}.error{padding:25px;color:#943d35}
+@media(max-width:1120px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}#overview{padding:35px 30px}.shell{grid-template-columns:215px minmax(0,1fr)}}
+@media(max-width:700px){.shell{grid-template-columns:1fr;height:auto;min-height:100dvh}aside{padding:15px;display:block}.brand{padding-bottom:12px}.nav-heading,.aside-footer{display:none}#notebook-nav{display:flex;overflow:auto;gap:6px}.nav-group{display:flex;gap:6px;margin:0}nav{display:flex;gap:6px}.nav-link{white-space:nowrap;padding:8px}.num{width:auto}main{min-height:85dvh}.toolbar{padding:0 18px;height:58px}.toolbar-links{gap:10px}.pill{display:none}#overview{padding:28px 20px}h1{font-size:36px}.cards{grid-template-columns:1fr}.card{min-height:180px}.stats{gap:14px}.section-head span{display:none}#workspace{height:calc(100dvh - 80px);flex:auto}.notebook-frame{height:100%}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside>
+<a class="brand" href="#overview"><span class="mark" aria-hidden="true">⌬</span><span><strong>metatomic</strong><small>Notebook Lab</small></span></a>
+<nav aria-label="Workspace"><a class="nav-link active" href="#overview" data-id="overview"><span class="num">⌂</span> Overview</a></nav>
+<nav id="notebook-nav" aria-label="Notebooks"></nav>
+<div class="aside-footer"><span class="dot"></span>Running locally<br>NumPy · JAX · Torch<br>Saved in metawork</div>
+</aside>
+<main>
+<header class="toolbar"><div class="breadcrumb">Notebook Lab <span aria-hidden="true"> / </span><strong id="current-title">Overview</strong></div><div class="toolbar-links"><a id="source-link" hidden target="_blank" rel="noopener">Source</a><a id="direct-link" hidden target="_blank" rel="noopener">Open full page ↗</a><a href="/roadmap" target="_blank" rel="noopener">API status</a><a href="/guide" target="_blank" rel="noopener">Guide</a><a href="/validation" target="_blank" rel="noopener" class="pill">VALIDATION</a></div></header>
+<section id="overview">
+<div class="eyebrow">Explore the Python API</div><h1>From structure<br>to simulation.</h1>
+<p class="intro">An executable course in the new metatomic core API. Derive the result, write the Python, and test it against an independent reference. Every lesson includes visible code, a worked exercise and primary sources.</p>
+<div class="stats"><span><strong id="notebook-count">22</strong> notebooks</span><span><strong>03</strong> array backends</span><span><strong>3D</strong> structure views</span></div>
+<div class="study-paths" aria-label="Suggested study paths"><a href="#system">Start here · System → NumPy → JAX / Torch</a><a href="#lj-c">Reference route · Native LJ → NumPy / Torch → parity</a><a href="#lammps">Engine route · Units, derivatives and ownership</a></div>
+<div class="filter-bar"><input id="search" type="search" aria-label="Search notebooks" placeholder="Search a topic, backend or engine…"><span id="result-count" role="status" aria-live="polite"></span></div><div id="collections"></div><p id="empty" class="empty" hidden>No notebooks match this search. Try “stress”, “LJ” or an engine name.</p>
+<div class="note"><strong>Visible code, live calculations.</strong><br>Tutorials run real calculations. Integration design notes run focused boundary fixtures and define the remaining engine work. Change a slider to update energies, forces, and stress. Chemiscope shows atoms, cells, and force arrows; each structure panel also has an ASE static view.<br>Notebooks open on demand. Switching between visited notebooks preserves their live controls. These examples use a teaching potential and the current development API.</div>
+</section>
+<section id="workspace" aria-label="Interactive notebook" hidden></section>
+</main>
+</div>
+<script>
+const frames = new Map();
+let notebooks = [];
+function element(tag, cls, text) { const node=document.createElement(tag); if(cls)node.className=cls; if(text)node.textContent=text; return node; }
+function selectNotebook() {
+ const id=location.hash.slice(1)||'overview'; const notebook=notebooks.find(n=>n.id===id);
+ const overview=!notebook;
+ document.querySelector('#overview').hidden=!overview;
+ document.querySelector('#workspace').hidden=overview;
+ document.querySelector('#current-title').textContent=overview?'Overview':notebook.title;
+ document.title=overview?'Metatomic · Notebook Lab':`${notebook.title} · Metatomic Lab`;
+ document.querySelectorAll('.nav-link').forEach(a=>{const active=a.dataset.id===(overview?'overview':id);a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+ for(const frame of frames.values()) frame.hidden=true;
+ for(const key of ['source','direct'])document.querySelector(`#${key}-link`).hidden=overview;
+ if(overview)return;
+ const url=`/notebooks/${notebook.id}/`;
+ document.querySelector('#source-link').href=`/source/${notebook.id}`;
+ document.querySelector('#direct-link').href=url;
+ if(!frames.has(id)) {
+   const frame=element('iframe','notebook-frame');frame.title=notebook.title;frame.src=url;
+   document.querySelector('#workspace').append(frame);frames.set(id,frame);
+ }
+ frames.get(id).hidden=false;
+}
+const groups = [
+ {name:'Core tutorials', detail:'Structures → derivatives → simulation · 10 lessons'},
+ {name:'Reference models', detail:'Accepted C++ LJ contract · 4 lessons'},
+ {name:'Integration design notes', detail:'Runnable fixtures; production migrations remain future work · 7 notes'},
+ {name:'API design', detail:'Current primitives, working prototypes and open interfaces · 1 note'}
+];
+function filterNotebooks() {
+ const query=document.querySelector('#search').value.trim().toLocaleLowerCase();
+ let visible=0;
+ document.querySelectorAll('.card').forEach(card=>{card.hidden=!card.dataset.search.includes(query);if(!card.hidden)visible++;});
+ document.querySelectorAll('.collection').forEach(group=>{group.hidden=!group.querySelector('.card:not([hidden])');});
+ document.querySelector('#result-count').textContent=`${visible} of ${notebooks.length} notebooks`;
+ document.querySelector('#empty').hidden=visible!==0;
+}
+async function initialize() {
+ try {
+  const response=await fetch('/api/notebooks');if(!response.ok)throw new Error('Catalog unavailable');notebooks=await response.json();
+  document.querySelector('#notebook-count').textContent=String(notebooks.length);
+  for(const group of groups){
+   const section=element('section','collection');
+   const heading=element('div','section-head');heading.append(element('h2','',group.name),element('span','',group.detail));
+   const cards=element('div','cards');section.append(heading,cards);document.querySelector('#collections').append(section);
+   const nav=element('div','nav-group');nav.append(element('div','nav-heading',group.name));document.querySelector('#notebook-nav').append(nav);
+   for(const n of notebooks.filter(n=>n.group===group.name)){
+    const link=element('a','nav-link');link.href=`#${n.id}`;link.dataset.id=n.id;link.append(element('span','num',n.number),document.createTextNode(n.title));nav.append(link);
+    const card=element('a','card');card.href=`#${n.id}`;card.dataset.search=`${n.number} ${n.title} ${n.tag} ${n.description} ${n.group}`.toLocaleLowerCase();
+    const top=element('div','card-top');top.append(element('span','card-number',n.number),element('span','tag',n.tag));
+    card.append(top,element('h3','',n.title),element('div','card-kind',n.kind),element('p','',n.description),element('span','open','Open lesson →'));cards.append(card);
+   }
+  }
+  document.querySelector('#search').addEventListener('input',filterNotebooks);filterNotebooks();selectNotebook();
+ }catch(error){document.querySelector('#collections').append(element('p','error','Could not load notebooks. Check that the local lab server is running, then reload.'));}
+}
+window.addEventListener('hashchange',selectNotebook);initialize();
+</script>
+</body>
+</html>
