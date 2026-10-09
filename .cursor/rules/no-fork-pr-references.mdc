@@ -1,0 +1,14 @@
+---
+description: Do not link metatensor PRs opened from Eric's forks; he adds those links himself
+alwaysApply: true
+---
+
+# Do not reference fork PRs
+
+Do not mention, link, or number a `metatensor/<repo>#<n>` pull request (or a `github.com/metatensor/.../pull/<n>` URL) when that PR was opened from one of Eric's forks (`EricBoittier/...`).
+
+GitHub turns those references into backlinks and notifications. That noise is unwanted.
+
+Eric adds the link himself when he wants it. Describe the change without the PR number.
+
+This applies to commits, PR and issue text, review comments, code comments, and docs. Reading a PR with `gh` is fine. Posting anything to GitHub still requires an explicit ask in the moment.

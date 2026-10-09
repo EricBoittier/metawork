@@ -52,6 +52,7 @@ git add <file> && git rebase --continue && git push
 ## Obsidian troubleshooting (Linux, AppImage)
 - **"Command line interface is not enabled"** when launching = another Obsidian is already running (maybe hidden). `pkill -f '.mount_Obsidi'` then relaunch.
 - **Graph view blank**, log shows `ZINK ... VK_ERROR_DEVICE_LOST` → GPU/Mesa issue. Launch with `--disable-gpu`, or Settings → Appearance → Advanced → Hardware acceleration off.
+- App-menu launcher (cosmopc7): `~/.local/share/applications/obsidian.desktop` runs the AppImage from `~/Downloads` with `--disable-gpu`; update `Exec=` if the AppImage moves or is upgraded.
 - Vault list lives in `~/.config-writable/obsidian/obsidian.json` on cosmopc7 (`XDG_CONFIG_HOME=~/.config-writable`).
 
 Related: [[Home]], [[Git cheatsheet]]

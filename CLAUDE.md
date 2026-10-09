@@ -9,6 +9,9 @@
   no review replies. Reading upstream (fetch, PR/issue lookups via `gh`/API)
   is fine; posting anything is not, unless the user explicitly asks in the
   moment.
+- **Do not reference `metatensor/<repo>#<n>` PRs opened from Eric's forks**
+  (`EricBoittier/...`). Those mentions create GitHub backlink noise. Describe
+  the change without the number; Eric links the PR himself if he wants it.
 
 # Style
 

@@ -1,0 +1,23 @@
+---
+description: Do not add a helper function that is only called once
+alwaysApply: true
+---
+
+# No single-use helpers
+
+Do not add a function, method, or local `def` that has one call site. Write that code at the call site.
+
+A helper is worth it when at least two call sites use it, or when a name is the only way to say something the surrounding code cannot. One call site does not qualify. Wrapping one line (a unit conversion, a `getState`, a tensor build) makes the diff longer and the review harder to follow.
+
+```python
+# Bad — defined once, called once
+def _positions_nm(quantity):
+    return np.asarray(quantity.value_in_unit(unit.nanometer), dtype=np.float64)
+
+positions = _positions_nm(inpcrd.positions)
+
+# Good
+positions = np.asarray(
+    inpcrd.positions.value_in_unit(unit.nanometer), dtype=np.float64
+)
+```
