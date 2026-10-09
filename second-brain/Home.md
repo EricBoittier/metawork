@@ -4,7 +4,7 @@ tags: [index]
 # Home
 
 Second brain for COSMO / metatensor work. One note per topic; commands are copy-pasteable.
-Add new things to [[Inbox]] first, sort them later.
+Add new things to [[Inbox]] first, sort them later. On another computer? → [[Syncing this vault]]
 
 ## Git
 - [[Git cheatsheet]] — everyday commands, undo, rebase, stash
@@ -46,6 +46,15 @@ Add new things to [[Inbox]] first, sort them later.
 - [[Benchmarking and profiling]] — rules for trustworthy numbers, profilers, symptom table
 - [[Training practice]] — pre-flight checklist, debugging loss, atomistic specifics
 - [[Atomistic ML stack]] — how metatensor/metatomic/metatrain/engines fit together
+
+## Tools
+- [[Claude Code]] — launch flags, slash commands, CLAUDE.md, settings
+- [[kitty]] — shortcuts, kittens, `kitten ssh` for clusters
+- [[tmux]] — sessions, keys, suggested config, cluster patterns
+- [[uv]] — projects, pip mode, torch indexes, python versions, tools
+- [[Neovim]] — survival, motions, search/replace, macros
+- [[gh CLI]] — PRs, CI logs, forks, API
+- [[Shell and Linux]] — bash shortcuts, find/grep/awk, processes, disk
 
 ## Templates
 - [[Protocol template]] · [[Command snippet template]]
