@@ -24,5 +24,22 @@ Add new things to [[Inbox]] first, sort them later.
 - [[metawork setup]] — `setup-metawork.sh`, repo layout, where things live
 - [[Testing, lint and docs]] — tox envs, ruff
 
+## Languages
+- [[C]] — compile/link flags, inspecting `.so`s, C API conventions
+- [[C++ and CMake]] — CMake workflow, CUDA archs, ABI gotchas, sanitizers
+- [[Rust]] — cargo, clippy, FFI/`cbindgen` pattern, ownership table
+- [[Python]] — packaging, debugging (py-spy, faulthandler), perf
+
+## GPU
+- [[CUDA]] — our GPUs + `sm_` table, nvcc, kernel basics, Nsight/compute-sanitizer
+- [[Triton]] — kernel skeleton, autotune, `do_bench`, interpreter debugging
+
+## ML
+- Frameworks: [[PyTorch]] · [[PyTorch extensions and TorchScript]] · [[JAX]]
+- Distributed: [[Distributed overview]] · [[DDP]] · [[FSDP]] · [[Scaling]]
+- [[Benchmarking and profiling]] — rules for trustworthy numbers, profilers, symptom table
+- [[Training practice]] — pre-flight checklist, debugging loss, atomistic specifics
+- [[Atomistic ML stack]] — how metatensor/metatomic/metatrain/engines fit together
+
 ## Templates
 - [[Protocol template]] · [[Command snippet template]]
