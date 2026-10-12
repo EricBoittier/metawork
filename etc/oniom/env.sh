@@ -9,6 +9,8 @@
 #   GMX           single-precision GROMACS with CUDA non-bondeds and metatomic (Torch)
 #   GMX_D         double-precision GROMACS with metatomic, MM on the CPU
 #   ONIOM_MODELS  exported models (default: $METAWORK/models/oniom), from export-models.sh
+#   ONIOM_EXTENSIONS  plugin library for a C-API build (libmetatomic_torch_plugin.so); unset
+#                 for the libtorch build
 #   NT            OpenMP threads per run (default: CPUs given to this task, else 16)
 
 : "${METAWORK:=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
@@ -34,7 +36,13 @@ esac
 : "${GMX_D:=$ONIOM_BUILDS/gromacs-oniom-$ONIOM_CLUSTER-$(uname -m)-double/bin/gmx_d}"
 : "${ONIOM_MODELS:=$METAWORK/models/oniom}"
 : "${NT:=${SLURM_CPUS_PER_TASK:-16}}"
-export METAWORK ONIOM_CLUSTER ONIOM_PY ONIOM_BUILDS GMX GMX_D ONIOM_MODELS NT
+export METAWORK ONIOM_CLUSTER ONIOM_PY ONIOM_BUILDS GMX GMX_D ONIOM_MODELS ONIOM_EXTENSIONS NT
 
-# Writes mdp file $2 from template $1 with @MODELS@ replaced by the model directory
-oniom_mdp() { sed "s|@MODELS@|$ONIOM_MODELS|g" "$1" > "$2"; }
+# Writes mdp file $2 from template $1 with @MODELS@ replaced by the model directory, and the
+# C-API plugin added to ML stages when ONIOM_EXTENSIONS is set
+oniom_mdp() {
+    sed "s|@MODELS@|$ONIOM_MODELS|g" "$1" > "$2"
+    if [[ -n ${ONIOM_EXTENSIONS:-} ]] && grep -q '^metatomic-active *= *yes' "$2"; then
+        echo "metatomic-extensions    = $ONIOM_EXTENSIONS" >> "$2"
+    fi
+}
