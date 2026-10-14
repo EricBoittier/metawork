@@ -42,6 +42,19 @@ cmake --build $BUILD -j "$SLURM_CPUS_PER_TASK" --target mlipcpp-train mlipcpp-tr
     || { tail -40 $OUT/build.log; exit 1; }
 LOCAL=$TMPDIR/$(basename $DATA)
 cp -rL $DATA $LOCAL # -L: DATA may be a symlink to /work
+# optional: the neighbour-list builder of this build must reproduce existing
+# caches byte for byte (val/test of NLCHECK, rebuilt in a scratch cache dir)
+if [ -n "${NLCHECK:-}" ]; then
+    CHK=$TMPDIR/nlcheck && mkdir -p $CHK && cp -rL $NLCHECK $CHK/data
+    $BUILD/bin/mlipcpp-train --data $CHK/data --init $INIT -o /dev/null --gpus 2 --epochs 0 \
+        --threads $SLURM_CPUS_PER_TASK --cache-dir $CHK/nl > $OUT/nlcheck.log 2>&1
+    for f in $CHK/nl/nl-*.bin; do
+        cmp $f $C/mlipcpp-nl/$(basename $f) || { echo "!! neighbour lists differ: $(basename $f)"; exit 1; }
+    done
+    echo "neighbour-list builder reproduces $(ls $CHK/nl/nl-*.bin | wc -l) cached lists byte for byte"
+    rm -rf $CHK
+fi
+
 # gate on this build: gradients vs metatrain/PyTorch (float64) and
 # micro-batching == full batch; refuse to train otherwise
 $BUILD/bin/mlipcpp-train-check --data $LOCAL --init $INIT --out $OUT/check --n 64 --gpus 1 --cache-dir $C/mlipcpp-nl
