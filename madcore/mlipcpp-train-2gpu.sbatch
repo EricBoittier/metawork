@@ -58,6 +58,6 @@ $BUILD/bin/mlipcpp-train --data $LOCAL --init $OUT/canary.gguf -o /dev/null --gp
 sampler=$!
 t=$(date +%s)
 $BUILD/bin/mlipcpp-train --data $LOCAL --init $INIT -o $OUT/model.gguf --gpus 2 --batch-size 64 \
-    --epochs 10 --threads $SLURM_CPUS_PER_TASK --cache-dir $C/mlipcpp-nl --log-every 200 --mb-growth ${MB_GROWTH:-4} ${EXTRA:-}
+    --epochs ${EPOCHS:-10} --threads $SLURM_CPUS_PER_TASK --cache-dir $C/mlipcpp-nl --log-every 200 --mb-growth ${MB_GROWTH:-4} ${EXTRA:-}
 echo "elapsed $(( $(date +%s) - t )) s, peak GPU MiB $(cut -d, -f1 $OUT/gpumem.log | sort -n | tail -1)"
 kill $sampler

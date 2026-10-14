@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # mlip.cpp speed work: gate + micro-batch equivalence, per-op GPU profile,
 # 30-step 2-GPU trajectories (vs the canary of run 145112; dynamic and tiled) and
-# throughput of the CONFIGS (default: growth 4 with Adam and Muon, fine tiles).
+# throughput of the CONFIGS (default: per-worker vs step packing, Adam and Muon).
 #SBATCH --job-name=mlipcpp-bench
 #SBATCH --account=cosmo
 #SBATCH --partition=rtx6000
@@ -53,16 +53,19 @@ $BUILD/bin/mlipcpp-train-check --data $LOCAL --init $INIT --out $OUT/profile --n
 
 echo "== trajectory (30 steps, compare with the canary of 145112)"
 $BUILD/bin/mlipcpp-train --data $LOCAL --init $INIT -o $OUT/traj.gguf --gpus 2 --batch-size 64 \
-    --epochs 1 --max-steps 30 --log-every 2 --threads $SLURM_CPUS_PER_TASK $NL
+    --epochs 1 --max-steps 30 --log-every 2 --threads $SLURM_CPUS_PER_TASK $NL --pack worker
 echo "== trajectory, tiles (same steps: padding must not change the losses)"
 $BUILD/bin/mlipcpp-train --data $LOCAL --init $INIT -o $OUT/traj-tile.gguf --gpus 2 --batch-size 64 \
-    --epochs 1 --max-steps 30 --log-every 2 --threads $SLURM_CPUS_PER_TASK $NL --tile-nb-ratio 1.25
+    --epochs 1 --max-steps 30 --log-every 2 --threads $SLURM_CPUS_PER_TASK $NL --tile-nb-ratio 1.25 --pack worker
+echo "== trajectory, step packing (full-step mean: close to, not equal to, the DDP mean)"
+$BUILD/bin/mlipcpp-train --data $LOCAL --init $INIT -o $OUT/traj-step.gguf --gpus 2 --batch-size 64 \
+    --epochs 1 --max-steps 30 --log-every 2 --threads $SLURM_CPUS_PER_TASK $NL --pack step
 
 # throughput: one "label flags..." per line; struct/s is cumulative over the epoch
-CONFIGS=${CONFIGS:-"g4 --mb-growth 4
-muon-g4 --mb-growth 4 --optimizer muon
-muon3-g4 --mb-growth 4 --optimizer muon --muon-lr-scale 3
-tile11-g4 --mb-growth 4 --tile-nb-ratio 1.1 --tile-atom-ratio 1.1"}
+CONFIGS=${CONFIGS:-"worker-g4 --pack worker --mb-growth 4
+step --pack step
+step-muon10 --pack step --optimizer muon --muon-lr-scale 10
+worker-g4-muon10 --pack worker --mb-growth 4 --optimizer muon --muon-lr-scale 10"}
 STEPS=${STEPS:-600}
 while read -r label flags; do
     [ -z "$label" ] && continue
