@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # mlip.cpp speed work: gate + micro-batch equivalence, per-op GPU profile,
 # 30-step 2-GPU trajectories (vs the canary of run 145112; dynamic and tiled) and
-# throughput of the CONFIGS (default: per-worker vs step packing, Adam and Muon).
+# throughput of the CONFIGS (default: step packing with Adam and Muon x10).
 #SBATCH --job-name=mlipcpp-bench
 #SBATCH --account=cosmo
 #SBATCH --partition=rtx6000
@@ -49,7 +49,7 @@ $BUILD/bin/mlipcpp-train-check --data $LOCAL --init $INIT --out $OUT/check --n 6
 PYTHONPATH=$MTT_SRC $VPY $SRC/scripts/train/check_gradients.py --init $(dirname $INIT)/init.pt --data $LOCAL --dump $OUT/check || echo "!! gate: gradients vs PyTorch failed"
 
 echo "== profile"
-$BUILD/bin/mlipcpp-train-check --data $LOCAL --init $INIT --out $OUT/profile --n 64 --gpus 1 $NL --profile 1
+$BUILD/bin/mlipcpp-train-check --data $LOCAL --init $INIT --out $OUT/profile --n 64 --gpus 1 $NL --profile 1 || echo "!! profile failed"
 
 echo "== trajectory (30 steps, compare with the canary of 145112)"
 $BUILD/bin/mlipcpp-train --data $LOCAL --init $INIT -o $OUT/traj.gguf --gpus 2 --batch-size 64 \
@@ -62,10 +62,8 @@ $BUILD/bin/mlipcpp-train --data $LOCAL --init $INIT -o $OUT/traj-step.gguf --gpu
     --epochs 1 --max-steps 30 --log-every 2 --threads $SLURM_CPUS_PER_TASK $NL --pack step
 
 # throughput: one "label flags..." per line; struct/s is cumulative over the epoch
-CONFIGS=${CONFIGS:-"worker-g4 --pack worker --mb-growth 4
-step --pack step
-step-muon10 --pack step --optimizer muon --muon-lr-scale 10
-worker-g4-muon10 --pack worker --mb-growth 4 --optimizer muon --muon-lr-scale 10"}
+CONFIGS=${CONFIGS:-"step --pack step
+step-muon10 --pack step --optimizer muon --muon-lr-scale 10"}
 STEPS=${STEPS:-600}
 while read -r label flags; do
     [ -z "$label" ] && continue
