@@ -48,7 +48,7 @@ echo "build: $(( $(date +%s) - t )) s"
 $BUILD/bin/mlipcpp-op-test || echo "OP TEST FAILED"
 
 LOCAL=$TMPDIR/$(basename $DATA)
-cp -r $DATA $LOCAL
+cp -rL $DATA $LOCAL # -L: DATA may be a symlink to /work
 cp $REUSE_INIT/init.pt $OUT/init.pt
 $VPY $SRC/scripts/export_pytorch/export_pet_gguf.py --model $OUT/init.pt --nc-forces -o $OUT/init.gguf > $OUT/export.log 2>&1
 # CPU gate: full 64-structure batch vs PyTorch (float64)

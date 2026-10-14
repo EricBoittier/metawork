@@ -32,7 +32,7 @@ nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv
 
 # stage the memmap (2 GB) on node-local NVMe so reads never touch /home
 LOCAL=${TMPDIR:-/tmp}/$(basename "$DATA")
-cp -r "$DATA" "$LOCAL"
+cp -rL "$DATA" "$LOCAL" # -L: DATA may be a symlink to /work
 mkdir -p "$WORK" && cd "$WORK"
 for d in train val test; do ln -sfn "$LOCAL/$d" "$d"; done
 

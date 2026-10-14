@@ -41,7 +41,7 @@ cmake -S $SRC -B $BUILD -DCMAKE_BUILD_TYPE=Release -DMLIPCPP_USE_CUDA=ON -DCMAKE
 cmake --build $BUILD -j "$SLURM_CPUS_PER_TASK" --target mlipcpp-train mlipcpp-train-check > $OUT/build.log 2>&1 \
     || { tail -40 $OUT/build.log; exit 1; }
 LOCAL=$TMPDIR/$(basename $DATA)
-cp -r $DATA $LOCAL
+cp -rL $DATA $LOCAL # -L: DATA may be a symlink to /work
 # gate on this build: gradients vs metatrain/PyTorch (float64) and
 # micro-batching == full batch; refuse to train otherwise
 $BUILD/bin/mlipcpp-train-check --data $LOCAL --init $INIT --out $OUT/check --n 64 --gpus 1 --cache-dir $C/mlipcpp-nl

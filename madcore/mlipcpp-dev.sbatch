@@ -45,7 +45,7 @@ echo "build: $(( $(date +%s) - t )) s"
 
 # --- stage data on node-local NVMe ---
 LOCAL=$TMPDIR/$(basename $DATA)
-cp -r $DATA $LOCAL
+cp -rL $DATA $LOCAL # -L: DATA may be a symlink to /work
 
 # --- initial PET exactly as `mtt train` builds it, then GGUF ---
 t=$(date +%s)
