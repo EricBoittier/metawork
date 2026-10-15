@@ -55,17 +55,18 @@ if [ -n "${NLCHECK:-}" ]; then
     rm -rf $CHK
 fi
 
-# gate on this build: gradients vs metatrain/PyTorch (float64) and
+# gate on this build (GATE_N structures and tolerance GATE_TOL: fp32 sums over
+# thousands of neighbours at large cutoffs reach ~3e-3): gradients vs metatrain/PyTorch (float64) and
 # micro-batching == full batch; refuse to train otherwise
-$BUILD/bin/mlipcpp-train-check --data $LOCAL --init $INIT --out $OUT/check --n 64 --gpus 1 --cache-dir $C/mlipcpp-nl
-PYTHONPATH=$MTT_SRC $VPY $SRC/scripts/train/check_gradients.py --init $(dirname $INIT)/init.pt --data $LOCAL --dump $OUT/check
+$BUILD/bin/mlipcpp-train-check --data $LOCAL --init $INIT --out $OUT/check --n ${GATE_N:-64} --gpus 1 --cache-dir $C/mlipcpp-nl --tol ${GATE_TOL:-1e-3}
+PYTHONPATH=$MTT_SRC $VPY $SRC/scripts/train/check_gradients.py --init $(dirname $INIT)/init.pt --data $LOCAL --dump $OUT/check --tol ${GATE_TOL:-1e-3}
 
 # canary: 30 steps on both GPUs through the epoch-end path (val, checkpoint
 # write), then reload the checkpoint in eval-only mode
 $BUILD/bin/mlipcpp-train --data $LOCAL --init $INIT -o $OUT/canary.gguf --gpus 2 --batch-size 64 \
-    --epochs 1 --max-steps 30 --threads $SLURM_CPUS_PER_TASK --cache-dir $C/mlipcpp-nl --log-every 2
+    --epochs 1 --max-steps 30 --threads $SLURM_CPUS_PER_TASK --cache-dir $C/mlipcpp-nl --log-every 2 ${EXTRA:-}
 $BUILD/bin/mlipcpp-train --data $LOCAL --init $OUT/canary.gguf -o /dev/null --gpus 2 --epochs 0 \
-    --threads $SLURM_CPUS_PER_TASK --cache-dir $C/mlipcpp-nl
+    --threads $SLURM_CPUS_PER_TASK --cache-dir $C/mlipcpp-nl ${EXTRA:-}
 
 ( while sleep 5; do nvidia-smi --query-gpu=memory.used,utilization.gpu --format=csv,noheader,nounits; done ) > $OUT/gpumem.log &
 sampler=$!

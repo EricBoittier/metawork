@@ -1,0 +1,60 @@
+# Eric's larger PET at 6 A (2026-10-15; the 10 A version is options-pet-big10.yaml), 2x width, 16 heads, 4 attention
+# layers in a single GNN layer; d_node/d_feedforward 512.
+# Otherwise identical to options-pet-bs64.yaml.
+# Standard PET on MAD-CORE, batch_size 64 structures per GPU, for the
+# metatrain vs mlip.cpp training comparison (train-pet-bs64-2gpu.sbatch).
+# Same targets as options-pet-memmap.yaml (energy + direct non-conservative
+# forces); every other hyper is the PET default.
+# Labels are model predictions: `ecumetric_energy` and the *direct*
+# (non-conservative) forces `ecumetric_nc_forces`. They are trained as two
+# targets, and the energy target does not ask for position gradients.
+
+seed: 42
+base_precision: 32
+
+architecture:
+  name: pet
+  model:
+    cutoff: 6.0
+    d_pet: 256
+    d_head: 256
+    d_node: 512
+    d_feedforward: 512
+    num_heads: 16
+    num_attention_layers: 4
+    num_gnn_layers: 1
+  training:
+    num_epochs: 10
+    # per GPU (metatrain DDP): 2 ranks -> 128 structures per optimizer step
+    batch_size: 64
+
+training_set:
+  systems:
+    read_from: train/
+    length_unit: angstrom
+  targets: &targets
+    energy:
+      key: energy
+      unit: eV
+      forces: false
+      stress: false
+    non_conservative_force:
+      key: non_conservative_force
+      quantity: force
+      unit: eV/A
+      sample_kind: atom
+      type:
+        cartesian:
+          rank: 1
+
+validation_set:
+  systems:
+    read_from: val/
+    length_unit: angstrom
+  targets: *targets
+
+test_set:
+  systems:
+    read_from: test/
+    length_unit: angstrom
+  targets: *targets
