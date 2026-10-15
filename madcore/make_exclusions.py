@@ -10,13 +10,15 @@ Two kinds of flags, agreed on 2026-10-15:
   is positive for 99.94 % of all structures, so it is no test.)
 - fit flags (train only): per-structure force RMSE of a trained model on its
   own training data above --factor times the median of the structure's
-  source group (a label the model cannot fit after seeing it).
+  source group (a label the model cannot fit after seeing it) and above an
+  absolute floor of --floor times the median over all training structures
+  (so groups the model fits very well don't lose ordinary structures).
 
 Writes OUT/rows.npz (the flagged MAD-CORE rows per flag), OUT/summary.txt,
 and for every coreset size 2^K in --levels the directory OUT/2powK/ with
 {train,val,test}.npy split indices, ready for `--exclude`.
 
-    python make_exclusions.py OUT --labelcheck DIR --residuals PREFIX [--cc 0.8 --ratio 0.5 --frac 0.3 --factor 10]
+    python make_exclusions.py OUT --labelcheck DIR --residuals PREFIX [--cc 0.8 --ratio 0.5 --frac 0.3 --factor 10 --floor 25]
 """
 
 import argparse
@@ -41,6 +43,7 @@ def main():
     ap.add_argument("--cc", type=float, default=0.8)
     ap.add_argument("--frac", type=float, default=0.3)
     ap.add_argument("--factor", type=float, default=10.0)
+    ap.add_argument("--floor", type=float, default=25.0, help="absolute floor, in units of the overall train median")
     ap.add_argument("--levels", type=int, nargs="+", default=[18, 20, 22, 24])
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
@@ -67,10 +70,12 @@ def main():
     med = np.zeros(grp.max() + 1)
     for k in np.unique(grp):
         med[k] = np.median(f_rmse[grp == k])
-    bad = f_rmse > a.factor * med[grp]
+    floor = a.floor * np.median(f_rmse)
+    bad = (f_rmse > a.factor * med[grp]) & (f_rmse > floor)
     flagged["train_fit"] = split["train"][res["id"][bad]]
     lines.append(f"train fit flag: {bad.sum():,} of {len(res):,} scored structures have force RMSE > {a.factor:g}x "
-                 f"their group's median (largest group medians: " +
+                 f"their group's median and > {a.floor:g}x the overall median ({1e3 * floor:.0f} meV/A) "
+                 f"(largest group medians: " +
                  ", ".join(f"{names[k]} {1e3 * med[k]:.0f}" for k in np.argsort(-np.bincount(grp))[:5]) + " meV/A)")
 
     remove = {s: np.union1d(np.union1d(flagged[f"{s}_nonfinite"], flagged[f"{s}_label"]),
@@ -94,7 +99,7 @@ def main():
             lines.append(f"sample {key} rows: {np.sort(rng.choice(v, min(10, len(v)), replace=False)).tolist()}")
 
     np.savez(a.out / "rows.npz", **flagged, **{f"remove_{s}": v for s, v in remove.items()},
-             params=np.array([a.ratio, a.cc, a.frac, a.factor]))
+             params=np.array([a.ratio, a.cc, a.frac, a.factor, a.floor]))
     for lvl in a.levels:
         d = a.out / f"2pow{lvl}"
         d.mkdir(exist_ok=True)
