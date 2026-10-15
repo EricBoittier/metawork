@@ -40,14 +40,14 @@ fi
 : ${KIND:?} ${N:?} ${EPOCHS:?}
 OUT=$PROJ/runs/${SLURM_JOB_NAME}-${SLURM_JOB_ID}
 mkdir -p $OUT
-echo "host $(hostname)  src $SRC  subset $KIND n=$N ${GROUP:+group=$GROUP }epochs=$EPOCHS"
+echo "host $(hostname)  src $SRC  subset $KIND n=$N ${GROUP:+group=$GROUP }epochs=$EPOCHS subset-seed=${SUBSET_SEED:-0} ${EXTRA:-}"
 # random picks read the whole 2^24 train split: copy it to node-local disk first
 SRCMM=$D/memmap-2pow24
 if [ "$KIND" = random ]; then
     mkdir -p $TMPDIR/src && cp -rL $D/memmap-2pow24/train $TMPDIR/src/train && SRCMM=$TMPDIR/src
 fi
 SUB=$TMPDIR/subset
-$VPY -I $HERE/make_subset_memmap.py --src $SRCMM --kind $KIND --n $N ${GROUP:+--group $GROUP} \
+$VPY -I $HERE/make_subset_memmap.py --src $SRCMM --kind $KIND --n $N ${GROUP:+--group $GROUP} --seed ${SUBSET_SEED:-0} \
     --val $D/memmap-2pow20/val --test $D/memmap-2pow24/test -o $SUB
 cp $SUB/rows.npy $OUT/
 rm -rf $TMPDIR/src
