@@ -30,26 +30,33 @@ def mlipcpp_atoms(path):
     rows = [m for m in rows if m]
     E = re.search(r"E engine ([-0-9.]+)\s+cpu ([-0-9.]+)", Path(path).read_text())
     return (np.array([int(m[5]) for m in rows]), np.array([float(m[6]) for m in rows]),
-            np.array([int(m[3]) for m in rows]), float(E[2]) if E else np.nan)
+            np.array([int(m[4]) for m in rows]), float(E[2]) if E else np.nan)
 
 
-def evaluate(model, data, s, dtype, shift=None):
+def evaluate(model, data, s, dtype, shift=None, system=None):
+    """system: (types, positions, cell) instead of split row s."""
     from metatomic.torch import ModelOutput, System
     from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
 
     model = model.to(dtype).eval()
-    lo, hi = data["na"][s], data["na"][s + 1]
-    x = torch.tensor(data["x"][lo:hi], dtype=torch.float64)
+    if system is None:
+        lo, hi = data["na"][s], data["na"][s + 1]
+        system = (data["a"][lo:hi], data["x"][lo:hi], data["c"][s])
+    types, x, c = system
+    x = torch.tensor(np.asarray(x), dtype=torch.float64)
     if shift is not None:
         x = x + shift
-    cell = torch.tensor(data["c"][s], dtype=dtype)
-    sys_ = System(types=torch.tensor(data["a"][lo:hi]), positions=x.to(dtype), cell=cell, pbc=(cell != 0).any(dim=1))
+    cell = torch.tensor(np.asarray(c), dtype=dtype)
+    sys_ = System(types=torch.tensor(np.asarray(types, dtype=np.int32)), positions=x.to(dtype), cell=cell,
+                  pbc=(cell != 0).any(dim=1))
     sys_ = get_system_with_neighbor_lists(sys_, model.requested_neighbor_lists())
-    out = model([sys_], {"energy": ModelOutput(), "mtt::aux::cutoff_stats": ModelOutput(sample_kind="atom")})
+    out = model([sys_], {"energy": ModelOutput(per_atom=True),
+                         "mtt::aux::cutoff_stats": ModelOutput(sample_kind="atom")})
     st = out["mtt::aux::cutoff_stats"].block().values.detach().double().numpy()
     nl = sys_.get_neighbor_list(model.requested_neighbor_lists()[0])
     pairs = nl.samples.values[:, :2].numpy()
     d = torch.linalg.norm(nl.values.reshape(-1, 3).double(), dim=1).numpy()
+    evaluate.per_atom = out["energy"].block().values.detach().double().numpy().ravel()
     return float(out["energy"].block().values.sum()), st[:, 0], st[:, 1].astype(int), pairs, d
 
 
@@ -58,6 +65,7 @@ def main():
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--split", required=True)
     ap.add_argument("--edges-dir", required=True)
+    ap.add_argument("--dimers", help="DIR of `edges --xyz Z.xyz` outputs: two Z atoms 20 A apart, in vacuum")
     ap.add_argument("ids", nargs="+", type=int)
     a = ap.parse_args()
     from export_pytorch.export_pet_full import load_local_model
@@ -68,6 +76,8 @@ def main():
     for s in a.ids:
         kept_c, r_c, full_c, E_c = mlipcpp_atoms(Path(a.edges_dir) / f"{s}.txt")
         E64, r64, k64, pairs, d = evaluate(model, data, s, torch.float64)
+        lo = data["na"][s]
+        print(f"\n  per-atom E f64 (eV): " + " ".join(f"{z}:{e:.4f}" for z, e in zip(data["a"][lo:], evaluate.per_atom)))
         E32, r32, k32, _, _ = evaluate(model, data, s, torch.float32)
         n = len(r64)
         print(f"\n=== structure {s}: {n} atoms, {len(d)} edges within the cutoff "
@@ -89,6 +99,14 @@ def main():
             dx = torch.tensor(rng.normal(size=(n, 3)) * h)
             Eh = evaluate(model, data, s, torch.float64, dx)[0]
             print(f"  f64 energy moves {1e3 * (Eh - E64):+.4f} meV under a {h:g} A random displacement")
+
+    if a.dimers:  # per element: two atoms 20 A apart = 2 x (composition offset + isolated-atom output)
+        print("\n=== isolated atoms (two, 20 A apart): E per atom, metatrain f64 vs mlip.cpp GraphModel CPU (meV)")
+        for f in sorted(Path(a.dimers).glob("*.txt"), key=lambda f: int(f.stem)):
+            z = int(f.stem)
+            E_c = mlipcpp_atoms(f)[3]
+            E64 = evaluate(model, data, None, torch.float64, system=([z, z], [[0, 0, 0], [20.0, 0, 0]], np.zeros((3, 3))))[0]
+            print(f"  Z {z:3d}: f64 {E64 / 2:.6f} eV  mlip.cpp {E_c / 2:.6f} eV  diff {1e3 * (E_c - E64) / 2:+.3f}")
 
 
 if __name__ == "__main__":

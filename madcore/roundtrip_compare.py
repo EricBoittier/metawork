@@ -128,6 +128,12 @@ def compare(args):
             E=np.where(have, lab_E + np.array([by[s]["de"] if s in by else np.nan for s in ids]) * n, np.nan),
             fse=np.array([by[s]["fse"] if s in by else np.nan for s in ids]))
 
+    if args.save:  # per structure / per atom, for make_chemiscope.py
+        arrays = dict(ids=ids, n_atoms=n, E_label=lab_E, F_label=lab_F)
+        for name, r in ref.items():
+            key = name.split(" (")[0].replace(" ", "_").replace(".", "")
+            arrays.update({f"{k}:{key}": v for k, v in r.items() if v is not None})
+        np.savez_compressed(args.save, **arrays)
     base = ref["metatrain f64"]
     diff = lambda a, b: (float(np.sqrt(np.nanmean((a - b) ** 2))), float(np.nanmax(np.abs(a - b))))
     report = {"n_structures": int(len(ids)), "atoms": [int(n.min()), int(n.max()), int(n.sum())], "vs_f64": {}, "vs_labels": {}}
@@ -186,6 +192,7 @@ def main():
     c.add_argument("--dump", help="trainer PREFIX.test.bin")
     c.add_argument("--device", default="cuda")
     c.add_argument("-o", "--output")
+    c.add_argument("--save", help="npz of every prediction")
     args = ap.parse_args()
     pick(args) if args.cmd == "pick" else compare(args)
 
