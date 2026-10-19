@@ -86,7 +86,7 @@ def main():
         shapes={"force_error": chemiscope.ase_vectors_to_arrows(frames, "force_error", target="atom", scale=1.0)},
         metadata=dict(name="big24 145880: mlip.cpp vs metatrain on the 2^24 test split",
                   description="1000 structures of every size; roundtrip-check 175691"),
-        settings={"map": {"x": {"property": "n_atoms", "scale": "log"}, "y": {"property": "E error mlip.cpp"},
+        settings={"target": "structure", "map": {"x": {"property": "n_atoms", "scale": "log"}, "y": {"property": "E error mlip.cpp"},
                           "color": {"property": "F RMSE mlip.cpp (direct)"}},
                   "structure": [{"color": {"property": "|F error| mlip.cpp (direct)"}}]},
     )
