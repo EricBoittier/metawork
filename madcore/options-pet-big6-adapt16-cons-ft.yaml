@@ -1,0 +1,62 @@
+# Conservative fine-tune of the big adaptive PET trained by mlip.cpp (145880,
+# options-pet-big6-adapt16.yaml architecture): forces are -dE/dx (energy target
+# with position gradients), and the direct head (non_conservative_force) keeps
+# training on the same labels, so RESPA (direct inner steps) stays usable.
+# The weights come from gguf_to_checkpoint.py; mlipcpp-cons-ft.sbatch fills in
+# finetune.read_from, atomic_baseline and fixed_scaling_weights (the GGUF's
+# fitted baselines, so metatrain does not refit them).
+
+seed: 42
+base_precision: 32
+
+architecture:
+  name: pet
+  model:
+    cutoff: 6.0
+    num_neighbors_adaptive: 16
+    d_pet: 256
+    d_head: 256
+    d_node: 512
+    d_feedforward: 512
+    num_heads: 16
+    num_attention_layers: 4
+    num_gnn_layers: 1
+  training:
+    num_epochs: 4
+    batch_size: 32 # per GPU; conservative forces keep the energy graph through backward
+    learning_rate: 2.0e-5
+    finetune:
+      method: full
+      read_from: null # set by the job
+
+training_set:
+  systems:
+    read_from: train/
+    length_unit: angstrom
+  targets: &targets
+    energy:
+      key: energy
+      unit: eV
+      forces:
+        key: non_conservative_force
+      stress: false
+    non_conservative_force:
+      key: non_conservative_force
+      quantity: force
+      unit: eV/A
+      sample_kind: atom
+      type:
+        cartesian:
+          rank: 1
+
+validation_set:
+  systems:
+    read_from: val/
+    length_unit: angstrom
+  targets: *targets
+
+test_set:
+  systems:
+    read_from: test/
+    length_unit: angstrom
+  targets: *targets
