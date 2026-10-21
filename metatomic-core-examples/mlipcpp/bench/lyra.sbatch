@@ -5,6 +5,9 @@
 #
 #   cd metatomic-core-examples/mlipcpp && sbatch bench/lyra.sbatch <model.gguf> <model.pt>
 #
+# BLAS=openblas builds mlip.cpp with MLIPCPP_USE_BLAS (lyra's openblas module)
+# and times the CPU both with and without it (MLIPCPP_NO_ACCEL=1).
+#
 # Needs the clones, build/venv and metatomic-core made by build.sh beforehand,
 # on a login node without modules: cargo can not link under lyra's gcc module.
 #SBATCH --job-name=mta-mlipcpp-bench
@@ -30,11 +33,20 @@ OUT=${OUT:-$PWD/bench-$SLURM_JOB_ID.csv}
 
 module purge
 module load gcc/14.3.0 cuda/12.9.1 cmake/3.31.9
+CMAKE_ARGS="-DMLIPCPP_USE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=100;120 -DGGML_NATIVE=OFF"
+BLAS_LIBS=""
+if [ "${BLAS:-}" = openblas ]; then
+  module load openblas/0.3.30-openmp
+  CMAKE_ARGS="$CMAKE_ARGS -DMLIPCPP_USE_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS"
+  BLAS_LIBS="-L$OPENBLAS_ROOT/lib -lopenblas -Wl,-rpath,$OPENBLAS_ROOT/lib"
+else
+  CMAKE_ARGS="$CMAKE_ARGS -DMLIPCPP_USE_BLAS=OFF"
+fi
 echo "host $(hostname)"
 nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
 
 JOBS=$SLURM_CPUS_PER_TASK PYTHON=$VPY \
-  MLIPCPP_CMAKE_ARGS="-DMLIPCPP_USE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=100;120 -DGGML_NATIVE=OFF" \
+  MLIPCPP_CMAKE_ARGS="$CMAKE_ARGS" \
   "$E/build.sh" > /dev/null
 echo "mlip.cpp $(git -C "$B/mlip.cpp" rev-parse --short HEAD), metatomic $(git -C "$B/metatomic" rev-parse --short HEAD)"
 
@@ -42,7 +54,7 @@ MTS="$("$B/venv/bin/python" -c 'import metatensor, os; print(os.path.dirname(met
 L=$B/mlipcpp-build/lib
 "${CXX:-c++}" -O2 -std=c++20 -I"$B/prefix/include" -I"$MTS/include" -I"$B/mlip.cpp/include" "$E/bench/bench.cpp" -o "$B/bench" \
   "$L/libmlipcpp.a" "$L/libggml.a" $(ls "$L"/libggml-*.a | grep -v base) "$L/libggml-base.a" "$L/libfmt.a" \
-  -fopenmp -L"$(dirname "$(dirname "$(which nvcc)")")/lib64" -lcudart -lcublas -lcublasLt -lcuda \
+  -fopenmp -L"$(dirname "$(dirname "$(which nvcc)")")/lib64" -lcudart -lcublas -lcublasLt -lcuda $BLAS_LIBS \
   -L"$B/prefix/lib" -L"$MTS/lib" -lmetatomic -lmetatensor \
   -Wl,--disable-new-dtags -Wl,-rpath,"$B/prefix/lib" -Wl,-rpath,"$MTS/lib"
 
@@ -58,7 +70,11 @@ echo "wrapper,backend,threads,n_atoms,mode,ms" > "$OUT"
 MLIPCPP_BACKEND=cuda "$B/bench" "$P" "$GGUF" $GPU_CELLS >> "$OUT"
 MLIPCPP_BACKEND=cuda "$B/venv/bin/python" "$E/bench/bench.py" plugin "$P" "$GGUF" $GPU_CELLS >> "$OUT"
 BENCH_DEVICE=cuda "$VPY" -W ignore "$E/bench/bench.py" torch "$PT" $GPU_CELLS 2> /dev/null | grep -v "^Warp" >> "$OUT"
-MLIPCPP_NUM_THREADS=$SLURM_CPUS_PER_TASK "$B/bench" "$P" "$GGUF" $CPU_CELLS >> "$OUT"
+MLIPCPP_NUM_THREADS=$SLURM_CPUS_PER_TASK "$B/bench" "$P" "$GGUF" $CPU_CELLS \
+  | sed "s/,ggml-cpu,/,ggml-cpu${BLAS:++$BLAS},/" >> "$OUT"
+if [ -n "${BLAS:-}" ]; then
+  MLIPCPP_NO_ACCEL=1 MLIPCPP_NUM_THREADS=$SLURM_CPUS_PER_TASK "$B/bench" "$P" "$GGUF" $CPU_CELLS >> "$OUT"
+fi
 OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK "$VPY" -W ignore "$E/bench/bench.py" torch "$PT" $CPU_CELLS 2> /dev/null \
   | grep -v "^Warp" >> "$OUT"
 "$B/venv/bin/python" "$E/bench/summarize.py" "$OUT"
