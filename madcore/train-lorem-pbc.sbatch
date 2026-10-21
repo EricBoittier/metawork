@@ -29,7 +29,7 @@ EPOCHS=${EPOCHS:-10}
 ROOT=/work/cosmo/boittier/kuma/madcore-lorem
 CODE=${CODE:-/home/boittier/metawork/metatrain/lorem-sr-switch}
 SHA=${SHA:-47c25cc3}   # 47c25cc3 = 060f69c3 + Bernstein cutoff NaN fix (0a2d45d4 on the PR)
-VENV=/home/boittier/metawork/.venv   # torch 2.5.1+cu121: kuma's driver is CUDA 12.6
+VENV=/home/boittier/metawork/.venv-lorem   # torch 2.5.1+cu121 (kuma: CUDA 12.6 driver); make-venv-lorem.sh
 export PYTHONPATH=$CODE/src
 # sphericart/nvrtc dlopen unversioned names; the venv only ships .so.12
 export LD_LIBRARY_PATH=/home/boittier/data/madcore/lorem-runs/cudart:$VENV/lib/python3.12/site-packages/nvidia/cuda_runtime/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}

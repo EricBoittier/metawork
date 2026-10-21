@@ -12,7 +12,7 @@
 set -euo pipefail
 ROOT=/work/cosmo/boittier/kuma/madcore-lorem
 CODE=/home/boittier/metawork/metatrain/lorem-sr-switch
-VENV=/home/boittier/metawork/.venv
+VENV=/home/boittier/metawork/.venv-lorem   # torch 2.5.1+cu121 (kuma: CUDA 12.6 driver); make-venv-lorem.sh
 SRC=/home/boittier/data/madcore/mts-2pow18-conservative
 
 git -C "$CODE" log -1 --oneline

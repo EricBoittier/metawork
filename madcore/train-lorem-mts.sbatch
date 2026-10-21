@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # torch 2.5.1+cu121: kuma's driver (CUDA 12.6) is too old for .venv-blackwell's cu130
-VENV=/home/boittier/metawork/.venv
+VENV=/home/boittier/metawork/.venv-lorem   # torch 2.5.1+cu121 (kuma: CUDA 12.6 driver); make-venv-lorem.sh
 DATA=/home/boittier/data/madcore/mts-2pow18-conservative
 export PYTHONPATH=/home/boittier/metawork/metatrain/lorem-clean/src
 # sphericart dlopens an unversioned libcudart.so; the venv only ships .so.12
