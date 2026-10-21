@@ -60,21 +60,40 @@ def bench_plugin(plugin, gguf, cells):
 
 
 def bench_torch(pt, cells):
-    import ase
-    from metatomic.torch.ase_calculator import MetatomicCalculator
+    # the model is called directly: metatomic-torch's ASE calculator (0.1.x)
+    # computes energy, forces and stress whatever properties are requested
+    import torch
+    from metatomic.torch import ModelEvaluationOptions, ModelOutput, System, load_atomistic_model
+    from vesin.metatomic import compute_requested_neighbors
 
     device = os.environ.get("BENCH_DEVICE", "cpu")
-    conservative = MetatomicCalculator(pt, device=device)
-    direct = MetatomicCalculator(pt, device=device, non_conservative="forces")
-    modes = {"energy": (conservative, ["energy"]), "forces": (conservative, ["energy", "forces"]),
-             "nc": (direct, ["energy", "forces"])}
+    model = load_atomistic_model(pt).to(device)
+    dtype = getattr(torch, model.capabilities().dtype)
+    energy = {"energy": ModelOutput(per_atom=False)}
+    outputs = {"energy": energy, "forces": energy,
+               "nc": {**energy, "non_conservative_force": ModelOutput(per_atom=True)}}
+    sync = torch.cuda.synchronize if device == "cuda" else lambda: None
+
     for n in cells:
         types, positions, cell = silicon(n)
-        atoms = ase.Atoms(numbers=types, positions=positions, cell=cell, pbc=True)
-        for mode, (calc, properties) in modes.items():
-            # calling calculate directly skips the ASE results cache
-            run = lambda: calc.calculate(atoms, properties, ["positions"])
-            yield "metatomic-torch-ase", f"torch-{device}", len(types), mode, time_ms(run)
+        for mode, requested in outputs.items():
+            options = ModelEvaluationOptions(length_unit="angstrom", outputs=requested)
+
+            def run():
+                pos = torch.tensor(positions, dtype=dtype, device=device, requires_grad=mode == "forces")
+                system = System(torch.tensor(types, device=device), pos,
+                                torch.tensor(cell, dtype=dtype, device=device),
+                                torch.ones(3, dtype=torch.bool, device=device))
+                compute_requested_neighbors(system, "angstrom", model)
+                result = model([system], options, check_consistency=False)
+                if mode == "forces":
+                    forces = -torch.autograd.grad(result["energy"].block().values.sum(), pos)[0]
+                    forces.cpu()
+                else:
+                    result["energy"].block().values.cpu()
+                sync()
+
+            yield "metatomic-torch", f"torch-{device}", len(types), mode, time_ms(run)
 
 
 if __name__ == "__main__":
