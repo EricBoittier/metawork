@@ -92,3 +92,31 @@ compressed), since gzip decompression is sequential within a file.
 `scripts/check_mta.py <input.extxyz.gz> <dir>` compares `.mta` files written
 by `extxyz-gz-to-mta` with ASE's reading of the same frames, for downstream
 testing.
+
+## Models from a plugin: mlip.cpp GGUF files (`mlipcpp/`)
+
+`mlipcpp/` runs PET models trained with [mlip.cpp](https://github.com/EricBoittier/mlip.cpp)
+(`*.gguf`, ggml runtime, no PyTorch) through the metatomic C API, using the
+`mlipcpp-metatomic.so` plugin from the `feat/metatomic-plugin` branch (see its
+`docs/metatomic.md`).
+
+```bash
+bash mlipcpp/build.sh       # pinned upstream metatomic-core + mlip.cpp plugin + a venv, in mlipcpp/build
+
+# gradients against finite differences, on a cluster, a slab and a bulk cell
+mlipcpp/build/metatomic_plugin mlipcpp/build/mlipcpp-metatomic.so ~/ft-huber-3e-5.gguf
+
+# NVE molecular dynamics of 64 Si atoms, written only against the metatomic C API
+mlipcpp/build/nve-md mlipcpp/build/mlipcpp-metatomic.so ~/ft-huber-3e-5.gguf --steps 500 [--nc]
+
+# compare with the TorchScript export of the checkpoint the GGUF came from
+mlipcpp/compare-torch.sh ~/ft-huber-3e-5.gguf ~/long-ft-huber-3e-5.ckpt
+```
+
+On the MPtrj fine-tunes of 2026-10-20 (`ft-*.gguf` / `long-*.ckpt`), the plugin
+reproduces the PyTorch energies, forces, virials and non-conservative forces to
+float32 precision (the ASE calculator removes the net non-conservative force,
+the model output does not). NVE with conservative forces drifts by
+3e-5 eV/atom over 500 fs at 1 fs (4e-3 eV/atom with `--nc`). On CPU a
+64-atom step costs 0.7 s with conservative forces and 0.2 s with `--nc`, the
+cost of the mlip.cpp CPU runtime itself.
