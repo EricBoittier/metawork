@@ -164,7 +164,16 @@ Bound: mixed/periodic 2 × 12 h segments, nonperiodic 1 × 4 h → 104 GPU-h ≈
   - mixed-lr, mixed-sr, periodic-lr: log shows "Final checkpoint: …", then died at export: `RuntimeError: could not convert the module to TorchScript` (metatomic_torch/model.py:729 from mts_atomistic_model.save, metatrain cli/train.py:751; full traceback in runs/<run>/outputs/2026-10-02/13-54-54/error.log).
   - periodic-sr (4491400): epoch 99 logged and "Training finished!", then `FileNotFoundError: [Errno 2] No such file or directory: '/home/boittier/metawork/metatrain/runs-e100/src/metatrain'` (the runs-e100 worktree was missing at 18:41, recreated 18:43), not the TorchScript error. No "Final checkpoint" line, but the .ckpt below was written at 18:41.
   - checkpoints (best epoch, val E meV/atom / F meV/A): /work/cosmo/boittier/kuma/madcore-lorem/runs/lorem-mixed-lr-100ep/lorem-mixed-lrtrue.ckpt (ep 74, 382.0 / 1563.0); runs/lorem-mixed-sr-100ep/lorem-mixed-lrfalse.ckpt (ep 76, 358.0 / 1463.8); runs/lorem-periodic-lr-100ep/lorem-periodic-lrtrue.ckpt (ep 73, 352.3 / 1520.7); runs/lorem-periodic-sr-100ep/lorem-periodic-lrfalse.ckpt (lowest val loss at ep 69, 358.7 / 1509.1, per train.csv; best-vs-last not checked). Per-epoch model_*.ckpt in each outputs/2026-10-02/13-54-54/.
-  - TODO: export the four checkpoints (fix the TorchScript conversion of the LR/SR LOREM module) + test-set eval, then fill the mixed/periodic rows of the 10-vs-100-epoch comparison.
+  - ~~TODO:~~ done 10-21, see below: export the four checkpoints (fix the TorchScript conversion of the LR/SR LOREM module) + test-set eval, then fill the mixed/periodic rows of the 10-vs-100-epoch comparison.
+- **10-21 export + test eval (4631840 lorem-export-eval, kuma h100, COMPLETED ~2 min; lorem-export-eval.sbatch, code runs-e100 @ a73363f3, venv .venv-lorem).** Cause of the export failures: i-PI 3.3.0 + openmm-ml 1.6 were installed into ~/metawork/.venv on 10-02 17:11-17:22, replacing torch 2.5.1+cu121 by 2.13.0+cpu under the running jobs; TorchScript then compiled the new torch sources (`embedding(Tensor input, bool inplace)` mismatch). The LOREM scripts now use ~/metawork/.venv-lorem (make-venv-lorem.sh: .venv without i-PI/OpenMM, torch 2.5.1+cu121). Exports in runs/lorem-<run>-100ep/eval-1021/ (model .pt, extensions/, eval.log, test-predictions.xyz). Check: the nonperiodic runs re-exported and re-evaluated give their logged test numbers (LR 518.40 / 2113.6, SR 615.72 / 2355.2).
+
+| subset | long-range E / F | short-range E / F | LR vs SR (E, F) | 10 epochs LR / SR (E / F) |
+|---|---|---|---|---|
+| mixed | 361.5 / 1451.5 | 352.0 / 1300.6 | +2.7 %, +11.6 % | 515.9 / 1541, 509.4 / 1506 |
+| periodic | 355.1 / 1390.4 | 347.2 / 1640.9 | +2.3 %, -15.3 % | 509.5 / 1510, 493.4 / 1497 |
+| nonperiodic | 518.4 / 2113.6 | 615.7 / 2355.2 | -15.8 %, -10.3 % | 1363.9 / 4268, 1497.3 / 4422 |
+
+Test RMSE, energy meV/atom, forces (-dE/dx) meV/A. Force MAE is 414-428 meV/A on all four mixed/periodic runs, so the periodic-sr force RMSE (1641, worse than its 10-epoch 1497) comes from a few large errors; whether its checkpoint holds the best or the last epoch (lowest val loss was ep 69) is still unchecked. Long range helps on nonperiodic only; on mixed/periodic it is within a few % on energy and mixed on forces.
 
 # RUNS — PET training: metatrain vs mlip.cpp (MAD-CORE 2^18, 2 GPUs, batch 64/GPU)
 
