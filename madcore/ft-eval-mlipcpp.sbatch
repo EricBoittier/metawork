@@ -74,7 +74,7 @@ for j in $RUNS $( [[ ${REF:-1} == 1 ]] && echo 147625 ); do
             $MD run $m --integrator $integ --steps 2000 --dt 0.5 --temperature 300 --seed 1 --log-every 50 \
                 --data $D/memmap-2pow24/test "$@" --thermo $o/$tag-$integ.tsv "${traj[@]}" > $o/$tag-$integ.log 2>&1 || status=1
             grep -iE "graph builds|error" $o/$tag-$integ.log; head -1 $o/$tag-$integ.tsv; tail -1 $o/$tag-$integ.tsv
-            [[ -s $o/$tag-$integ.xyz ]] && zstd -q --rm -f -10 $o/$tag-$integ.xyz && ls -s $o/$tag-$integ.xyz.zst
+            [[ -s $o/$tag-$integ.xyz ]] && zstd -q --rm -f -10 $o/$tag-$integ.xyz && ls -lh $o/$tag-$integ.xyz.zst | cut -d" " -f5,9
         done
     done
   done
@@ -91,8 +91,10 @@ for j in $( has convert && echo $RUNS ); do
 done
 
 echo "=== 3. ft_eval.py (metatrain): $MODELS"
-has eval && $VPY -W ignore /home/boittier/metawork/madcore/ft_eval.py --refit --out report.json \
-    --split test24=$D/memmap-2pow24/test:84 --split val20=$D/memmap-2pow20/val:5 \
-    $MODELS || status=1
+if has eval; then
+    $VPY -W ignore /home/boittier/metawork/madcore/ft_eval.py --refit --out report.json \
+        --split test24=$D/memmap-2pow24/test:84 --split val20=$D/memmap-2pow20/val:5 \
+        $MODELS || status=1
+fi
 echo "done (status $status)"
 exit $status
