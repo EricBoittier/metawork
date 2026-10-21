@@ -10,6 +10,8 @@
 # MD_ENVS: padding modes for step 1, "-" = default (-34.5 bias), "MLIPCPP_PAD_EXACT=1"
 # = padded keys -inf (models trained that way); metatrain (step 3) always has the finite bias.
 # REF=0 skips 147625 in step 1.
+# STAGES: subset of "check md convert eval" (default all). TRAJ_EVERY=N (inner steps, 0 = off)
+# writes NVE trajectories as extxyz (positions + velocities), zstd-compressed to *.xyz.zst.
 #SBATCH --job-name=ft-eval-mlipcpp
 #SBATCH --account=cosmo
 #SBATCH --partition=rtx6000
@@ -24,6 +26,8 @@
 set -uo pipefail
 SRC=${SRC:?SRC: a source snapshot (madcore/snapshot-mlipcpp.sh)}
 RUNS=${RUNS:-"176442 175917"}  # space-separated (sbatch --export splits on commas)
+STAGES=${STAGES:-"check md convert eval"}; TRAJ_EVERY=${TRAJ_EVERY:-0}
+has() { [[ " $STAGES " == *" $1 "* ]]; }
 PROJ=/work/cosmo/boittier/lyra/mlipcpp; D=/home/boittier/data/madcore
 BUILD=$PROJ/build-$(basename $SRC)
 OUT=$PROJ/runs/${SLURM_JOB_NAME}-${SLURM_JOB_ID}; mkdir -p $OUT; cd $OUT
@@ -57,15 +61,20 @@ for j in $RUNS $( [[ ${REF:-1} == 1 ]] && echo 147625 ); do
     m=${GGUF[$j]}; o=$OUT/md-$j${e:+-exact}; mkdir -p $o
     echo "##### $j${e:+  $e}  $m"
     MD="env $e $BUILD/bin/mlipcpp-md"
+    if has check; then
     $MD check $m $D/memmap-2pow20/val --n 2000 --max-atoms 100000 --fd 0 | grep -E "structures|vs labels" || status=1
     $MD check $m $D/memmap-2pow24/test --n 300 --fd 6 --csv $o/check-test.csv | grep -E "structures|vs |finite" || status=1
+    fi
+    has md || continue
     for integ in conservative respa; do
         for sys in "crys128 --index 55621 --repeat 2,2,2" "mol28 --index 157219"; do
             set -- $sys; tag=$1; shift
             echo "--- $tag $integ"
+            traj=(); (( TRAJ_EVERY > 0 )) && traj=(--traj $o/$tag-$integ.xyz --traj-every $TRAJ_EVERY)
             $MD run $m --integrator $integ --steps 2000 --dt 0.5 --temperature 300 --seed 1 --log-every 50 \
-                --data $D/memmap-2pow24/test "$@" --thermo $o/$tag-$integ.tsv > $o/$tag-$integ.log 2>&1 || status=1
+                --data $D/memmap-2pow24/test "$@" --thermo $o/$tag-$integ.tsv "${traj[@]}" > $o/$tag-$integ.log 2>&1 || status=1
             grep -iE "graph builds|error" $o/$tag-$integ.log; head -1 $o/$tag-$integ.tsv; tail -1 $o/$tag-$integ.tsv
+            [[ -s $o/$tag-$integ.xyz ]] && zstd -q --rm -f -10 $o/$tag-$integ.xyz && ls -s $o/$tag-$integ.xyz.zst
         done
     done
   done
@@ -73,7 +82,7 @@ done
 
 echo "=== 2. GGUF -> ckpt -> .pt"
 MODELS="$S/pet-big24-145880.pt $S/pet-big24-consft-147625.pt"
-for j in $RUNS; do
+for j in $( has convert && echo $RUNS ); do
     $VPY -W ignore $SRC/scripts/train/gguf_to_checkpoint.py --init $INIT --gguf ${GGUF[$j]} -o $OUT/cons-$j \
         > convert-$j.log 2>&1 || { echo "convert $j FAILED"; tail -20 convert-$j.log; status=1; continue; }
     $MTT export $OUT/cons-$j.ckpt -o $OUT/cons-$j.pt > export-$j.log 2>&1 \
@@ -82,7 +91,7 @@ for j in $RUNS; do
 done
 
 echo "=== 3. ft_eval.py (metatrain): $MODELS"
-$VPY -W ignore /home/boittier/metawork/madcore/ft_eval.py --refit --out report.json \
+has eval && $VPY -W ignore /home/boittier/metawork/madcore/ft_eval.py --refit --out report.json \
     --split test24=$D/memmap-2pow24/test:84 --split val20=$D/memmap-2pow20/val:5 \
     $MODELS || status=1
 echo "done (status $status)"
