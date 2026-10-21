@@ -5,7 +5,8 @@
 #
 #   cd metatomic-core-examples/mlipcpp && sbatch bench/lyra.sbatch <model.gguf> <model.pt>
 #
-# Needs the clones and build/venv made by build.sh (network) beforehand.
+# Needs the clones, build/venv and metatomic-core made by build.sh beforehand,
+# on a login node without modules: cargo can not link under lyra's gcc module.
 #SBATCH --job-name=mta-mlipcpp-bench
 #SBATCH --account=cosmo
 #SBATCH --partition=rtx6000
@@ -39,7 +40,7 @@ echo "mlip.cpp $(git -C "$B/mlip.cpp" rev-parse --short HEAD), metatomic $(git -
 
 MTS="$("$B/venv/bin/python" -c 'import metatensor, os; print(os.path.dirname(metatensor.__file__))')"
 L=$B/mlipcpp-build/lib
-c++ -O2 -std=c++20 -I"$B/prefix/include" -I"$MTS/include" -I"$B/mlip.cpp/include" "$E/bench/bench.cpp" -o "$B/bench" \
+"${CXX:-c++}" -O2 -std=c++20 -I"$B/prefix/include" -I"$MTS/include" -I"$B/mlip.cpp/include" "$E/bench/bench.cpp" -o "$B/bench" \
   "$L/libmlipcpp.a" "$L/libggml.a" $(ls "$L"/libggml-*.a | grep -v base) "$L/libggml-base.a" "$L/libfmt.a" \
   -fopenmp -L"$(dirname "$(dirname "$(which nvcc)")")/lib64" -lcudart -lcublas -lcublasLt -lcuda \
   -L"$B/prefix/lib" -L"$MTS/lib" -lmetatomic -lmetatensor \

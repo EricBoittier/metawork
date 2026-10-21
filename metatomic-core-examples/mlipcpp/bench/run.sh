@@ -25,7 +25,7 @@ if [[ "$MODEL" == *.ckpt ]]; then
 fi
 
 L="$BUILD/mlipcpp-build/lib"
-c++ -O2 -std=c++20 -I"$BUILD/prefix/include" -I"$MTS/include" -I"$BUILD/mlip.cpp/include" \
+"${CXX:-c++}" -O2 -std=c++20 -I"$BUILD/prefix/include" -I"$MTS/include" -I"$BUILD/mlip.cpp/include" \
   "$HERE/bench/bench.cpp" -o "$BUILD/bench" \
   "$L/libmlipcpp.a" "$L/libggml.a" "$L/libggml-cpu.a" "$L/libggml-base.a" "$L/libfmt.a" -fopenmp \
   -L"$BUILD/prefix/lib" -L"$MTS/lib" -lmetatomic -lmetatensor \

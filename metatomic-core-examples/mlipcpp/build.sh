@@ -35,9 +35,13 @@ if [ ! -x "$VENV/bin/python" ]; then
 fi
 MTS="$("$VENV/bin/python" -c 'import metatensor, os; print(os.path.dirname(metatensor.__file__))')"
 
-cmake -S "$METATOMIC/metatomic-core" -B "$BUILD/metatomic-build" -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX="$BUILD/prefix" -DCMAKE_PREFIX_PATH="$MTS/lib/cmake" > "$BUILD/metatomic.log"
-cmake --build "$BUILD/metatomic-build" -j "$JOBS" --target install >> "$BUILD/metatomic.log"
+# built once: cargo needs a working system linker (e.g. no HPC compiler module)
+if [ ! -f "$BUILD/prefix/lib/cmake/metatomic/metatomic-config.cmake" ]; then
+  cmake -S "$METATOMIC/metatomic-core" -B "$BUILD/metatomic-build" -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="$BUILD/prefix" -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_PREFIX_PATH="$MTS/lib/cmake" \
+    > "$BUILD/metatomic.log"
+  cmake --build "$BUILD/metatomic-build" -j "$JOBS" --target install >> "$BUILD/metatomic.log"
+fi
 
 # shellcheck disable=SC2086
 cmake -S "$MLIPCPP" -B "$BUILD/mlipcpp-build" -DCMAKE_BUILD_TYPE=Release \
@@ -46,7 +50,7 @@ cmake -S "$MLIPCPP" -B "$BUILD/mlipcpp-build" -DCMAKE_BUILD_TYPE=Release \
 cmake --build "$BUILD/mlipcpp-build" -j "$JOBS" --target mlipcpp-metatomic metatomic_plugin >> "$BUILD/mlipcpp.log"
 cp "$BUILD/mlipcpp-build/lib/mlipcpp-metatomic.so" "$BUILD/mlipcpp-build/bin/metatomic_plugin" "$BUILD/"
 
-cc -O2 -std=c11 -Wall -Wextra -I"$BUILD/prefix/include" -I"$MTS/include" "$HERE/nve-md.c" -o "$BUILD/nve-md" \
+"${CC:-cc}" -O2 -std=c11 -Wall -Wextra -I"$BUILD/prefix/include" -I"$MTS/include" "$HERE/nve-md.c" -o "$BUILD/nve-md" \
   -L"$BUILD/prefix/lib" -L"$MTS/lib" -lmetatomic -lmetatensor -lm \
   -Wl,--disable-new-dtags -Wl,-rpath,"$BUILD/prefix/lib" -Wl,-rpath,"$MTS/lib"
 
