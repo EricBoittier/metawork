@@ -6,8 +6,9 @@
 #   build/venv               metatensor-core + metatomic-core Python packages
 #   build/mlipcpp-metatomic.so, build/metatomic_plugin, build/nve-md
 #
-# Override the checkouts with METATOMIC_DIR / MLIPCPP_DIR, and pass extra CMake
-# options to mlip.cpp with MLIPCPP_CMAKE_ARGS (e.g. "-DMLIPCPP_USE_CUDA=ON").
+# Override the checkouts with METATOMIC_DIR / MLIPCPP_DIR, pass extra CMake
+# options to mlip.cpp with MLIPCPP_CMAKE_ARGS (e.g. "-DMLIPCPP_USE_CUDA=ON"), and
+# the interpreter for the venv with PYTHON (>= 3.11).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD="$HERE/build"
@@ -28,7 +29,7 @@ fi
 # metatomic-core needs metatensor-core < 0.3, newer than some metawork venvs
 VENV="$BUILD/venv"
 if [ ! -x "$VENV/bin/python" ]; then
-  python3 -m venv "$VENV"
+  "${PYTHON:-python3}" -m venv "$VENV"
   "$VENV/bin/pip" -q install numpy ase "metatensor-core>=0.2.4,<0.3"
   "$VENV/bin/pip" -q install "$METATOMIC/python/metatomic_core"
 fi

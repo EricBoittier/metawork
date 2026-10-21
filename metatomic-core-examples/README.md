@@ -120,3 +120,17 @@ the model output does not). NVE with conservative forces drifts by
 3e-5 eV/atom over 500 fs at 1 fs (4e-3 eV/atom with `--nc`). On CPU a
 64-atom step costs 0.7 s with conservative forces and 0.2 s with `--nc`, the
 cost of the mlip.cpp CPU runtime itself.
+
+### Timings (`mlipcpp/bench/`)
+
+Head to head timings of the same model through every wrapper: `mlipcpp::Predictor`,
+the plugin via the C API (`bench.cpp`) and via Python, and the TorchScript export
+via metatomic-torch's ASE calculator (`bench.py`), on silicon supercells
+(energy, energy + forces, non-conservative forces).
+
+```bash
+mlipcpp/bench/run.sh ~/ft-huber-3e-5.gguf ~/long-ft-huber-3e-5.ckpt bench.csv   # CPU, local
+cd mlipcpp && sbatch bench/lyra.sbatch model.gguf model.pt                        # CUDA, lyra
+```
+
+On CPU, mlip.cpp uses 4 threads unless `MLIPCPP_NUM_THREADS` is set.
