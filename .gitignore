@@ -24,6 +24,8 @@ PETweb/
 /lammps-metatomic-feedstock/
 # worktree of metatomic/ on metatomic-core, used to build the mlip.cpp plugin
 /metatomic-mlipcpp/
+# worktree of atomistic-cookbook/ on orca-external-optimizer (the ORCA example)
+/atomistic-cookbook-orca/
 
 # venvs created by etc/setup-metawork.sh
 /.venv/
