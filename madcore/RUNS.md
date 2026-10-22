@@ -173,7 +173,7 @@ Bound: mixed/periodic 2 × 12 h segments, nonperiodic 1 × 4 h → 104 GPU-h ≈
 | periodic | 355.1 / 1390.4 | 347.2 / 1640.9 | +2.3 %, -15.3 % | 509.5 / 1510, 493.4 / 1497 |
 | nonperiodic | 518.4 / 2113.6 | 615.7 / 2355.2 | -15.8 %, -10.3 % | 1363.9 / 4268, 1497.3 / 4422 |
 
-Test RMSE, energy meV/atom, forces (-dE/dx) meV/A. Force MAE is 414-428 meV/A on all four mixed/periodic runs, so the periodic-sr force RMSE (1641, worse than its 10-epoch 1497) comes from a few large errors; whether its checkpoint holds the best or the last epoch (lowest val loss was ep 69) is still unchecked. Long range helps on nonperiodic only; on mixed/periodic it is within a few % on energy and mixed on forces.
+Test RMSE, energy meV/atom, forces (-dE/dx) meV/A. Force MAE is 414-428 meV/A on all four mixed/periodic runs, so the periodic-sr force RMSE (1641, worse than its 10-epoch 1497) comes from a few large errors; checked 10-22: lorem-periodic-lrfalse.ckpt has epoch 99 in model_state_dict and best_epoch 79 (best_metric 0.536) in best_model_state_dict, and LOREM.load_checkpoint(context="export") at a73363f3 takes the best one, so the evaluated model is epoch 79. Its validation curve explains the force RMSE: val loss / E / F at ep 69 2.865 / 358.7 / 1509, ep 79 2.945 / 349.5 / 1534, ep 99 3.250 / 345.0 / 1617 (train.csv), so forces overfit after ep ~69 while energy keeps improving; model_69.ckpt is in outputs/2026-10-02/13-54-54/ if the lowest-val-loss model is wanted. Long range helps on nonperiodic only; on mixed/periodic it is within a few % on energy and mixed on forces.
 
 # RUNS — PET training: metatrain vs mlip.cpp (MAD-CORE 2^18, 2 GPUs, batch 64/GPU)
 
