@@ -61,9 +61,27 @@ __pycache__/
 !/madcore/stats-2pow18/per-structure.npz
 
 # GROMACS ONIOM jobs (etc/oniom/): installed builds, exported models, the cloned source
-/builds/
+/builds/*
+# the job and build scripts at the top of builds/ are tracked
+!/builds/*.sbatch
+!/builds/*.sh
+!/builds/*.py
 /models/
 /gromacs-oniom-src/
 
 # git bundles carry local-only branches (e.g. the LOREM long_range switch): never commit them
 *.bundle
+
+# separate git checkouts (worktrees of the forks), each with its own remote
+/gromacs-capi-binding/
+/gromacs-capi-halo/
+/gromacs-torch-linkbond/
+/metatomic-torch-plugin/
+/metawork/
+/mlip.cpp/
+
+# run output, RUNS.md backups and background-job bookkeeping
+/gromacs-mlwater-bench/runs/
+RUNS.md.bak-*
+*.pid
+/madcore/make-venv-lorem.log

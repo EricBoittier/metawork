@@ -1,0 +1,23 @@
+; Water with no MM interactions: zero charges and zero Lennard-Jones, so the metatomic model
+; (the whole system as ML) is the only force; the atomic numbers (at.num) give it its elements.
+; No bonds, not even connection-only ones: those tie the atoms of a molecule together under
+; domain decomposition, which failed when one moved far ("multi-body cut-off distance").
+[ defaults ]
+; nbfunc  comb-rule  gen-pairs  fudgeLJ  fudgeQQ
+  1        2          no         1.0      1.0
+
+[ atomtypes ]
+; name  at.num  mass     charge  ptype  sigma  epsilon
+  OML   8       15.9994  0.0     A      0.0    0.0
+  HML   1       1.008    0.0     A      0.0    0.0
+
+[ moleculetype ]
+; name  nrexcl
+  SOL   1
+
+[ atoms ]
+; nr  type  resnr  res  atom  cgnr  charge  mass
+  1   OML   1      SOL  OW    1     0.0     15.9994
+  2   HML   1      SOL  HW1   1     0.0     1.008
+  3   HML   1      SOL  HW2   1     0.0     1.008
+

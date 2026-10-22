@@ -1,0 +1,24 @@
+; Pure-ML water: PET-MAD xs on every atom, NVE from 300 K, dt 0.5 fs (gmx-mlwater-bench)
+integrator              = md
+dt                      = 0.0005
+nsteps                  = 100
+nstcalcenergy           = 1
+nstenergy               = 1
+nstlog                  = 10
+cutoff-scheme           = Verlet
+pbc                     = xyz
+coulombtype             = cut-off
+rcoulomb                = 0.9
+vdwtype                 = cut-off
+rvdw                    = 0.9
+verlet-buffer-tolerance = -1
+rlist                   = 0.9
+tcoupl                  = no
+gen-vel                 = yes
+gen-temp                = 300
+gen-seed                = 1
+constraints             = none
+metatomic-active        = yes
+metatomic-input-group   = System
+metatomic-model         = @MODELS@/pet-mad-xs-v1.5.0.pt
+metatomic-device        = cuda
