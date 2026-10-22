@@ -1,1 +1,5 @@
-{}
+{
+  "theme": "obsidian",
+  "accentColor": "#629ef9",
+  "textFontFamily": "DejaVu Math TeX Gyre"
+}
