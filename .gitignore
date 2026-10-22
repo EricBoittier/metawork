@@ -22,6 +22,8 @@ PETweb/
 /plumed2/
 /plumed-metatomic-feedstock/
 /lammps-metatomic-feedstock/
+# worktree of metatomic/ on metatomic-core, used to build the mlip.cpp plugin
+/metatomic-mlipcpp/
 
 # venvs created by etc/setup-metawork.sh
 /.venv/
