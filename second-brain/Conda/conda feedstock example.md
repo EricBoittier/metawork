@@ -1,0 +1,1 @@
+https://github.com/metatensor/lammps-metatomic-feedstock/pull/19
